@@ -1,0 +1,123 @@
+.row {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  min-height: var(--row-min-height);
+  padding: var(--space-12) var(--space-16);
+  justify-content: center;
+  background: var(--color-background-surface-raised);
+  border-bottom: var(--divider-thin) solid var(--color-border-subtle);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 68px;
+}
+.tintError { background: var(--color-surface-error-subtle); }
+.tintWarning { background: var(--color-surface-warning-subtle); }
+.tintInfo { background: var(--color-surface-info-subtle); }
+.tintSuccess { background: var(--color-surface-success-subtle); }
+.tintHero { background: var(--color-hero-banner); }
+.attention {
+  box-shadow: inset 4px 0 0 var(--color-text-warning);
+}
+.main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-12);
+}
+.roll {
+  width: 20px;
+  flex: none;
+  font: var(--type-caption);
+  letter-spacing: var(--ls-caption);
+  color: var(--color-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+/* The name keeps at least ~7em: with enlarged text the pills drop below it instead of squeezing it letter by letter. */
+.who {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1 1 7em;
+  min-width: 0;
+  align-items: flex-start;
+}
+.name {
+  font: var(--type-title-small);
+  letter-spacing: var(--ls-title-small);
+  overflow-wrap: break-word;
+}
+/* One line, as in the prototype: rows stay 68px so a 30-student batch scans quickly. */
+.father {
+  max-width: 100%;
+  font: var(--type-body-small);
+  letter-spacing: var(--ls-body-small);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Present/Absent read as one paired control: 4px apart, as in the prototype (D-038). */
+.pills {
+  display: flex;
+  gap: var(--space-4);
+  flex: none;
+}
+.pillsRow {
+  width: 100%;
+  gap: var(--space-8);
+}
+.note,
+.followLabel {
+  font: var(--type-label-small);
+  letter-spacing: var(--ls-label-small);
+  color: var(--color-text-secondary);
+}
+.note {
+  padding-left: var(--space-32);
+}
+.follow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-8);
+  padding-left: var(--space-32);
+}
+.until {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  width: 100%;
+}
+.date {
+  min-height: var(--touch-target-min);
+  padding: 0 var(--space-12);
+  border: var(--border-selected) solid var(--color-border-default);
+  border-radius: var(--radius-full);
+  background: var(--color-background-surface-raised);
+  font: var(--type-label-small);
+  letter-spacing: var(--ls-label-small);
+}
+
+/* Narrow phones (≈320px viewport → 288px row content) move the pair under the name, full width. */
+@container (max-width: 307px) {
+  .main {
+    flex-wrap: wrap;
+  }
+  .main > .pills {
+    width: 100%;
+    padding-left: var(--space-32);
+  }
+  .main > .pills > * {
+    flex: 1;
+  }
+}
+
+/* Four or more statuses on a narrow row: a 2 × 2 grid, so every pill keeps its full label. */
+@container (max-width: 320px) {
+  .pillsRow[data-count='4'],
+  .pillsRow[data-count='5'] {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

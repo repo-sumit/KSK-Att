@@ -1,0 +1,28 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  min-width: 0;
+}
+.tight {
+  gap: var(--space-8);
+}
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.title {
+  font: var(--type-title-large);
+  letter-spacing: var(--ls-title-large);
+}
+.label {
+  font: var(--type-title-small);
+  letter-spacing: var(--ls-title-small);
+  color: var(--color-text-secondary);
+}
+.subtitle {
+  font: var(--type-body-small);
+  letter-spacing: var(--ls-body-small);
+  color: var(--color-text-secondary);
+}

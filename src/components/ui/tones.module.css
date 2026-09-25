@@ -1,0 +1,7 @@
+/* Shared status tones: subtle surface + AA text colour (never colour alone — pair with icon + text). */
+.success { background: var(--color-surface-success-subtle); color: var(--color-text-success); }
+.error { background: var(--color-surface-error-subtle); color: var(--color-text-error); }
+.warning { background: var(--color-surface-warning-subtle); color: var(--color-text-warning); }
+.info { background: var(--color-surface-info-subtle); color: var(--color-text-info); }
+.brand { background: var(--color-surface-brand-subtle); color: var(--color-text-brand-subdued); }
+.neutral { background: var(--color-background-surface); color: var(--color-text-secondary); }

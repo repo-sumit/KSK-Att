@@ -1,0 +1,97 @@
+'use client';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect } from 'react';
+import { Latin } from '@/components/ui/Latin';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { InnerHeader } from '@/components/shell/Headers';
+import { ScreenLayout } from '@/components/shell/ScreenLayout';
+import { useI18n } from '@/hooks/i18n';
+import { useServices } from '@/hooks/services';
+import { useSession } from '@/hooks/session';
+import { useQuery } from '@/hooks/useQuery';
+import { routes } from '@/lib/routes';
+import type { OpenRosterError, SessionCard } from '@/services/attendance';
+import { ProblemScreen } from '../feedback/ProblemScreen';
+import { VerificationFlow } from '../verification/VerificationFlow';
+import { useSessionLabel } from './useSessionLabel';
+
+type Gate = { readonly kind: 'ready' | OpenRosterError; readonly card?: SessionCard };
+
+/**
+ * Gateway to a roster (PRD §8, §11, §20): sync pending records first, then
+ * refuse closed/not-yet-open/undownloaded sessions with the reason, enrol a face
+ * if needed, verify, and only then replace itself with the student list.
+ */
+export function OpenSessionScreen() {
+  const { t, format } = useI18n();
+  const router = useRouter();
+  const ctx = useSession();
+  const { attendance, sync } = useServices();
+  const label = useSessionLabel();
+  const key = useSearchParams().get('s') ?? '';
+
+  const { data: gate } = useQuery<Gate>(
+    `open:${key}`,
+    async () => {
+      const status = sync.status();
+      if (ctx.config.offline.syncOnOpen && status.online && status.pending > 0) void sync.syncNow();
+      const opened = await attendance.openRoster(ctx, key);
+      const card = await attendance.findCard(ctx, key);
+      return opened.ok ? { kind: 'ready', card } : { kind: opened.error, card };
+    },
+    [],
+  );
+
+  const enrolFirst = gate?.kind === 'not_verified' && ctx.journey.faceEnrolmentRequired;
+  useEffect(() => {
+    if (!gate) return;
+    if (gate.kind === 'ready') router.replace(routes.mark(key));
+    else if (gate.kind === 'already_submitted') router.replace(routes.record(key));
+    else if (enrolFirst) router.replace(routes.face(routes.open(key)));
+  }, [gate, enrolFirst, key, router]);
+
+  const back = () => router.back();
+  if (!gate || gate.kind === 'ready' || gate.kind === 'already_submitted' || enrolFirst) {
+    return (
+      <ScreenLayout header={<InnerHeader title={t('verify.title')} back="close" onBack={back} />}>
+        <Skeleton count={1} height={200} label={t('common.loading')} />
+      </ScreenLayout>
+    );
+  }
+
+  const card = gate.card;
+  const name = card ? label(card) : undefined;
+  const session = name ? [name.title, name.meta].filter(Boolean).join(' · ') : '';
+  const goBack = { label: t('common.goBack'), onPress: back };
+
+  switch (gate.kind) {
+    case 'not_verified':
+      return (
+        <VerificationFlow
+          purpose={{ kind: 'session', key }}
+          subtitle={<Latin>{session}</Latin>}
+          passedSubtitle={t('verify.openingList')}
+          onPassed={() => router.replace(routes.mark(key))}
+          onExit={back}
+        />
+      );
+    case 'window_not_open':
+      return (
+        <ProblemScreen
+          kind="notOpen"
+          params={{ session, time: card?.scheduled.window ? format.clockTime(card.address.date, card.scheduled.window.start) : '' }}
+          primary={goBack}
+        />
+      );
+    case 'window_closed':
+      return <ProblemScreen kind="closed" params={{ session }} primary={goBack} />;
+    case 'not_downloaded':
+      return <ProblemScreen kind="noPack" params={{ session }} primary={goBack} />;
+    case 'needs_connection':
+      return <ProblemScreen kind="noConnection" params={{ session }} primary={goBack} />;
+    case 'no_access':
+      return <ProblemScreen kind="noAccess" primary={goBack} />;
+    default:
+      return <ProblemScreen kind="notFound" />;
+  }
+}

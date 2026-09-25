@@ -1,0 +1,55 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  width: 100%;
+}
+.label {
+  font: var(--type-label-medium);
+  letter-spacing: var(--ls-label-medium);
+  color: var(--color-text-secondary);
+}
+.control {
+  display: flex;
+  align-items: center;
+  min-height: 52px;
+  padding: 0 var(--space-16);
+  border: var(--border-selected) solid var(--color-border-default);
+  border-radius: var(--radius-full);
+  background: var(--color-chat-input-background);
+  transition: border-color var(--motion-fast) ease;
+}
+.control:focus-within {
+  border-color: var(--color-border-brand);
+}
+.invalid,
+.invalid:focus-within {
+  border-color: var(--color-border-error);
+}
+.input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: var(--space-12) 0;
+  font: var(--type-label-medium);
+  letter-spacing: var(--ls-label-medium);
+  color: var(--color-text-primary);
+  text-overflow: ellipsis;
+}
+/* The brand border is the focus indicator (DS border/focus); inputs match :focus-visible on every tap, so no extra ring. */
+.input:focus-visible {
+  outline: none;
+}
+.control:focus-within {
+  box-shadow: 0 0 0 1px var(--color-border-brand);
+}
+.message {
+  font: var(--type-label-small);
+  letter-spacing: var(--ls-label-small);
+  color: var(--color-text-tertiary);
+}
+.error {
+  color: var(--color-text-error);
+}

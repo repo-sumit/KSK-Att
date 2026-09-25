@@ -1,0 +1,133 @@
+.batch {
+  container-type: inline-size;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-12);
+  min-height: 72px;
+}
+.slot {
+  gap: var(--space-12);
+}
+.left {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  flex: 1;
+  min-width: 0;
+}
+.right {
+  flex: none;
+  display: flex;
+  justify-content: flex-end;
+  max-width: 50%;
+  margin-left: auto;
+}
+.title {
+  font: var(--type-title-medium);
+  letter-spacing: var(--ls-title-medium);
+  color: var(--color-text-primary);
+}
+.muted {
+  color: var(--color-text-secondary);
+}
+.meta {
+  font: var(--type-body-small);
+  letter-spacing: var(--ls-body-small);
+  color: var(--color-text-secondary);
+}
+.timeRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+.time {
+  font: var(--type-label-small-strong);
+  letter-spacing: var(--ls-label-small);
+  color: var(--color-text-secondary);
+}
+.timeNow {
+  color: var(--color-text-brand);
+}
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  font: var(--type-label-small);
+  letter-spacing: var(--ls-label-small);
+  color: var(--color-text-secondary);
+  text-align: right;
+}
+.slot .status {
+  gap: var(--space-8);
+  text-align: left;
+}
+.statusError { color: var(--color-text-error); }
+.statusWarning { color: var(--color-text-warning); }
+.statusSuccess {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  color: var(--color-text-success);
+  font-weight: var(--font-weight-semibold);
+}
+.submitted {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-4);
+  font: var(--type-label-small);
+  letter-spacing: var(--ls-label-small);
+}
+.slot .submitted {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+.view {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-brand);
+  font-weight: var(--font-weight-semibold);
+}
+/* Visual button inside a card that is itself the link. */
+.cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 var(--space-12);
+  border-radius: var(--radius-full);
+  background: var(--color-interactive-primary);
+  color: var(--color-text-on-brand);
+  font: var(--type-title-small);
+  letter-spacing: var(--ls-title-small);
+  white-space: nowrap;
+}
+.ctaFull {
+  width: 100%;
+  min-height: var(--touch-target-min);
+}
+
+/* Narrow phones (≈320px): the action or status moves under the title, as on the prototype's timetable card. */
+@container (max-width: 280px) {
+  .batch > .left,
+  .batch > .right {
+    flex-basis: 100%;
+    max-width: 100%;
+  }
+  .batch > .right {
+    justify-content: flex-start;
+  }
+  .batch > .right > .cta {
+    width: 100%;
+    min-height: var(--touch-target-min);
+  }
+  .batch .submitted {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+  }
+}

@@ -1,0 +1,11 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+.block {
+  display: block;
+  border-radius: var(--radius-lg);
+  background: var(--color-background-surface-raised);
+  animation: ksk-shimmer 1.2s ease-in-out infinite;
+}

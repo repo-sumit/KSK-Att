@@ -1,0 +1,39 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  border-radius: var(--radius-lg);
+  background: var(--color-background-surface-raised);
+  box-shadow: var(--shadow-card);
+  min-width: 0;
+}
+.padded {
+  padding: var(--space-16);
+}
+.flat {
+  box-shadow: none;
+}
+.bordered {
+  border: var(--divider-thin) solid var(--color-border-default);
+  box-shadow: none;
+}
+.pressable {
+  width: 100%;
+  border: var(--border-selected) solid transparent;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) ease;
+}
+.pressable:active {
+  background: var(--color-surface-pressed);
+}
+.pressable:focus-visible {
+  outline-offset: -2px;
+}
+.highlighted {
+  border-color: var(--color-border-focus);
+}
+.muted {
+  cursor: pointer;
+}

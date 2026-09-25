@@ -1,0 +1,113 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  border: var(--border-selected) solid transparent;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  text-align: center;
+  transition:
+    background-color var(--motion-fast) ease,
+    border-color var(--motion-fast) ease,
+    transform var(--motion-press) ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.label {
+  min-width: 0;
+  /* One line at normal text size; wraps (never cut off) when the user enlarges text. */
+  text-wrap: balance;
+  overflow-wrap: break-word;
+}
+
+.full {
+  width: 100%;
+}
+
+/* DS Component Padding Reference: large space/16, medium space/12, small space/8. */
+.lg {
+  min-height: var(--cta-height);
+  padding: 0 var(--space-16);
+  font: var(--type-title-medium);
+  letter-spacing: var(--ls-title-medium);
+}
+.md {
+  min-height: var(--touch-target-min);
+  padding: 0 var(--space-12);
+  font: var(--type-title-small);
+  letter-spacing: var(--ls-title-small);
+}
+.sm {
+  min-height: 36px;
+  padding: 0 var(--space-8);
+  gap: var(--space-4);
+  font: var(--type-title-small);
+  letter-spacing: var(--ls-title-small);
+}
+
+.primary {
+  background: var(--color-interactive-primary);
+  color: var(--color-text-on-brand);
+}
+.secondary {
+  background: var(--color-background-surface-raised);
+  color: var(--color-text-brand);
+  border-color: var(--color-border-brand);
+}
+.ghost {
+  background: transparent;
+  /* ScreenLayout's grey surface swaps in brand-subdued: #386AF6 is only 3.9:1 on #ECECEC (D-010). */
+  color: var(--ghost-fg, var(--color-text-brand));
+}
+.destructive {
+  background: var(--color-interactive-destructive-fill);
+  color: var(--color-text-on-brand);
+}
+.inverse {
+  background: transparent;
+  color: var(--color-camera-on);
+}
+
+/* Every variant keeps the size's Title style (600), as the prototype's DS components render them (D-037). */
+
+@media (hover: hover) {
+  .primary:hover:not(:disabled, [data-inactive]) {
+    background: var(--color-interactive-primary-hover);
+  }
+  .secondary:hover:not(:disabled, [data-inactive]),
+  .ghost:hover:not(:disabled, [data-inactive]) {
+    background: var(--color-surface-brand-subtle);
+  }
+}
+
+.button:active:not(:disabled, [data-inactive]) {
+  transform: scale(0.97);
+}
+.primary:active:not(:disabled, [data-inactive]) {
+  background: var(--color-interactive-primary-active);
+}
+
+.primary:disabled,
+.primary[data-inactive] {
+  background: var(--color-interactive-primary-disabled);
+  color: var(--color-text-on-brand);
+  cursor: not-allowed;
+}
+.secondary:disabled,
+.secondary[data-inactive] {
+  background: var(--color-interactive-secondary-disabled);
+  color: var(--color-text-disabled);
+  border-color: var(--color-border-default);
+  cursor: not-allowed;
+}
+.ghost:disabled,
+.ghost[data-inactive] {
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+}
+.inverse:focus-visible {
+  outline-color: var(--color-camera-on);
+}

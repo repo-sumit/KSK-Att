@@ -1,0 +1,97 @@
+.greeting {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.hello {
+  font: var(--type-heading-small);
+  letter-spacing: var(--ls-heading-small);
+}
+.sub {
+  font: var(--type-body-small);
+  letter-spacing: var(--ls-body-small);
+  color: var(--color-text-secondary);
+}
+.cardRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+}
+.cardText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  flex: 1;
+  min-width: 0;
+}
+.cardTitle {
+  font: var(--type-title-medium);
+  letter-spacing: var(--ls-title-medium);
+}
+.cardSub {
+  font: var(--type-body-small);
+  letter-spacing: var(--ls-body-small);
+  color: var(--color-text-secondary);
+}
+.subSuccess,
+.subWarning {
+  font: var(--type-label-small);
+  letter-spacing: var(--ls-label-small);
+}
+.subSuccess { color: var(--color-text-success); }
+.subWarning { color: var(--color-text-warning); }
+.chevron { color: var(--color-icon-secondary); }
+.recent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+.recentTitle {
+  font: var(--type-title-small);
+  letter-spacing: var(--ls-title-small);
+  color: var(--color-text-secondary);
+}
+.empty {
+  font: var(--type-body-medium);
+  letter-spacing: var(--ls-body-medium);
+  color: var(--color-text-secondary);
+}
+.recentList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+.recentRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  padding: var(--space-12) var(--space-16);
+  border-radius: var(--radius-lg);
+  background: var(--color-background-surface-raised);
+  color: var(--color-text-primary);
+}
+.recentName {
+  font: var(--type-title-small);
+  letter-spacing: var(--ls-title-small);
+}
+.iconSuccess { color: var(--color-icon-success); }
+.iconWarning { color: var(--color-icon-warning); }
+.link {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: var(--touch-target-min);
+  font: var(--type-title-small);
+  letter-spacing: var(--ls-title-small);
+  /* Brand blue is 3.9:1 on the grey page; the subdued brand text passes AA. */
+  color: var(--color-text-brand-subdued);
+}
+/* A count and its word ("2 Absent") or a time and its label never split across lines. */
+.phrase {
+  white-space: nowrap;
+}
+.chevron {
+  flex: none;
+  color: var(--color-icon-secondary);
+}

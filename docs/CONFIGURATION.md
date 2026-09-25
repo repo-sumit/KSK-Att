@@ -1,0 +1,146 @@
+# Configuration
+
+Every state difference is a value in `AppConfiguration` (`src/config/types.ts`), never a branch on a state or a person in the UI. This page lists every option, its Maharashtra value, and **what a user actually sees** for each setting. Registry keys in parentheses are the PRD's names (PRD §14, §17–§21).
+
+## How a configuration is resolved
+
+```
+PRODUCT_DEFAULTS (src/config/defaults.ts)
+  → state floor (src/config/states/maharashtra.ts)            every key has a state value
+  → district layer → institute layer                          only keys listed in overridableKeys
+  → demo: persona patch → demo-panel changes                  demo builds only
+  → normalize (Present and Absent are always in status sets)
+  → validate (src/config/validate.ts)                         invalid combinations are rejected
+  → deriveJourney (src/config/journey.ts)                     the only input screens use
+```
+
+Maharashtra opens two keys to narrower scopes: `time.shiftWindows` and `verification.fenceRadiusM`. `ConfigurationService.resolveFor(institute, staffId)` returns the resolved configuration for a session. When the configuration changes, the session reloads, verification passes are cleared, and every screen re-renders from the new journey.
+
+To add a state, create `src/config/states/<state>.ts` with a `StateConfiguration` (base = `PRODUCT_DEFAULTS` plus that state's sheet), load its master data, and deploy. No screen changes are needed.
+
+## Identity and roles: `identity`
+
+| Option | MH | Values → what the user sees |
+|---|---|---|
+| `instituteConfirmStep` (login.institute_confirm_step) | `true` | `true`: after entering the code, "Is this your institute?" with name and locality; *No* clears the code. `false`: goes straight to Trainer ID |
+| `instructorConfirmStep` (login.instructor_confirm_step) | `true` | `true`: "Is this you?" with name, designation, trade, employment type and institute. `false`: signs in directly |
+| `secondFactor` (login.second_factor) | `'none'` | Only `'none'` is implemented (PRD open question 1) |
+| `principalCanCorrect` (role.principal_can_correct) | `true` | `true`: the principal's records show a pencil on each student; the correction screen requires a reason; the Correction log report exists. `false`: all of this is absent |
+| `principalCanMarkStudents` | `true` | `true`: the principal can open an **unsubmitted batch whose window is open** and mark it (D-011). `false`: principal views are read-only |
+
+## Mapping: `mapping` (PRD §7)
+
+| Option | MH | Values → what the user sees |
+|---|---|---|
+| `model` (mapping.model) | `'open'` | `open`: Home shows "Choose trade and batch" → trade list → batch list; any batch in the institute. `trade`: the instructor's own trade's batches, with a trade switcher if they hold several. `batch`: "Your batches", listing only assigned batches grouped by trade. `timetable`: "Today's timetable", one card per period in time order, with the current one marked **Now** |
+| `tradeAutoselect` (mapping.trade_autoselect) | `true` | `trade` model with a single trade: skips the trade step |
+| `multiTrade` (mapping.multi_trade) | `'named'` | `none`: primary trade only. `named`: primary plus secondary trades, only for staff flagged `multiTradeAllowed`. `all`: every instructor may hold several trades |
+| `allBatchInstructors` (mapping.all_batch_instructors) | `false` | Under the `trade` model, subject instructors (e.g. Employability Skills): `true` reach every batch in the institute; `false` reach only their assigned batches |
+
+Subject instructors (a `StaffMember` with `subjectId`) mark a **separate** record per batch (D-013). Their home reads "Employability Skills · 5 batches in 4 trades".
+
+## Verification: `verification` (PRD §8)
+
+| Option | MH | Values → what the user sees |
+|---|---|---|
+| `geoMode` (verify.geo_mode) | `'fencing'` | `off`: no location step and no location code runs. `tagging`: location is captured silently with the record; a screen appears only if permission is denied or GPS is off. `fencing`: a full-screen "Checking your location…" step; outside the radius → "You're outside your institute · You are 1.24 km away" with **Check again** |
+| `fenceRadiusM` (verify.fence_radius_m) | `500` | Radius around the institute. Distances under 1 km show in metres, otherwise in km to two decimals |
+| `fencePassPrompt` (verify.fence_pass_prompt) | `'silent'` | `silent`: continues straight to face or the list. `confirm`: shows "You're at {institute} · n m from the institute" with **Continue** |
+| `face` (verify.face) | `true` | `true`: a Location → Identity stepper; "Look at the camera" (**simulated**, D-009). First-time users set up their face before marking. `false`: no face step and no camera prompt |
+| `faceRetryLimit` (verify.face_retry_limit) | `null` | `null`: unlimited *Try again*. A number n: after n failures, "Face check not passed · Please ask your principal to mark your attendance today" |
+
+If both `geoMode` is `off` and `face` is `false`, there is no verification screen at all: selecting a batch opens the list directly.
+
+## Marking: `marking` (PRD §9–§10)
+
+| Option | MH | Values → what the user sees |
+|---|---|---|
+| `frequency` (mark.frequency) | `'once'` | `once`: one card per batch per day. `twice`: two cards per batch, Morning/After lunch (or Sign in/Sign out), each with its own window and lock. `period`: one card per timetable period ("Period 3 · Theory") |
+| `twiceShape` (mark.twice_shape) | `'halves'` | Labels for twice-daily: `halves` → Morning / After lunch; `signin_signout` → Sign in / Sign out |
+| `defaultStatus` (mark.default_status) | `'present'` | `present`: everyone starts Present, and the hint reads "Tap Absent for students who are not here". `absent`: everyone starts Absent and Present rows are tinted green. `blank`: nobody is marked; Review & Submit stays inactive until every row is marked, and the footer says how many remain |
+| `statusSet` (mark.status_set) | Present, Absent | Adding `half_day` or `leave` switches rows to a full-width pill row (no dropdowns). Adding `ojt` shows OJT rows as locked chips ("On-the-job training · declared in the ERP"), taken from ERP declarations and never selectable |
+| `halfDayHalves` (mark.half_day_halves) | `false` | `true`: choosing Half day asks "Present for: First half / Second half" before submit |
+| `leaveDateRange` (mark.leave_date_range) | `true` | With Leave on: after the leave type (Sick / Casual / Medical), an optional "until" date |
+
+Totals are always visible in the fixed summary (Students · Present · Absent, plus "2 on OJT · 1 half day…"). Review lists the exceptions. Submit asks for confirmation in a bottom sheet, then the record locks.
+
+## Time: `time` (PRD §11)
+
+| Option | MH | Values → what the user sees |
+|---|---|---|
+| `fencing` (time.fencing) | `true` | `true`: outside its window a card shows "Opens at 2:00 PM" or "Not marked · closed at 8:00 AM"; opening it anyway shows "Attendance isn't open yet" / "Attendance is closed". `false`: every slot can be marked all day (today only) |
+| `shiftWindows` (time.shift_windows) | Shift 1 07:00–14:00, Shift 2 14:00–20:00 | The markable window per shift for daily marking. Institute-overridable in MH |
+| `twiceSplit` | 11:00 / 17:00 | When the second mark of a twice-daily shift opens |
+| `instituteOverride` (time.institute_override) | `true` | Allows `Institute.shiftWindows` to replace the state windows |
+
+The fence is hard, with no grace period (D-016). Backdating is impossible whatever the configuration.
+
+## Staff attendance: `staff` (PRD §18)
+
+| Option | MH | Values → what the user sees |
+|---|---|---|
+| `enabled` (staff.attendance) | `true` | `true`: a "My attendance" card on the instructor home; a Students / Staff switch and a Staff card for the principal; the My attendance and Staff summary reports. `false`: all absent |
+| `selfMarking` (staff.self_marking) | `true` | `true`: "Mark attendance" on the card → the same verification step → marked. `false`: the card only shows status ("Marked Present by principal" / "Not marked") |
+| `captureTrigger` (staff.capture_trigger) | `'explicit_tap'` | Only an explicit tap is implemented |
+| `principalMarking` (staff.principal_marking) | `true` | `true`: the principal's staff list has Present/Absent pills and "Save n changes". `false`: read-only list |
+| `statusSet` (staff.status_set) | Present, Absent | Statuses offered for staff |
+
+## Reports: `reports` (PRD §19)
+
+| Option | MH | Values → what the user sees |
+|---|---|---|
+| `enabled` (report.enabled) | `true` | `false`, or no block available for the role: the **Reports tab disappears** |
+| `instructorScope` (report.instructor_scope) | `'both'` | `mapped`: batches the instructor can reach. `marked_only`: batches they marked this month. `both`: the union |
+| `blocks` (report.blocks) | all 8 | Instructor: My attendance, My batches, Student attendance %, Daily register. Principal: Institute summary, Trade & batch, Staff summary, Correction log. Staff blocks also need `staff.enabled`; the correction log also needs `principalCanCorrect` |
+| `dateRanges` (report.date_ranges) | day, week, month, custom | Options in the range switch ("Today / Week / Month / Custom") |
+| `pdfDownload` (report.pdf_download) | `true` | "Print / Save as PDF" (browser print view, D-023) |
+| `eligibilityThresholdPct` | `75` | Students below it are counted and flagged ("2 students are below 75% attendance") |
+
+## Offline: `offline` (PRD §20)
+
+| Option | MH | Values → what the user sees |
+|---|---|---|
+| `enabled` (offline.enabled) | `true` | `true`: Profile → Offline data (downloaded batches, pending records, "Sync now"); a batch that wasn't downloaded shows "This batch isn't downloaded" when opened offline. `false`: no Offline data screen; opening any batch offline shows "You're offline · Connect to the internet to mark attendance" |
+| `refreshDays` (offline.refresh_days) | `7` | A pack older than this shows "Student list downloaded on 22 Sep. New admissions may be missing…" |
+| `manualRefresh` (offline.manual_refresh) | `true` | "Refresh downloaded data" button |
+| `multiSelect` (offline.multi_select) | `true` | Download several batches at once |
+| `maxBatches` (offline.max_batches) | `null` | Caps how many batches can be kept on the phone |
+| `autoSync` (offline.auto_sync) | `true` | Records are sent automatically on reconnect and when the app opens online. `false`: they wait for "Sync now" |
+| `syncOnOpen` (offline.sync_on_open) | `true` | Sync is attempted before opening another batch |
+| `eodTriggerTime` (offline.eod_trigger_time) | `21:00` | Informational (a server-side end-of-day job) |
+
+The principal never works offline (`journey.offline.enabled` is false for the principal), and a record can be corrected only after it has synced.
+
+## Language: `i18n` (PRD §21)
+
+| Option | MH | Values → what the user sees |
+|---|---|---|
+| `languages` (i18n.languages) | en, mr | Languages offered in Profile |
+| `defaultLanguage` (i18n.default_language) | `en` | First-run language |
+| `userSwitch` (i18n.user_switch) | `true` | Language switch in Profile; the choice persists on the device |
+| `fallback` (i18n.fallback) | `en` | A missing translation shows the English string, never a blank |
+| `numerals` | `'latin'` | `latin`: 0–9 in every language (D-012). `locale`: Devanagari digits in Marathi |
+
+## Validation rules (`src/config/validate.ts`)
+
+These are errors:
+
+- `status_set_core`: Present or Absent is missing.
+- `half_day_halves_without_half_day`: halves are on but Half day isn't in the status set.
+- `fencing_without_windows`: a shift has no window while time fencing is on.
+- `face_without_enrolment`: no instructor has an enrolled face.
+- `timetable_without_data`, `period_without_data`: the timetable model or period marking is on without timetable data.
+- `batch_without_assignments`: the batch model is on but nobody has assigned batches.
+- `fence_radius`: the radius is not a positive number.
+- `default_language`: the default language is not in the list.
+- `language_count`: the state does not ship 1–3 languages.
+- `staff_no_path`: staff attendance is on but both capture paths are off.
+
+These are warnings:
+
+- `twice_with_half_day`: twice-daily marking and Half day answer the same question.
+- `face_with_offline`: face matching may need the server while offline.
+
+## Demo overrides
+
+In demo builds each persona carries a small patch (for example, the Timetable persona sets `mapping.model: 'timetable'`, `marking.frequency: 'period'` and `time.fencing: true`). The panel then layers the presenter's changes on top. Real deployments have one mapping model per state, and the persona patches exist only so one demo institute can show every model. See [DEMO_GUIDE.md](DEMO_GUIDE.md).

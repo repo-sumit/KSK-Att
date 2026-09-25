@@ -1,0 +1,71 @@
+.track {
+  display: inline-flex;
+  padding: var(--space-4);
+  border-radius: var(--radius-full);
+  background: var(--color-background-surface);
+}
+.full {
+  display: flex;
+  width: 100%;
+}
+.full .option {
+  flex: 1;
+}
+.option {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+}
+.pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0 var(--space-16);
+  border-radius: var(--radius-full);
+  font: var(--type-title-small);
+  letter-spacing: var(--ls-title-small);
+  white-space: nowrap;
+  transition:
+    background-color var(--motion-fast) ease,
+    color var(--motion-fast) ease,
+    transform var(--motion-press) ease;
+}
+.sm .option {
+  min-height: 28px;
+}
+/* The pill stays compact; the tap area reaches the 44px target (the track adds 4px each side). */
+.option::after {
+  content: '';
+  position: absolute;
+  inset: -4px 0;
+}
+.sm .option::after {
+  inset: -8px 0;
+}
+.option:active .pill {
+  transform: scale(0.97);
+}
+.sm .pill {
+  padding: 0 var(--space-12);
+  font: var(--type-label-small-strong);
+  letter-spacing: var(--ls-label-small);
+}
+.selected {
+  color: var(--color-text-brand);
+}
+.selected .pill {
+  background: var(--color-background-surface-raised);
+  box-shadow: var(--shadow-card);
+}
+.option:focus-visible {
+  outline-offset: -2px;
+}

@@ -1,0 +1,17 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-8);
+  border-radius: var(--radius-md);
+  white-space: nowrap;
+  flex: none;
+}
+.sm {
+  font: var(--type-caption);
+  letter-spacing: var(--ls-caption);
+}
+.md {
+  font: var(--type-label-small);
+  letter-spacing: var(--ls-label-small);
+}

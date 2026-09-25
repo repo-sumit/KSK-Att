@@ -1,0 +1,28 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-icon-primary);
+  cursor: pointer;
+  transition: background-color var(--motion-fast) ease;
+}
+.brandSubtle {
+  background: var(--color-surface-brand-subtle);
+  color: var(--color-text-brand-subdued);
+  font: var(--type-title-small);
+  letter-spacing: var(--ls-title-small);
+}
+@media (hover: hover) {
+  .ghost:hover {
+    background: var(--color-background-surface);
+  }
+}
+.button:active {
+  background: var(--color-background-surface);
+}

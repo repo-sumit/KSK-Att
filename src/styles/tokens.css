@@ -1,0 +1,236 @@
+/*
+ * SwiftChat Design System tokens — single source for every colour, space,
+ * radius, type and elevation value in the app. Source of truth:
+ * Doc/swiftchat-design-system.md (plus the SwiftChat DS package extension
+ * tokens the approved prototype ships: surface-muted, line, shadows).
+ *
+ * Architecture: primitives → semantic aliases. Components use SEMANTIC tokens
+ * only. Light mode only for now; a future dark theme redefines the semantic
+ * layer under [data-theme="dark"] without touching components.
+ */
+
+:root {
+  /* ---- Primitive · Primary ---- */
+  --primary-50: #eef2ff;
+  --primary-100: #e0e7ff;
+  --primary-200: #c3d2fc;
+  --primary-300: #84a2f4;
+  --primary-400: #345ccc;
+  --primary-500: #386af6;
+  --primary-600: #1339a3;
+  --primary-700: #2b3e8b;
+  --primary-800: #041b5b;
+
+  /* ---- Primitive · Neutral ---- */
+  --neutral-0: #ffffff;
+  --neutral-50: #ececec;
+  --neutral-100: #d5d8df;
+  --neutral-150: #bbc6dd;
+  --neutral-200: #a4adc1;
+  --neutral-300: #999999;
+  --neutral-400: #828996;
+  --neutral-500: #7383a5;
+  --neutral-600: #32304b;
+  --neutral-700: #2a284d;
+  --neutral-800: #1c1b34;
+  --neutral-900: #0e0e0e;
+
+  /* ---- Primitive · Card & accent (secondary palette) ---- */
+  --card-blue: #a4e2fa;
+  --card-yellow: #fde1ac;
+  --card-green: #ccefbf;
+  --card-orange: #ffd4bb;
+  --card-light-green: #ecffe5;
+  --accent-orange: #ffddca;
+  --accent-purple: #d7c9ff;
+
+  /* ---- Semantic · Background ---- */
+  --color-background-default: #ffffff;
+  --color-background-surface: #ececec;
+  --color-background-surface-raised: #ffffff;
+  --color-background-subtle: #d5d8df;
+  --color-background-brand: #386af6;
+  --color-background-brand-subtle: #c3d2fc;
+  --color-background-inverse: #1c1b34;
+  --color-surface-brand-subtle: #eef2ff;
+  --color-surface-success-subtle: #d4f5dc;
+  --color-surface-warning-subtle: #fff3cc;
+  --color-surface-error-subtle: #fdeaea;
+  --color-surface-info-subtle: #e0e7ff;
+  /* DS "Hero Banner BG" (--color/primary-blue-4) */
+  --color-hero-banner: #f4f6fa;
+
+  /* ---- Semantic · Text ---- */
+  --color-text-primary: #0e0e0e;
+  /* AA override (DECISIONS D-010): DS #7383A5 / #828996 are 3.8:1 / 3.5:1 on white,
+   * below WCAG AA for the 12px metadata used everywhere and hard to read outdoors. */
+  --color-text-secondary: #5a6684;
+  --color-text-tertiary: #5f6673;
+  --color-text-disabled: #999999;
+  --color-text-inverse: #ffffff;
+  --color-text-brand: #386af6;
+  --color-text-on-brand: #ffffff;
+  --color-text-brand-subdued: #345ccc;
+  --color-text-success: #007b22;
+  /* AA override (D-010): DS #9A6500 is 4.47:1 on warning-subtle, used by the offline banner. */
+  --color-text-warning: #8a5a00;
+  --color-text-error: #c0392b;
+  --color-text-info: #345ccc;
+
+  /* ---- Semantic · Icon ---- */
+  --color-icon-primary: #0e0e0e;
+  --color-icon-secondary: #7383a5;
+  --color-icon-tertiary: #828996;
+  --color-icon-brand: #386af6;
+  --color-icon-on-primary: #ffffff;
+  --color-icon-inverse: #ffffff;
+  --color-icon-success: #00ba34;
+  --color-icon-warning: #f8b200;
+  --color-icon-error: #eb5757;
+  --color-icon-disabled: #999999;
+
+  /* ---- Semantic · Interactive ---- */
+  --color-interactive-primary: #386af6;
+  --color-interactive-primary-hover: #1339a3;
+  --color-interactive-primary-active: #2b3e8b;
+  --color-interactive-primary-disabled: #c3d2fc;
+  --color-interactive-secondary: #d5d8df;
+  --color-interactive-secondary-hover: #bbc6dd;
+  --color-interactive-secondary-active: #bbc6dd;
+  --color-interactive-secondary-disabled: #ececec;
+  --color-interactive-destructive: #eb5757;
+  /* AA override (D-010): white on #EB5757 is 3.5:1; filled destructive buttons use the error text red (5.4:1). */
+  --color-interactive-destructive-fill: #c0392b;
+  --color-interactive-focus: #386af6;
+  /* Press feedback on white rows and cards: #F4F6FA was invisible outdoors. */
+  --color-surface-pressed: #ececec;
+  /* DS color/chat/inputBackground: text fields stay white on the grey app surface. */
+  --color-chat-input-background: #ffffff;
+
+  /* ---- Semantic · Border ---- */
+  --color-border-default: #d5d8df;
+  --color-border-subtle: #ececec;
+  --color-border-strong: #999999;
+  --color-border-brand: #345ccc;
+  --color-border-focus: #386af6;
+  --color-border-error: #eb5757;
+
+  /* ---- Semantic · Status ---- */
+  --color-status-success: #00ba34;
+  --color-status-success-subtle: #ccefbf;
+  --color-status-warning: #f8b200;
+  --color-status-warning-subtle: #fde1ac;
+  --color-status-error: #eb5757;
+  --color-status-error-subtle: #fdeaea;
+  --color-status-info: #84a2f4;
+  --color-status-info-subtle: #c3d2fc;
+
+  /* ---- Semantic · Selection card (DS "Language / Selection Card Colors") ---- */
+  --color-card-selected-bg: #ecffe5;
+  --color-card-selected-border: #00ba34;
+  /* DS #00BA34 on #ECFFE5 is 2.5:1; selection text uses the AA success text colour. */
+  --color-card-selected-text: var(--color-text-success);
+
+  /* ---- Icon-chip tints (DS secondary palette pairs used by the prototype) ---- */
+  --tint-blue-bg: var(--primary-100);
+  --tint-blue-icon: var(--primary-400);
+  --tint-green-bg: var(--card-green);
+  --tint-green-icon: var(--color-text-success);
+
+  /* ---- DS package extension: app surfaces + elevation ---- */
+  --color-surface-muted: var(--color-hero-banner);
+  --shadow-card: 0 1px 2px rgba(14, 14, 14, 0.04), 0 1px 3px rgba(14, 14, 14, 0.06);
+  --shadow-raised: 0 6px 20px rgba(14, 14, 14, 0.1);
+  --shadow-overlay: 0 12px 32px rgba(14, 14, 14, 0.18);
+  --color-scrim: rgba(28, 27, 52, 0.5);
+
+  /* ---- Camera surfaces (dark capture screens) ---- */
+  --color-camera-bg: var(--neutral-900);
+  --color-camera-muted: var(--neutral-600);
+  --color-camera-text-secondary: var(--neutral-200);
+  --color-camera-on: var(--neutral-0);
+  --color-camera-ring-muted: var(--neutral-400);
+
+  /* ---- Typography primitives ---- */
+  /* next/font injects --font-montserrat / --font-mukta on <html>. Montserrat has
+   * no Devanagari glyphs, so Marathi characters fall through to Mukta per glyph:
+   * Latin master data stays Montserrat, Marathi UI text renders in Mukta. */
+  --font-family-primary: var(--font-montserrat), var(--font-mukta), system-ui, sans-serif;
+  --font-family-indic: var(--font-mukta), var(--font-montserrat), system-ui, sans-serif;
+
+  --font-size-10: 10px;
+  --font-size-11: 11px;
+  --font-size-12: 12px;
+  --font-size-14: 14px;
+  --font-size-16: 16px;
+  --font-size-18: 18px;
+  --font-size-20: 20px;
+  --font-size-24: 24px;
+  --font-size-28: 28px;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* ---- Spacing (base-8; 2 and 4 are optical nudges only) ---- */
+  --space-0: 0px;
+  --space-2: 2px;
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-40: 40px;
+  --space-48: 48px;
+  --space-64: 64px;
+  --space-80: 80px;
+  --space-96: 96px;
+
+  /* ---- Radius ---- */
+  --radius-none: 0px;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-3xl: 24px;
+  --radius-full: 999px;
+
+  /* ---- Dividers ---- */
+  --divider-thin: 1px;
+  --divider-medium: 2px;
+  --border-selected: 1.5px;
+
+  /* ---- Grid ---- */
+  --grid-mobile-margin: 16px;
+  --grid-tablet-margin: 36px;
+  --app-max-width: 412px;
+
+  /* ---- Touch & layout ---- */
+  --touch-target-min: 44px;
+  --header-height: 60px;
+  --row-min-height: 64px;
+  --cta-height: 56px;
+
+  /* ---- Layering ---- */
+  --z-header: 10;
+  --z-sheet: 40;
+  --z-toast: 50;
+  --z-demo: 60;
+
+  /* ---- Motion ---- */
+  --motion-press: 80ms;
+  --motion-fast: 120ms;
+  --motion-base: 200ms;
+  --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Space the demo control reserves in headers; 0 when the demo is off. */
+  --demo-reserve-inline: 0px;
+  --demo-reserve-block: 0px;
+
+  color-scheme: light;
+}

@@ -1,0 +1,108 @@
+.layout {
+  display: flex;
+  min-height: 100dvh;
+}
+.app {
+  flex: 1;
+  min-width: 0;
+}
+.side {
+  display: none;
+}
+.pill {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + var(--space-12));
+  right: var(--space-12);
+  z-index: var(--z-demo);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 36px;
+  padding: 0 var(--space-8);
+  border: var(--divider-thin) solid var(--color-status-warning);
+  border-radius: var(--radius-full);
+  background: var(--color-surface-warning-subtle);
+  color: var(--color-text-warning);
+  box-shadow: var(--shadow-raised);
+  font: var(--type-caption);
+  letter-spacing: var(--ls-caption);
+  font-weight: var(--font-weight-bold);
+}
+.sheet {
+  position: fixed;
+  inset: auto 0 0 0;
+  width: 100%;
+  max-width: 480px;
+  max-height: 88dvh;
+  margin: 0 auto;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-xl) var(--radius-xl) var(--radius-none) var(--radius-none);
+  background: var(--color-background-surface-raised);
+  box-shadow: var(--shadow-overlay);
+  overflow-y: auto;
+}
+.sheet::backdrop {
+  background: var(--color-scrim);
+}
+.sheetBar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-8) var(--space-8) 0;
+  background: var(--color-background-surface-raised);
+}
+.close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-icon-primary);
+}
+
+/* Phones and tablets: the pill sits in space the headers reserve for it. */
+@media (max-width: 1023px) {
+  /* html:root outranks the :root defaults in tokens.css whatever the stylesheet order. */
+  :global(html:root) {
+    --demo-reserve-inline: 84px;
+    --demo-reserve-block: 40px;
+  }
+}
+/* Narrow phones: icon-only pill (its aria-label still says "Open demo controls"), so headers keep their room. */
+@media (max-width: 359px) {
+  :global(html:root) {
+    --demo-reserve-inline: 48px;
+  }
+  .pill {
+    width: 36px;
+    padding: 0;
+    justify-content: center;
+  }
+  .pillText {
+    display: none;
+  }
+}
+
+/* Wide screens (projector, laptop): docked panel, the app column centred beside it. */
+@media (min-width: 1024px) {
+  .side {
+    display: block;
+    flex: none;
+    width: 340px;
+    height: 100dvh;
+    position: sticky;
+    top: 0;
+    overflow-y: auto;
+    border-right: var(--divider-thin) solid var(--color-border-subtle);
+    background: var(--color-background-surface-raised);
+  }
+  .pill,
+  .sheet {
+    display: none;
+  }
+}

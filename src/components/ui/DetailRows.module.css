@@ -1,0 +1,61 @@
+.rows {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  text-align: left;
+}
+.card {
+  padding: 0 var(--space-16);
+  border: var(--divider-thin) solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background: var(--color-background-surface-raised);
+}
+.hero {
+  padding: 0 var(--space-16);
+  border-radius: var(--radius-lg);
+  background: var(--color-hero-banner);
+}
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-16);
+  padding: var(--space-12) 0;
+}
+.row + .row {
+  border-top: var(--divider-thin) solid var(--color-border-subtle);
+}
+.plain .row:first-child {
+  border-top: var(--divider-thin) solid var(--color-border-subtle);
+}
+.label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  flex: none;
+  max-width: 50%;
+  font: var(--type-label-small);
+  letter-spacing: var(--ls-label-small);
+  color: var(--color-text-secondary);
+}
+/* Confirmation sheets: the keys are as legible as the numbers (prototype 14/500). */
+.hero .label {
+  font: var(--type-label-medium);
+  letter-spacing: var(--ls-label-medium);
+}
+.value {
+  min-width: 0;
+  text-align: right;
+  font: var(--type-label-medium);
+  letter-spacing: var(--ls-label-medium);
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+.emphasis {
+  font: var(--type-title-medium);
+  letter-spacing: var(--ls-title-medium);
+}
+.success .label, .success .value { color: var(--color-text-success); }
+.error .label, .error .value { color: var(--color-text-error); }
+.warning .label, .warning .value { color: var(--color-text-warning); }
+.info .label, .info .value { color: var(--color-text-info); }

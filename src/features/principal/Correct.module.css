@@ -1,0 +1,40 @@
+.student {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.name {
+  font: var(--type-title-large);
+  letter-spacing: var(--ls-title-large);
+}
+.father {
+  font: var(--type-body-medium);
+  letter-spacing: var(--ls-body-medium);
+  color: var(--color-text-secondary);
+}
+.meta {
+  font: var(--type-caption);
+  letter-spacing: var(--ls-caption);
+  color: var(--color-text-tertiary);
+}
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+}
+.label {
+  font: var(--type-label-medium);
+  letter-spacing: var(--ls-label-medium);
+  color: var(--color-text-secondary);
+}
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+}

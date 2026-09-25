@@ -1,0 +1,37 @@
+.nav {
+  display: flex;
+  align-items: stretch;
+  padding: 0 var(--space-4);
+  border-top: var(--divider-thin) solid var(--color-border-subtle);
+  background: var(--color-background-surface-raised);
+}
+.item {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 0;
+  /* DS item padding is 12 vertical; no horizontal padding (prototype) so "Attendance" fits at 320px, even when bold. */
+  padding: var(--space-12) 0;
+  color: var(--color-icon-secondary);
+}
+.label {
+  font: var(--type-caption);
+  letter-spacing: var(--ls-caption);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.active {
+  color: var(--color-icon-brand);
+}
+.active .label {
+  color: var(--color-text-brand);
+  font-weight: var(--font-weight-semibold);
+}
+.item:focus-visible {
+  outline-offset: -2px;
+}

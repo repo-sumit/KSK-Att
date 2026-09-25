@@ -1,0 +1,115 @@
+'use client';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Latin } from '@/components/ui/Latin';
+import { Segmented } from '@/components/ui/Segmented';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { useToast } from '@/components/ui/Toast';
+import { InnerHeader } from '@/components/shell/Headers';
+import { ScreenLayout } from '@/components/shell/ScreenLayout';
+import type { DateRangeKind, ReportBlock } from '@/config/types';
+import { useI18n } from '@/hooks/i18n';
+import { useServices } from '@/hooks/services';
+import { useSession } from '@/hooks/session';
+import { useQuery } from '@/hooks/useQuery';
+import { routes } from '@/lib/routes';
+import { toLocalDate } from '@/lib/time';
+import { REPORT_META, buildReport, rangeLabel } from './reportRows';
+import styles from './Report.module.css';
+
+const RANGE_KEYS = { day: 'reports.day', week: 'reports.week', month: 'reports.month', custom: 'reports.custom' } as const;
+
+/** One report: range switch, a one-line summary, stacked rows — never a desktop table (PRD §19). */
+export function ReportScreen() {
+  const { t, format } = useI18n();
+  const router = useRouter();
+  const toast = useToast();
+  const ctx = useSession();
+  const { reports } = useServices();
+  const params = useSearchParams();
+  const j = ctx.journey.reports;
+  const block = (params.get('r') ?? j.blocks[0]) as ReportBlock;
+  const kind = (params.get('range') ?? 'month') as DateRangeKind;
+  const today = toLocalDate(ctx.clock.now());
+  const custom = { from: params.get('from') ?? `${today.slice(0, 8)}01`, to: params.get('to') ?? today };
+  const range = reports.rangeFor(ctx, j.dateRanges.includes(kind) ? kind : 'month', kind === 'custom' ? custom : undefined);
+  const allowed = j.enabled && j.blocks.includes(block);
+
+  const { data, loading } = useQuery(`report:${block}:${range.kind}:${range.from}:${range.to}`, () => reports.build(ctx, block, range), ['attendance', 'corrections', 'staff']);
+  const built = data ? buildReport(t, format, ctx, data, range) : null;
+  const setRange = (next: DateRangeKind, extra: { from?: string; to?: string } = {}) => router.replace(routes.report(block, next, next === 'custom' ? { from: extra.from ?? custom.from, to: extra.to ?? custom.to } : {}));
+
+  const print = () => {
+    // Android WebViews (SwiftChat included) expose window.print but ignore it unless the host wires printing.
+    const embedded = /; wv\)/.test(navigator.userAgent);
+    if (!embedded && typeof window.print === 'function') window.print();
+    else toast.show(t('reports.printUnavailable'));
+  };
+
+  if (!allowed) return <ScreenLayout header={<InnerHeader title={t('reports.title')} backHref={routes.reports} />}><EmptyState icon="chart" title={t('problem.notFoundTitle')} /></ScreenLayout>;
+
+  return (
+    <ScreenLayout header={<InnerHeader title={t(REPORT_META[block].title)} backHref={routes.reports} />}>
+      <div className={styles.printHead}>
+        <p className={styles.printTitle}>{t('reports.printTitle', { report: t(REPORT_META[block].title), institute: ctx.institute.name })}</p>
+        <p>{t('reports.printMeta', { range: rangeLabel(t, format, range), when: `${format.dayMonthYear(today)} ${format.time(ctx.clock.now())}` })}</p>
+      </div>
+      <Segmented
+        className={styles.noPrint}
+        label={t('reports.range')}
+        size="sm"
+        fullWidth
+        value={range.kind}
+        onChange={(v) => setRange(v)}
+        options={j.dateRanges.map((r) => ({ value: r, label: t(RANGE_KEYS[r]) }))}
+      />
+      {range.kind === 'custom' && (
+        <div className={`${styles.custom} ${styles.noPrint}`}>
+          <label className={styles.dateField}>
+            <span>{t('reports.from')}</span>
+            <input type="date" max={range.to} value={range.from} onChange={(e) => e.target.value && setRange('custom', { from: e.target.value })} />
+          </label>
+          <label className={styles.dateField}>
+            <span>{t('reports.to')}</span>
+            <input type="date" min={range.from} max={today} value={range.to} onChange={(e) => e.target.value && setRange('custom', { to: e.target.value })} />
+          </label>
+        </div>
+      )}
+      {!built || loading ? (
+        <Skeleton label={t('common.loading')} />
+      ) : (
+        <>
+          <Card>
+            <p className={styles.summary}>{built.summary}</p>
+          </Card>
+          {built.rows.length === 0 ? (
+            <EmptyState icon="chart" title={t('reports.noData')} />
+          ) : (
+            <ul className={styles.rows}>
+              {built.rows.map((row) => (
+                <li key={row.id} className={styles.row}>
+                  <span className={styles.text}>
+                    <span className={styles.title}><Latin>{row.title}</Latin></span>
+                    <span className={styles.sub}><Latin>{row.subtitle}</Latin></span>
+                  </span>
+                  <Badge tone={row.tone} icon={row.icon} size="md">
+                    {row.value}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          )}
+          {j.pdfDownload && (
+            <Button variant="ghost" size="md" leadingIcon="printer" onClick={print} className={styles.print}>
+              {t('reports.print')}
+            </Button>
+          )}
+          <p className={styles.signature}>{t('reports.signature')}</p>
+        </>
+      )}
+    </ScreenLayout>
+  );
+}
