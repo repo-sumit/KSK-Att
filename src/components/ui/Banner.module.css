@@ -5,7 +5,8 @@
 }
 .bar {
   flex: none;
-  padding: var(--space-8) calc(var(--space-16) + var(--banner-end-reserve, 0px)) var(--space-8) var(--space-16);
+  /* Full-bleed strip; its text lines up with the screen's content column (ScreenLayout gutters). */
+  padding: var(--space-8) calc(var(--gutter-inline, var(--space-16)) + var(--banner-end-reserve, 0px)) var(--space-8) var(--gutter-inline, var(--space-16));
   font: var(--type-label-small);
   /* Prototype banner has no tracking: the offline line fits on one row at 360px. */
   letter-spacing: 0;

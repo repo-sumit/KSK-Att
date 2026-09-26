@@ -44,6 +44,13 @@ const TEXT_PAIRS: ReadonlyArray<[string, string]> = [
   ['color-text-on-brand', 'color-interactive-destructive-fill'],
   // Text fields on the grey page.
   ['color-text-primary', 'color-chat-input-background'],
+  // Profile menu statuses (Registered / Not set up) on white.
+  ['color-text-success', 'color-background-surface-raised'],
+  ['color-text-warning', 'color-background-surface-raised'],
+  // Demo trigger and "Use demo login" while pressed / open.
+  ['color-text-warning', 'color-status-warning-subtle'],
+  // Camera screens: step count, hints and the prototype note on the dark surface.
+  ['color-camera-text-secondary', 'color-background-inverse'],
 ];
 
 describe('text contrast meets WCAG AA (4.5:1)', () => {

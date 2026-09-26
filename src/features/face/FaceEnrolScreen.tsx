@@ -1,6 +1,6 @@
 'use client';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/icons/Icon';
 import { IconWell } from '@/components/ui/IconWell';
@@ -9,91 +9,98 @@ import { useI18n } from '@/hooks/i18n';
 import { useServices } from '@/hooks/services';
 import { useSession } from '@/hooks/session';
 import { routes, safeNext } from '@/lib/routes';
-import type { CaptureGuidance, EnrolmentError } from '@/services/face';
+import type { CapturedFrame } from '@/services/face';
 import { PermissionPrimer } from '../feedback/PermissionPrimer';
 import { ProblemScreen } from '../feedback/ProblemScreen';
+import type { ProblemKind } from '../feedback/problems';
 import { ResultScreen } from '../feedback/ResultScreen';
 import { CaptureView } from './CaptureView';
+import { faceProblem, isCheckFailure } from './guidance';
 import styles from './Face.module.css';
 
 type Step =
   | { readonly kind: 'intro' }
   | { readonly kind: 'primer' }
-  | { readonly kind: 'capture'; readonly step: number; readonly guidance: CaptureGuidance }
-  | { readonly kind: 'error'; readonly error: EnrolmentError }
+  | { readonly kind: 'capture'; readonly attempt: number; readonly saving: boolean; readonly guided: boolean }
+  | { readonly kind: 'problem'; readonly problem: ProblemKind }
   | { readonly kind: 'done' };
 
 /**
- * One-time face registration (PRD §8.5). SIMULATION ONLY: no photo is taken or
- * stored — the screen and state machine are real, the recognition is not.
+ * One-time face registration (PRD §8.5): the real front camera takes three
+ * photos (straight, left, right) guided by an on-device movement check.
+ * Matching is SIMULATED: the photos are never stored or sent; only the fact
+ * of registration is recorded (D-048).
  */
 export function FaceEnrolScreen() {
   const { t } = useI18n();
   const router = useRouter();
   const ctx = useSession();
-  const { face } = useServices();
+  const { faceCapture, faceMatch } = useServices();
   const next = safeNext(useSearchParams().get('next'));
   const [step, setStep] = useState<Step>({ kind: 'intro' });
-  const abort = useRef<AbortController | null>(null);
+  const [attempts, setAttempts] = useState(0);
+  /** Failed movement checks on this screen: after two, the next attempt takes the photos on a countdown. */
+  const [checkFailures, setCheckFailures] = useState(0);
 
-  useEffect(() => () => abort.current?.abort(), []);
-
-  const capture = async () => {
-    abort.current?.abort();
-    const controller = new AbortController();
-    abort.current = controller;
-    setStep({ kind: 'capture', step: 1, guidance: 'find_face' });
-    const result = await face.enrol(
-      ctx.user.id,
-      {
-        onGuidance: (s, guidance) => !controller.signal.aborted && setStep({ kind: 'capture', step: s, guidance }),
-        onStepComplete: () => undefined,
-      },
-      controller.signal,
-    );
-    if (controller.signal.aborted) return;
-    setStep(result.ok ? { kind: 'done' } : { kind: 'error', error: result.error });
+  const capture = () => {
+    setAttempts((a) => a + 1);
+    setStep({ kind: 'capture', attempt: attempts + 1, saving: false, guided: checkFailures >= 2 });
   };
-
   const start = async () => {
-    if ((await face.cameraPermission()) === 'granted') return capture();
-    setStep({ kind: 'primer' });
+    // Only "prompt" needs the primer first; anything else opens the camera, which reports a real block itself.
+    if ((await faceCapture.permission()) === 'prompt') return setStep({ kind: 'primer' });
+    capture();
+  };
+  const save = async (frames: CapturedFrame[]) => {
+    setStep((s) => (s.kind === 'capture' ? { ...s, saving: true } : s));
+    const result = await faceMatch.enrol(ctx.user.id, frames);
+    setStep(result.ok ? { kind: 'done' } : { kind: 'problem', problem: 'enrolFail' });
   };
 
   const later = { label: t('face.later'), onPress: () => router.replace(routes.home) };
-  const retry = { label: t('common.tryAgain'), onPress: () => void capture() };
+  const note = faceCapture.source() === 'simulated' ? t('face.simulatedCamera') : faceMatch.simulated ? t('face.prototypeNote') : null;
 
   switch (step.kind) {
     case 'primer':
+      // "Allow camera" opens the camera, which is what triggers the browser / phone prompt.
+      return <PermissionPrimer kind="camera" purpose="enrol" onAllow={capture} onNotNow={() => setStep({ kind: 'intro' })} />;
+    case 'capture':
       return (
-        <PermissionPrimer
-          kind="camera"
-          purpose="enrol"
-          onAllow={async () => ((await face.requestCameraPermission()) === 'granted' ? capture() : setStep({ kind: 'error', error: 'camera_denied' }))}
-          onNotNow={() => setStep({ kind: 'intro' })}
+        <CaptureView
+          key={step.attempt}
+          saving={step.saving}
+          onDone={(frames) => void save(frames)}
+          guided={step.guided}
+          onFail={(error) => {
+            if (isCheckFailure(error)) setCheckFailures((n) => n + 1);
+            setStep({ kind: 'problem', problem: faceProblem(error, 'enrol') });
+          }}
+          onCancel={() => setStep({ kind: 'intro' })}
         />
       );
-    case 'capture':
-      return <CaptureView step={step.step} total={face.requiredCaptures} guidance={step.guidance} simulatedNote={face.simulated ? t('face.simulated') : undefined} onCancel={() => { abort.current?.abort(); setStep({ kind: 'intro' }); }} />;
-    case 'error':
-      if (step.error === 'camera_denied')
-        return <ProblemScreen kind="cameraDeniedEnrol" primary={{ label: t('permission.allowCamera'), onPress: () => setStep({ kind: 'primer' }) }} secondary={later} />;
-      return <ProblemScreen kind={step.error === 'poor_light' ? 'light' : step.error === 'multiple_faces' ? 'multi' : 'enrolFail'} primary={retry} secondary={later} />;
+    case 'problem':
+      return <ProblemScreen kind={step.problem} primary={{ label: t('common.tryAgain'), onPress: capture }} secondary={later} />;
     case 'done':
       return <ResultScreen tone="success" icon="circle-check" title={t('face.successTitle')} meta={t('face.successBody')} primary={{ label: t('common.continue'), onPress: () => router.replace(next) }} />;
     case 'intro':
       return (
-        <ScreenLayout surface="default" banner={false} padding="center" footer={<Button fullWidth onClick={() => void start()}>{t('face.start')}</Button>}>
+        <ScreenLayout surface="default" banner={false} padding="center" card footer={<Button fullWidth onClick={() => void start()}>{t('face.start')}</Button>}>
           <IconWell icon="scan-face" tone="brand" size={96} />
           <div className={styles.introText}>
             <h1 className={styles.title}>{t('face.introTitle')}</h1>
             <p className={styles.body}>{t('face.introBody')}</p>
+            {/* Straight under the explanation: what is real and what is simulated is read before Start. */}
+            {note && (
+              <p className={styles.introNote}>
+                <Icon name="info" size={16} />
+                {note}
+              </p>
+            )}
           </div>
           <ul className={styles.tips}>
             <li><Icon name="sun" size={20} />{t('face.tipLight')}</li>
             <li><Icon name="user" size={20} />{t('face.tipAlone')}</li>
             <li><Icon name="camera" size={20} />{t('face.tipTime')}</li>
-            <li className={styles.simulated}><Icon name="info" size={20} />{t('face.simulated')}</li>
           </ul>
         </ScreenLayout>
       );

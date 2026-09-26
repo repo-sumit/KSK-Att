@@ -95,3 +95,30 @@
   flex: none;
   color: var(--color-icon-secondary);
 }
+
+/* Two cards side by side when there is room for both to read comfortably; never more than two. */
+.pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-12);
+}
+.recent {
+  container-type: inline-size;
+}
+@container (min-width: 640px) {
+  .recentList {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--page-gutter);
+  }
+}
+@media (min-width: 720px) {
+  .pair {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--page-gutter);
+    align-items: stretch;
+  }
+  .pair > * {
+    height: 100%;
+  }
+}

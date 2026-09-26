@@ -1,14 +1,14 @@
 'use client';
 import { Section } from '@/components/ui/Section';
-import { AppBottomNav } from '@/components/shell/AppBottomNav';
-import { HomeHeader } from '@/components/shell/Headers';
 import { ScreenLayout } from '@/components/shell/ScreenLayout';
+import { AppHeader } from '@/features/shell/AppHeader';
 import { useI18n } from '@/hooks/i18n';
 import { useSession } from '@/hooks/session';
 import { toLocalDate } from '@/lib/time';
 import { AttendanceBoard } from '../attendance/AttendanceBoard';
 import { Greeting, MyAttendanceCard, OpenAccessCard, PendingSyncCard, SubmittedToday, TradeOverviewCard } from './parts';
 import { roleLine } from './roleLine';
+import styles from './Home.module.css';
 
 /** Instructor home: greeting, today's classes (shape set by the mapping model), my attendance, submitted today. */
 export function InstructorHome() {
@@ -23,7 +23,11 @@ export function InstructorHome() {
       case 'trade_picker':
         return (
           <Section id="today" title={t('home.todays')}>
-            <OpenAccessCard />
+            {/* Wide screens: the two things to do today side by side (one column on phones). */}
+            <div className={styles.pair}>
+              <OpenAccessCard />
+              {j.staff.selfCard && <MyAttendanceCard />}
+            </div>
           </Section>
         );
       case 'timetable':
@@ -46,12 +50,17 @@ export function InstructorHome() {
   })();
 
   return (
-    <ScreenLayout header={<HomeHeader instituteName={ctx.institute.shortName} userName={ctx.user.name} />} nav={<AppBottomNav active="home" />}>
+    <ScreenLayout header={<AppHeader />} area="home" bottomNav>
       <Greeting subtitle={t('common.dateRole', { date: format.longDate(today), role: roleLine(t, ctx) })} />
       <PendingSyncCard />
       {access}
-      {j.tradeWideView && <TradeOverviewCard />}
-      {j.staff.selfCard && <MyAttendanceCard />}
+      {j.selection !== 'trade_picker' && (j.tradeWideView || j.staff.selfCard) && (
+        <div className={styles.pair}>
+          {j.tradeWideView && <TradeOverviewCard />}
+          {j.staff.selfCard && <MyAttendanceCard />}
+        </div>
+      )}
+      {j.selection === 'trade_picker' && j.tradeWideView && <TradeOverviewCard />}
       <SubmittedToday />
     </ScreenLayout>
   );

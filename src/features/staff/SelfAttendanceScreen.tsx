@@ -8,8 +8,8 @@ import { Card } from '@/components/ui/Card';
 import { DetailRows } from '@/components/ui/DetailRows';
 import { Latin } from '@/components/ui/Latin';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { InnerHeader } from '@/components/shell/Headers';
 import { ScreenLayout } from '@/components/shell/ScreenLayout';
+import { AppHeader } from '@/features/shell/AppHeader';
 import type { StaffAttendanceRecord } from '@/domain/attendance';
 import { useI18n } from '@/hooks/i18n';
 import { useServices } from '@/hooks/services';
@@ -52,10 +52,10 @@ export function SelfAttendanceScreen() {
       />
     );
   }
-  if (!data || blocked || data.record) return <ScreenLayout header={<InnerHeader title={t('self.title')} />}><Skeleton count={1} height={200} label={t('common.loading')} /></ScreenLayout>;
+  if (!data || blocked || data.record) return <ScreenLayout area="home" width="form" header={<AppHeader back="back" title={t('self.title')} />}><Skeleton count={1} height={200} label={t('common.loading')} /></ScreenLayout>;
 
   if (j.verification.required && !data.verified)
-    return <VerificationFlow purpose={{ kind: 'self' }} subtitle={t('self.title')} passedSubtitle={t('verify.oneMoreStep')} onPassed={() => undefined} onExit={() => router.back()} />;
+    return <VerificationFlow purpose={{ kind: 'self' }} area="home" subtitle={t('self.title')} passedSubtitle={t('verify.oneMoreStep')} onPassed={() => undefined} onExit={() => router.back()} />;
 
   const mark = async () => {
     setBusy(true);
@@ -69,7 +69,9 @@ export function SelfAttendanceScreen() {
 
   return (
     <ScreenLayout
-      header={<InnerHeader title={t('self.title')} backHref={routes.home} />}
+      area="home"
+      width="form"
+      header={<AppHeader back="back" title={t('self.title')} backHref={routes.home} />}
       footer={
         <Button fullWidth leadingIcon="check" onClick={() => void mark()} loading={busy}>
           {t('self.markPresent')}

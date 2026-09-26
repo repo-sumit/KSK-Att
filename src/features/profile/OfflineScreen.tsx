@@ -7,8 +7,8 @@ import { Latin } from '@/components/ui/Latin';
 import { List, ListRow } from '@/components/ui/ListRow';
 import { Section } from '@/components/ui/Section';
 import { useToast } from '@/components/ui/Toast';
-import { InnerHeader } from '@/components/shell/Headers';
 import { ScreenLayout } from '@/components/shell/ScreenLayout';
+import { AppHeader } from '@/features/shell/AppHeader';
 import { parseSessionKey } from '@/domain/attendance';
 import { useI18n } from '@/hooks/i18n';
 import { useServices } from '@/hooks/services';
@@ -48,7 +48,7 @@ export function OfflineScreen() {
   };
 
   return (
-    <ScreenLayout header={<InnerHeader title={t('offline.title')} backHref={routes.profile} />}>
+    <ScreenLayout width="reading" header={<AppHeader back="back" title={t('offline.title')} backHref={routes.home} />}>
       <Banner
         tone={status.pending ? 'warning' : 'success'}
         icon={status.pending ? 'cloud-upload' : 'circle-check'}

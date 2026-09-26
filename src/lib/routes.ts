@@ -32,7 +32,6 @@ export const routes = {
     `/reports/view${qs({ r: block, range, ...extra })}`,
   reportPrint: (block: ReportBlock, range: DateRangeKind, extra: { batch?: string; from?: string; to?: string } = {}) =>
     `/reports/print${qs({ r: block, range, ...extra })}`,
-  profile: '/profile',
   offline: '/profile/offline',
   offlineDownload: '/profile/offline/download',
 } as const;

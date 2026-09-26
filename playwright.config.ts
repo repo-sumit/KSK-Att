@@ -14,6 +14,9 @@ export default defineConfig({
     trace: 'retain-on-failure',
     timezoneId: 'Asia/Kolkata',
     locale: 'en-IN',
+    // A fake camera (moving test pattern, no face) that never shows a prompt: camera.spec.ts uses the real
+    // getUserMedia path with it; every other spec runs on the demo's simulated camera.
+    launchOptions: { args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] },
   },
   projects: [
     {

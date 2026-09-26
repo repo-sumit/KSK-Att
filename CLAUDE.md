@@ -19,12 +19,12 @@ Deeper docs are in `docs/`: PRODUCT_CONTEXT, ARCHITECTURE, DESIGN_SYSTEM, CONFIG
 
 ```bash
 npm install
-npm run dev          # http://localhost:3000 (demo mode via .env.development)
+npm run dev          # http://localhost:3000 (demo mode via .env.development); predev copies the MediaPipe wasm into public/vendor
 npm run lint         # ESLint 9 flat config, including the architecture boundaries below
 npm run typecheck    # tsc --noEmit
 npm test             # Vitest: unit + integration (tests/unit, tests/integration)
 npm run e2e          # Playwright: builds, serves on :3200, Pixel 5 at 360px, Asia/Kolkata
-npm run build        # production build (all routes static)
+npm run build        # production build (all routes static); prebuild runs scripts/vendor-mediapipe.mjs
 npm run check        # lint + typecheck + test + build
 npm run check:demo   # builds with NEXT_PUBLIC_DEMO_MODE=false into .next-nodemo and greps that no demo code shipped
 npm run icons        # regenerate public/branding/* and src/app/{icon,apple-icon}.png, favicon.ico from the logo
@@ -54,11 +54,23 @@ domain (src/domain) and config (src/config) are pure TypeScript: no React, Next,
 
 Use SwiftChat semantic tokens and the kit in `src/components/ui`. Montserrat is the English font and Mukta the Marathi font (`:lang(mr)` switches the type variables). Status is always icon + text + colour. Touch targets are ≥ 44px and primary CTAs are 56px. The only deviations from the DS and prototype are documented in `docs/DECISIONS.md` (for example, the AA contrast overrides in D-010). Do not restyle beyond them.
 
+## Responsive rule: mobile-first is not a fixed mobile viewport
+
+- Phones (320–599px) are the primary design. From 600px the app fills the viewport, and content keeps a readable column on the DS grid (margins 16/36/64). Choose each screen's column with `ScreenLayout width="form" | "reading" | "wide"` (480/800/1008), and use `card` for single-question screens. Never reintroduce a phone-width frame.
+- Wider screens get **no new features**: the same hierarchy, at most two columns, the roster always a row list (never a table), primary actions 280px and centred.
+- **One header:** `AppHeader` (`src/features/shell`) on every signed-in screen: brand left, avatar top right. Primary navigation (Home · Attendance · Reports) is the bottom nav on phones and a header row from 600px, never a sidebar. **Profile is not a destination:** the avatar opens `ProfileMenu`, the only profile entry point. See `docs/DESIGN_SYSTEM.md` → Responsive behaviour and D-045/D-046.
+
 ## Mock data and simulation
 
 - `src/data/mock/*` holds deterministic master data (Govt ITI Pune, code **27410**: 5 trades, 17 batches, 417 students; a second institute in Nashik), plus 45 days of generated history. `seeds.ts` builds today's story relative to the current date.
 - The mock DB (`src/repositories/mock/database.ts`) lives in localStorage namespace `ksk:v1`. It **reseeds automatically when the calendar day changes** and on schema bumps.
-- Location, face, permissions, network, sync failure and speed come from a `SimulationSource`. Face verification and enrolment are **simulation only**: no camera stream, no image, no biometric match. Never describe them as secure biometrics in UI or docs.
+- Location, face-match outcome, camera choice, permissions, network, sync failure and speed come from a `SimulationSource`.
+- **Face (D-048):** three seams.
+  - `FaceCaptureService` opens the **real front camera** (getUserMedia). The demo can switch to a simulated one.
+  - `LivenessService` is a **prototype movement check** with MediaPipe BlazeFace on the device, falling back to guided countdown captures.
+  - `FaceMatchService` is **simulated** (`MockFaceMatchService`): it never compares faces.
+  - Photos are in-memory only: never stored, never sent. Never describe any of this as secure biometrics or liveness detection in UI or docs. MediaPipe is pinned to 0.10.35 (1.x phones home, D-049).
+- Location results carry `source: 'device' | 'simulated'`.
 - `src/repositories/api/*` are typed stubs that throw `NotImplementedError` and document the endpoints each method will call.
 
 ## Configuration
@@ -67,13 +79,13 @@ Use SwiftChat semantic tokens and the kit in `src/components/ui`. Montserrat is 
 
 ## Demo layer
 
-`src/demo/*` holds the demo state (`ksk-demo:v1`), the demo clock (fixed 10:15 IST by default), the simulation source, personas, 7 presets and the floating panel. It is loaded only when `NEXT_PUBLIC_DEMO_MODE === 'true'`, through inline env comparisons, so a demo-off build tree-shakes it (verified by `npm run check:demo`). Presets can be opened by URL: `/?preset=open|batch|timetable|es|principal|first_time|offline`. `window.__kskDemo` exposes the controller for E2E tests. See `docs/DEMO_GUIDE.md`.
+`src/demo/*` holds the demo state (`ksk-demo:v1`), the demo clock (fixed 10:15 IST by default), the simulation source, personas, 7 presets and the floating panel. The panel is a collapsed **Demo** trigger on every screen size (a bottom sheet on phones, a non-modal overlay drawer from 600px; it never takes layout space). It is ordered Quick presets → Quick login → Advanced (collapsed). Demo login autofill reaches the login screens only through the `LoginAssistSource` seam (`services.loginAssist`, null in production), and only fills a field on a tap. It is loaded only when `NEXT_PUBLIC_DEMO_MODE === 'true'`, through inline env comparisons, so a demo-off build tree-shakes it (verified by `npm run check:demo`). Presets can be opened by URL: `/?preset=open|batch|timetable|es|principal|first_time|offline`. `window.__kskDemo` exposes the controller for E2E tests. See `docs/DEMO_GUIDE.md`.
 
 ## Testing expectations
 
 - Put domain rules and config resolution under unit tests (`tests/unit`). Put service flows, including lock, offline sync, correction and staff rules, under integration tests against the mock container (`tests/integration`).
-- E2E (`tests/e2e`) covers the 10 key flows. The shared fixture fails a test on **any console error or React warning**.
-- Before finishing a change, run `npm run check`. If the UI changed, also run `npm run e2e` and look at the screen at 320px and 360px.
+- E2E (`tests/e2e`) covers the 10 key flows, plus wide-screen layout (`desktop.spec.ts`), demo login autofill (`login-assist.spec.ts`), the real camera on Chromium's fake device (`camera.spec.ts`) and regressions found in review (`regressions.spec.ts`). The shared fixture fails a test on **any console error or React warning**, and runs on the demo's simulated camera.
+- Before finishing a change, run `npm run check`. If the UI changed, also run `npm run e2e` and look at the screen at 320px, 360px and one desktop width (1280px).
 
 ## Deployment
 
@@ -88,5 +100,6 @@ The app is Vercel-ready and **prepare-only: do not deploy unless the user asks**
 ## Skills and tools used to build this
 
 - **Skills** (installed globally, not reinstalled): `workflow-authoring` for orchestrating reviews; the `impeccable`, `design-taste-frontend`, `huashu-design` and `web-design-guidelines` critique lenses (the prototype and DS stayed authoritative over them); `nextjs-best-practices` and `vercel-react-best-practices` as references.
-- **Browser checks:** Playwright scripts (headless Chromium, Pixel 5 profile) for screenshots, prototype-vs-app comparison sheets, axe-core accessibility scans and overflow probes. No browser MCP was needed.
+- **Browser checks:** Playwright scripts (headless Chromium, Pixel 5 profile) for screenshots at every QA size (320×568 to 1920×1080), prototype-vs-app comparison sheets, axe-core accessibility scans, overflow probes, and Chromium's fake camera for the face flows. No browser MCP was needed.
+- **Research and review workflows** (multi-agent): the DS grid and navigation specs, MediaPipe evaluation (size, API, telemetry, delegates, thresholds), the E2E dependency map, Next 16 headers and WebView camera/geolocation requirements; then a five-lens review (acceptance, phone visuals, wide visuals, code, camera honesty), each lens adversarially verified.
 - **MCP:** a Vercel MCP connector was available but was **not used** (prepare-only). No other MCPs were used.

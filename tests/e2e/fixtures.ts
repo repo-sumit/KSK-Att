@@ -2,7 +2,8 @@ import { test as base, expect, type Page } from '@playwright/test';
 
 /**
  * Every E2E test: demo simulations at 5% speed (fast but still observable),
- * and the test fails on any console error, page error or React warning.
+ * the demo's simulated camera (camera.spec.ts switches to Chromium's fake
+ * device), and the test fails on any console error, page error or React warning.
  */
 export const test = base.extend<{ consoleErrors: string[] }>({
   consoleErrors: async ({ page }, provide) => {
@@ -20,8 +21,21 @@ export const test = base.extend<{ consoleErrors: string[] }>({
           JSON.stringify({
             version: 1,
             presetId: 'open',
+            persona: 'open',
+            skipLogin: false,
             config: {},
-            simulation: { location: 'inside', outsideDistanceM: 1240, face: 'match', enrolmentIssue: 'none', permissions: { location: 'granted', camera: 'granted' }, online: true, nextSyncFails: false, speed: 0.05 },
+            simulation: {
+              location: 'inside',
+              outsideDistanceM: 1240,
+              face: 'match',
+              enrolmentIssue: 'none',
+              camera: 'simulated',
+              liveness: 'auto',
+              permissions: { location: 'granted', camera: 'granted' },
+              online: true,
+              nextSyncFails: false,
+              speed: 0.05,
+            },
             clock: { mode: 'fixed', time: '10:15' },
           }),
         );
@@ -44,8 +58,16 @@ export async function demo(page: Page, script: string) {
   await page.evaluate(`window.__kskDemo.${script}`);
 }
 
-/** Bottom navigation link (the nav's own label is translated, so match the link inside any nav). */
+/** Primary navigation link: the bottom nav on phones, the header nav on wider screens (only the visible one is in the accessibility tree). */
 export const nav = (page: Page, name: string) => page.locator('nav').getByRole('link', { name, exact: true });
+
+/** Opens the profile menu from the header avatar (the single profile entry point). */
+export async function openProfileMenu(page: Page, name = 'Profile') {
+  await page.locator('header').getByRole('button', { name, exact: true }).click();
+  const menu = page.getByRole('dialog', { name });
+  await expect(menu).toBeVisible();
+  return menu;
+}
 
 /** No horizontal scrolling at the current viewport. */
 export async function expectNoOverflow(page: Page) {

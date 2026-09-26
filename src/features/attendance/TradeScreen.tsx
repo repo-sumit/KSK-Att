@@ -1,8 +1,8 @@
 'use client';
 import { useSearchParams } from 'next/navigation';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { InnerHeader } from '@/components/shell/Headers';
 import { ScreenLayout } from '@/components/shell/ScreenLayout';
+import { AppHeader } from '@/features/shell/AppHeader';
 import { useI18n } from '@/hooks/i18n';
 import { useServices } from '@/hooks/services';
 import { useSession } from '@/hooks/session';
@@ -27,8 +27,9 @@ export function TradeScreen() {
   const overview = ctx.access.tradeWideViewTradeId === tradeId;
   return (
     <ScreenLayout
+      area="attendance"
       header={
-        <InnerHeader
+        <AppHeader back="back"
           title={trade.name}
           subtitle={monitoring || overview ? t('common.todayDate', { date: format.longDate(toLocalDate(ctx.clock.now())) }) : t('selection.selectBatch')}
           backHref={routes.attendance}

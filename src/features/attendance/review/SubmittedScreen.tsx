@@ -26,7 +26,7 @@ export function SubmittedScreen() {
   const key = useSearchParams().get('s') ?? '';
   const { data: card } = useQuery(`submitted:${key}`, () => attendance.findCard(ctx, key), ['attendance', 'offline']);
 
-  if (!card?.submission) return <ScreenLayout><Skeleton label={t('common.loading')} /></ScreenLayout>;
+  if (!card?.submission) return <ScreenLayout card><Skeleton label={t('common.loading')} /></ScreenLayout>;
   const s = card.submission;
   const extras = [
     s.counts.half_day ? t('result.summaryHalf', { count: s.counts.half_day }) : null,

@@ -3,8 +3,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
 import { Latin } from '@/components/ui/Latin';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { InnerHeader } from '@/components/shell/Headers';
 import { ScreenLayout } from '@/components/shell/ScreenLayout';
+import { AppHeader } from '@/features/shell/AppHeader';
 import { useI18n } from '@/hooks/i18n';
 import { useServices } from '@/hooks/services';
 import { useSession } from '@/hooks/session';
@@ -53,7 +53,7 @@ export function OpenSessionScreen() {
   const back = () => router.back();
   if (!gate || gate.kind === 'ready' || gate.kind === 'already_submitted' || enrolFirst) {
     return (
-      <ScreenLayout header={<InnerHeader title={t('verify.title')} back="close" onBack={back} />}>
+      <ScreenLayout area="attendance" width="form" header={<AppHeader title={t('verify.title')} back="close" onBack={back} />}>
         <Skeleton count={1} height={200} label={t('common.loading')} />
       </ScreenLayout>
     );
@@ -69,6 +69,7 @@ export function OpenSessionScreen() {
       return (
         <VerificationFlow
           purpose={{ kind: 'session', key }}
+          area="attendance"
           subtitle={<Latin>{session}</Latin>}
           passedSubtitle={t('verify.openingList')}
           onPassed={() => router.replace(routes.mark(key))}

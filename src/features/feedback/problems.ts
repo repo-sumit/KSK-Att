@@ -10,6 +10,14 @@ export type ProblemKind =
   | 'locationDenied'
   | 'cameraDeniedEnrol'
   | 'cameraDeniedVerify'
+  | 'cameraNotFound'
+  | 'cameraBusy'
+  | 'cameraFailed'
+  | 'cameraUnsupported'
+  | 'faceNotSeen'
+  | 'faceDistance'
+  | 'faceOffCentre'
+  | 'faceNoTurn'
   | 'face'
   | 'faceLimit'
   | 'enrolFail'
@@ -29,6 +37,14 @@ export const PROBLEMS: Readonly<Record<ProblemKind, { tone: Tone; icon: IconName
   locationDenied: { tone: 'warning', icon: 'map-pin', title: 'problem.locationDeniedTitle', body: 'problem.locationDeniedBody' },
   cameraDeniedEnrol: { tone: 'warning', icon: 'camera-off', title: 'problem.cameraDeniedTitle', body: 'problem.cameraDeniedBodyEnrol' },
   cameraDeniedVerify: { tone: 'warning', icon: 'camera-off', title: 'problem.cameraDeniedTitle', body: 'problem.cameraDeniedBodyVerify' },
+  cameraNotFound: { tone: 'warning', icon: 'camera-off', title: 'problem.cameraNotFoundTitle', body: 'problem.cameraNotFoundBody' },
+  cameraBusy: { tone: 'warning', icon: 'camera-off', title: 'problem.cameraBusyTitle', body: 'problem.cameraBusyBody' },
+  cameraFailed: { tone: 'warning', icon: 'camera-off', title: 'problem.cameraFailedTitle', body: 'problem.cameraFailedBody' },
+  cameraUnsupported: { tone: 'warning', icon: 'camera-off', title: 'problem.cameraUnsupportedTitle', body: 'problem.cameraUnsupportedBody' },
+  faceNotSeen: { tone: 'warning', icon: 'scan-face', title: 'problem.faceNotSeenTitle', body: 'problem.faceNotSeenBody' },
+  faceDistance: { tone: 'warning', icon: 'scan-face', title: 'problem.faceDistanceTitle', body: 'problem.faceDistanceBody' },
+  faceOffCentre: { tone: 'warning', icon: 'scan-face', title: 'problem.faceOffCentreTitle', body: 'problem.faceOffCentreBody' },
+  faceNoTurn: { tone: 'warning', icon: 'rotate-ccw', title: 'problem.faceNoTurnTitle', body: 'problem.faceNoTurnBody' },
   face: { tone: 'error', icon: 'scan-face', title: 'problem.faceTitle', body: 'problem.faceBody' },
   faceLimit: { tone: 'error', icon: 'scan-face', title: 'problem.faceLimitTitle', body: 'problem.faceLimitBody' },
   enrolFail: { tone: 'error', icon: 'camera', title: 'problem.enrolFailTitle', body: 'problem.enrolFailBody' },

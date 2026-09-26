@@ -294,3 +294,12 @@ describe('submit lock under concurrency (INV-01)', () => {
     expect(await env.app.repositories.attendance.getDraft('ele-s1u1.2026-09-25.daily')).toBeUndefined();
   });
 });
+
+describe('location results say whether they are real or simulated (brief §18)', () => {
+  it('the demo simulation tags its fixes "simulated"; the record keeps it for audit', async () => {
+    const { app } = setup({ verification: { geoMode: 'fencing' } });
+    const ctx = await signIn(app, 'TR-10432');
+    const loc = await app.services.verification.checkLocation(ctx);
+    expect(loc.ok && loc.value.location.source).toBe('simulated');
+  });
+});

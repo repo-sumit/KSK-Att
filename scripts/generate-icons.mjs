@@ -7,9 +7,10 @@
 //   mark    — figures + cap + book only, for 16/32 px where the thin map line vanishes
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 
-const ROOT = path.resolve(import.meta.dirname, '..');
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const SRC = path.join(ROOT, 'Doc/mh_ksk_logo.png');
 const WHITE = { r: 255, g: 255, b: 255, alpha: 1 };
 

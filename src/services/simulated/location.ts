@@ -15,11 +15,14 @@ export class SimulatedLocationProvider implements LocationProvider {
   constructor(private readonly sim: SimulationSource) {}
 
   async permission() {
+    // "Real GPS": the browser owns the permission as well as the fix.
+    if (this.sim.get().location === 'device_gps') return this.browser.permission();
     return this.sim.get().permissions.location;
   }
 
   async requestPermission() {
     const state = this.sim.get();
+    if (state.location === 'device_gps') return this.browser.requestPermission();
     const granted = state.location === 'permission_denied' ? 'denied' : 'granted';
     this.sim.update({ permissions: { ...state.permissions, location: granted } });
     return granted;
@@ -32,6 +35,6 @@ export class SimulatedLocationProvider implements LocationProvider {
     if (state.permissions.location === 'denied' || state.location === 'permission_denied') return err('permission_denied');
     if (state.location === 'unavailable') return err('unavailable');
     const point = state.location === 'outside' ? offsetPoint(near, state.outsideDistanceM) : offsetPoint(near, 60);
-    return ok({ ...point, accuracyM: 12 });
+    return ok({ ...point, accuracyM: 12, source: 'simulated' as const });
   }
 }

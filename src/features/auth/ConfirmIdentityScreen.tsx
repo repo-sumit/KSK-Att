@@ -47,6 +47,7 @@ export function ConfirmIdentityScreen() {
 
   return (
     <ScreenLayout
+      card
       surface="default"
       banner={false}
       padding="none"

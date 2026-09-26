@@ -2,9 +2,8 @@
 import { useRouter } from 'next/navigation';
 import { Section } from '@/components/ui/Section';
 import { Segmented } from '@/components/ui/Segmented';
-import { AppBottomNav } from '@/components/shell/AppBottomNav';
-import { InnerHeader } from '@/components/shell/Headers';
 import { ScreenLayout } from '@/components/shell/ScreenLayout';
+import { AppHeader } from '@/features/shell/AppHeader';
 import { useI18n } from '@/hooks/i18n';
 import { useSession } from '@/hooks/session';
 import { routes } from '@/lib/routes';
@@ -45,9 +44,10 @@ export function AttendanceTabScreen() {
 
   return (
     <ScreenLayout
-      header={<InnerHeader title={t('nav.attendance')} back={false} />}
+      header={<AppHeader title={t('nav.attendance')} />}
       top={j.staff.principalStaffView ? <div className={styles.switch}><ViewSwitch value="students" /></div> : undefined}
-      nav={<AppBottomNav active="attendance" />}
+      area="attendance"
+      bottomNav
     >
       {title ? (
         <Section id="classes" title={title} subtitle={subtitle}>

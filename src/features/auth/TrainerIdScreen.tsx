@@ -10,10 +10,12 @@ import { useT } from '@/hooks/i18n';
 import { useServices } from '@/hooks/services';
 import { routes } from '@/lib/routes';
 import { finishLogin } from './finishLogin';
+import { LoginAssistButton } from './LoginAssistButton';
 import { useLoginFlow } from './LoginFlow';
 import styles from './Login.module.css';
 
 const FORM_ID = 'trainer-id';
+const INPUT_ID = 'trainer-id-input';
 
 /** Step 3 (PRD §6.2): the Trainer ID, checked against the confirmed institute only. */
 export function TrainerIdScreen() {
@@ -53,6 +55,7 @@ export function TrainerIdScreen() {
 
   return (
     <ScreenLayout
+      card
       surface="default"
       banner={false}
       padding="none"
@@ -71,6 +74,7 @@ export function TrainerIdScreen() {
           </p>
         </div>
         <Input
+          id={INPUT_ID}
           label={t('login.trainerLabel')}
           value={trainerId}
           onChange={(v) => {
@@ -85,6 +89,14 @@ export function TrainerIdScreen() {
           enterKeyHint="go"
           latin
           error={error}
+        />
+        <LoginAssistButton
+          field="trainerId"
+          inputId={INPUT_ID}
+          onFill={(v) => {
+            setTrainerId(v);
+            setError(undefined);
+          }}
         />
       </form>
     </ScreenLayout>

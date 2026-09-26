@@ -5,11 +5,12 @@
  */
 import type { ConfigLayer } from '@/config/types';
 import type { ConfigOverridesSource } from '@/services/configuration';
+import type { LoginAssist, LoginAssistSource } from '@/services/login-assist';
 import type { SimulationSource, SimulationState } from '@/services/simulation';
 import { createDefaultStore } from '@/lib/kv-store';
 import { instantAt, toLocalDate, type Clock } from '@/lib/time';
 import { DemoStateRepository } from './store';
-import { personaForStaff } from './personas';
+import { personaById, personaForStaff } from './personas';
 import { mergeConfigLayer } from '@/config/resolve';
 
 /** Sentinel checked by scripts/check-demo-stripped.mjs: must not appear in a non-demo build. */
@@ -46,11 +47,28 @@ class DemoConfigOverrides implements ConfigOverridesSource {
   }
 }
 
+/** "Use demo login" on the login screens: the credentials of the persona the presenter picked last. */
+class DemoLoginAssist implements LoginAssistSource {
+  private cache: { id: string; value: LoginAssist } | null = null;
+  constructor(private readonly repo: DemoStateRepository) {}
+  get(): LoginAssist {
+    const persona = personaById(this.repo.get().persona);
+    // Stable identity per persona, so React's external-store reads don't loop.
+    if (this.cache?.id !== persona.id)
+      this.cache = { id: persona.id, value: { label: 'Use demo login', who: `${persona.name} · ${persona.title}`, instituteCode: persona.instituteCode, trainerId: persona.trainerId } };
+    return this.cache.value;
+  }
+  subscribe(listener: () => void) {
+    return this.repo.subscribe(listener);
+  }
+}
+
 export interface DemoAdapters {
   readonly repo: DemoStateRepository;
   readonly clock: Clock;
   readonly simulation: SimulationSource;
   readonly configOverrides: ConfigOverridesSource;
+  readonly loginAssist: LoginAssistSource;
   readonly sentinel: string;
 }
 
@@ -61,6 +79,7 @@ export function createDemoAdapters(): DemoAdapters {
     clock: new DemoClock(repo),
     simulation: new DemoSimulationSource(repo),
     configOverrides: new DemoConfigOverrides(repo),
+    loginAssist: new DemoLoginAssist(repo),
     sentinel: DEMO_SENTINEL,
   };
 }

@@ -46,7 +46,7 @@ Subject instructors (a `StaffMember` with `subjectId`) mark a **separate** recor
 | `geoMode` (verify.geo_mode) | `'fencing'` | `off`: no location step and no location code runs. `tagging`: location is captured silently with the record; a screen appears only if permission is denied or GPS is off. `fencing`: a full-screen "Checking your location…" step; outside the radius → "You're outside your institute · You are 1.24 km away" with **Check again** |
 | `fenceRadiusM` (verify.fence_radius_m) | `500` | Radius around the institute. Distances under 1 km show in metres, otherwise in km to two decimals |
 | `fencePassPrompt` (verify.fence_pass_prompt) | `'silent'` | `silent`: continues straight to face or the list. `confirm`: shows "You're at {institute} · n m from the institute" with **Continue** |
-| `face` (verify.face) | `true` | `true`: a Location → Identity stepper; "Look at the camera" (**simulated**, D-009). First-time users set up their face before marking. `false`: no face step and no camera prompt |
+| `face` (verify.face) | `true` | `true`: a Location → Identity stepper; "Look at the camera" opens the **real front camera** with an on-device movement check, and **matching is simulated** (D-048). First-time users register their face (three photos: straight, left, right) before marking. `false`: no face step, no camera prompt and no camera code runs |
 | `faceRetryLimit` (verify.face_retry_limit) | `null` | `null`: unlimited *Try again*. A number n: after n failures, "Face check not passed · Please ask your principal to mark your attendance today" |
 
 If both `geoMode` is `off` and `face` is `false`, there is no verification screen at all: selecting a batch opens the list directly.
@@ -100,7 +100,7 @@ The fence is hard, with no grace period (D-016). Backdating is impossible whatev
 
 | Option | MH | Values → what the user sees |
 |---|---|---|
-| `enabled` (offline.enabled) | `true` | `true`: Profile → Offline data (downloaded batches, pending records, "Sync now"); a batch that wasn't downloaded shows "This batch isn't downloaded" when opened offline. `false`: no Offline data screen; opening any batch offline shows "You're offline · Connect to the internet to mark attendance" |
+| `enabled` (offline.enabled) | `true` | `true`: profile menu (avatar, top right) → Offline data (downloaded batches, pending records, "Sync now"); a batch that wasn't downloaded shows "This batch isn't downloaded" when opened offline. `false`: no Offline data screen; opening any batch offline shows "You're offline · Connect to the internet to mark attendance" |
 | `refreshDays` (offline.refresh_days) | `7` | A pack older than this shows "Student list downloaded on 22 Sep. New admissions may be missing…" |
 | `manualRefresh` (offline.manual_refresh) | `true` | "Refresh downloaded data" button |
 | `multiSelect` (offline.multi_select) | `true` | Download several batches at once |
@@ -115,9 +115,9 @@ The principal never works offline (`journey.offline.enabled` is false for the pr
 
 | Option | MH | Values → what the user sees |
 |---|---|---|
-| `languages` (i18n.languages) | en, mr | Languages offered in Profile |
+| `languages` (i18n.languages) | en, mr | Languages offered in the profile menu |
 | `defaultLanguage` (i18n.default_language) | `en` | First-run language |
-| `userSwitch` (i18n.user_switch) | `true` | Language switch in Profile; the choice persists on the device |
+| `userSwitch` (i18n.user_switch) | `true` | Language switch in the profile menu; the choice persists on the device |
 | `fallback` (i18n.fallback) | `en` | A missing translation shows the English string, never a blank |
 | `numerals` | `'latin'` | `latin`: 0–9 in every language (D-012). `locale`: Devanagari digits in Marathi |
 

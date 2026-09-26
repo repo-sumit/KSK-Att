@@ -57,5 +57,8 @@ describe('journey derivation — disabled means absent (PRD §1.2)', () => {
     expect(j.staff.principalStaffView).toBe(false);
     expect(j.reports.blocks).not.toContain('staff_summary');
   });
-  it('reports off removes the Reports tab', () => expect(journeyFor('st-rajesh', { reports: { enabled: false } }).navTabs).toEqual(['home', 'attendance', 'profile']));
+  it('reports off removes the Reports tab', () => expect(journeyFor('st-rajesh', { reports: { enabled: false } }).navTabs).toEqual(['home', 'attendance']));
+  it('Profile is never a navigation tab (it lives in the header avatar menu)', () => {
+    for (const staff of ['st-rajesh', 'st-anil']) expect(journeyFor(staff).navTabs).toEqual(['home', 'attendance', 'reports']);
+  });
 });

@@ -50,28 +50,45 @@ export function DemoSettings({ config, state, controller: c, faceEnrolled, langu
         <h3 className={styles.sectionTitle}>Verification</h3>
         <Choice label="Location" value={config.verification.geoMode} options={[['off', 'Off'], ['tagging', 'Geo tagging'], ['fencing', 'Geo fencing']]} onChange={(v) => c.setConfig({ verification: { geoMode: v } })} />
         {config.verification.geoMode !== 'off' && (
-          <Choice
-            label="Where is the phone?"
-            value={sim.location}
-            options={[['inside', 'Inside'], ['outside', 'Outside'], ['permission_denied', 'Denied'], ['unavailable', 'No GPS'], ['device_gps', 'Real GPS']]}
-            onChange={(v) => c.setSimulation({ location: v })}
-          />
+          <>
+            {/* Real vs simulated first (brief §18); the simulated outcome only matters when simulating. */}
+            <Choice
+              label="Location source"
+              value={sim.location === 'device_gps' ? 'device' : 'simulated'}
+              options={[['simulated', 'Simulated'], ['device', 'This device (GPS)']]}
+              onChange={(v) => c.setSimulation({ location: v === 'device' ? 'device_gps' : 'inside' })}
+            />
+            {sim.location !== 'device_gps' && (
+              <Choice
+                label="Where is the phone?"
+                value={sim.location}
+                options={[['inside', 'Inside'], ['outside', 'Outside'], ['permission_denied', 'Denied'], ['unavailable', 'No GPS']]}
+                onChange={(v) => c.setSimulation({ location: v })}
+              />
+            )}
+          </>
         )}
         <Choice label="Face verification" value={onOff(config.verification.face)} options={ON_OFF} onChange={(v) => c.setConfig({ verification: { face: v === 'on' } })} />
         {config.verification.face && (
           <>
             <Choice label="Face registered" value={faceEnrolled ? 'yes' : 'no'} options={[['yes', 'Yes'], ['no', 'No']]} onChange={(v) => void c.setFaceEnrolled(v === 'yes')} />
-            <Choice label="Face check" value={sim.face === 'no_match' ? 'no_match' : 'match'} options={[['match', 'Matches'], ['no_match', 'No match']]} onChange={(v) => c.setSimulation({ face: v })} />
-            <Choice
-              label="Registration"
-              value={sim.enrolmentIssue}
-              options={[['none', 'Works'], ['poor_light', 'Dark'], ['multiple_faces', '2 faces'], ['save_failed', 'Fails']]}
-              onChange={(v) => c.setSimulation({ enrolmentIssue: v })}
-            />
+            <Choice label="Camera" value={sim.camera} options={[['device', 'This device'], ['simulated', 'Simulated']]} onChange={(v) => c.setSimulation({ camera: v })} />
+            {sim.camera === 'device' ? (
+              <Choice label="Face detection" value={sim.liveness} options={[['auto', 'On-device'], ['guided', 'Guided only']]} onChange={(v) => c.setSimulation({ liveness: v })} />
+            ) : (
+              <Choice
+                label="Registration"
+                value={sim.enrolmentIssue}
+                options={[['none', 'Works'], ['poor_light', 'Dark'], ['multiple_faces', '2 faces'], ['save_failed', 'Fails']]}
+                onChange={(v) => c.setSimulation({ enrolmentIssue: v })}
+              />
+            )}
+            {/* Matching is simulated whichever camera is used: there is no face recognition in this build. */}
+            <Choice label="Face match (simulated)" value={sim.face === 'no_match' ? 'no_match' : 'match'} options={[['match', 'Matches'], ['no_match', 'No match']]} onChange={(v) => c.setSimulation({ face: v })} />
           </>
         )}
         <Choice
-          label="Permissions"
+          label={sim.camera === 'device' ? 'Location permission (the camera asks for real)' : 'Permissions'}
           value={sim.permissions.location === 'prompt' ? 'ask' : 'granted'}
           options={[['granted', 'Allowed'], ['ask', 'Ask first']]}
           onChange={(v) => c.setSimulation({ permissions: v === 'ask' ? { location: 'prompt', camera: 'prompt' } : { location: 'granted', camera: 'granted' } })}

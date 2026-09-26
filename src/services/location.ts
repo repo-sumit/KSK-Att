@@ -12,6 +12,8 @@ import type { PermissionState } from './simulation';
 
 export interface DevicePosition extends GeoPoint {
   readonly accuracyM: number;
+  /** REAL ('device': navigator.geolocation) or SIMULATED (demo outcome). */
+  readonly source: 'device' | 'simulated';
 }
 
 export type PositionError = 'permission_denied' | 'unavailable' | 'timeout';
@@ -40,10 +42,10 @@ export async function checkLocation(
 ): Promise<Result<LocationCheck, LocationCheckError>> {
   const position = await provider.currentPosition(institute);
   if (!position.ok) return position;
-  const { lat, lng, accuracyM } = position.value;
-  if (mode === 'tagging') return ok({ location: { lat, lng, accuracyM }, inside: true });
+  const { lat, lng, accuracyM, source } = position.value;
+  if (mode === 'tagging') return ok({ location: { lat, lng, accuracyM, source }, inside: true });
   const fence = evaluateFence(position.value, institute, radiusM);
-  const location = { lat, lng, accuracyM, distanceM: fence.distanceM };
+  const location = { lat, lng, accuracyM, distanceM: fence.distanceM, source };
   // INV-17: there is no override — outside the radius never yields a pass.
   return fence.inside ? ok({ location, inside: true }) : err('outside_fence', { distanceM: fence.distanceM });
 }
@@ -66,7 +68,7 @@ export class BrowserLocationProvider implements LocationProvider {
     return new Promise((resolve) => {
       if (typeof navigator === 'undefined' || !navigator.geolocation) return resolve(err('unavailable'));
       navigator.geolocation.getCurrentPosition(
-        (p) => resolve(ok({ lat: p.coords.latitude, lng: p.coords.longitude, accuracyM: Math.round(p.coords.accuracy) })),
+        (p) => resolve(ok({ lat: p.coords.latitude, lng: p.coords.longitude, accuracyM: Math.round(p.coords.accuracy), source: 'device' })),
         (e) => resolve(err(e.code === e.PERMISSION_DENIED ? 'permission_denied' : e.code === e.TIMEOUT ? 'timeout' : 'unavailable')),
         { enableHighAccuracy: true, timeout: 15_000, maximumAge: 30_000 },
       );

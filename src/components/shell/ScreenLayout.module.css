@@ -1,24 +1,37 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
 .frame {
   position: relative;
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: var(--app-max-width);
   height: 100vh;
   height: 100dvh;
-  margin: 0 auto;
   overflow: hidden;
   overflow-x: clip;
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
+  /*
+   * Responsive gutters (D-045). `100%` resolves where each is used (the
+   * full-width regions below), so one set of values serves every breakpoint:
+   * phones get the 16px margin, wider screens centre a readable column.
+   */
+  --gutter-inline: max(var(--page-margin), (100% - var(--content-max)) / 2);
+  /* Edge-to-edge rows carry their own 16px padding: this keeps their text on the same line as everything else. */
+  --gutter-flush: calc(var(--gutter-inline) - var(--space-16));
+  /* Phones: full-width actions (DS 4/4). Wider screens: the DS 280px centred button (set below). */
+  --gutter-footer: var(--page-margin);
+  --gutter-wide: max(var(--page-margin), (100% - var(--container-wide)) / 2);
 }
-@media (min-width: 600px) {
-  .frame {
-    border-left: var(--divider-thin) solid var(--color-border-subtle);
-    border-right: var(--divider-thin) solid var(--color-border-subtle);
-    box-shadow: var(--shadow-card);
-  }
-}
+.w-form { --content-max: var(--container-form); }
+.w-reading { --content-max: var(--container-reading); }
+.w-wide { --content-max: var(--container-wide); }
+
 .app {
   background: var(--color-background-surface);
   --ghost-fg: var(--color-text-brand-subdued);
@@ -42,30 +55,33 @@
   min-width: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-width: none;
   scroll-padding-block: var(--space-8);
   display: flex;
   flex-direction: column;
 }
-.main::-webkit-scrollbar {
-  width: 0;
-  height: 0;
-}
 .main:focus {
   outline: none;
 }
+/*
+ * main is the only scroller: its children must never shrink to fit it. (A flex
+ * item with overflow: hidden gets min-height 0 and would clip its own rows —
+ * long absent lists and report tables — instead of letting main scroll.)
+ */
+.main > * {
+  flex-shrink: 0;
+}
 .pad-page {
   gap: var(--space-24);
-  padding: var(--space-16) var(--space-16) var(--space-24);
+  padding: var(--space-16) var(--gutter-inline) calc(var(--space-24) + var(--demo-reserve-block-end));
 }
 .pad-center {
   gap: var(--space-24);
-  padding: var(--space-48) var(--space-16) var(--space-24);
+  padding: var(--space-48) var(--gutter-inline) calc(var(--space-24) + var(--demo-reserve-block-end));
   align-items: center;
   text-align: center;
 }
 .pad-none {
-  padding: 0;
+  padding: 0 var(--gutter-flush) var(--demo-reserve-block-end);
 }
 .headerless {
   padding-top: calc(var(--space-16) + env(safe-area-inset-top) + var(--demo-reserve-block));
@@ -81,7 +97,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-8);
-  padding: var(--space-12) var(--space-16) var(--space-16);
+  padding: var(--space-12) var(--gutter-footer) var(--space-16);
 }
 .app .footer,
 .raised .footer {
@@ -96,10 +112,72 @@
   padding-bottom: var(--space-24);
 }
 
+/* Phones: touch scrolling, no scrollbar chrome (as the prototype). Mouse users on wider screens keep theirs. */
+@media (max-width: 599px) {
+  .main {
+    scrollbar-width: none;
+  }
+  .main::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+}
+
+@media (min-width: 600px) {
+  .frame {
+    --gutter-footer: max(var(--page-margin), (100% - min(var(--content-max), var(--container-footer))) / 2);
+  }
+  .pad-page {
+    padding-top: var(--space-24);
+    padding-bottom: calc(var(--space-32) + var(--demo-reserve-block-end));
+  }
+  /*
+   * Card screens (login, one-question steps): a centred form-width card on the
+   * muted page, the action directly under the content instead of at the
+   * bottom of a tall monitor.
+   */
+  .pageCard {
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-48) var(--page-margin);
+    background: var(--color-surface-muted);
+  }
+  /* A problem or confirmation in the app: its one action sits under the message, not a monitor-height away. */
+  .inlineFooter .main {
+    flex: 0 1 auto;
+  }
+  .inlineFooter .footer {
+    border-top: none;
+  }
+  .card {
+    /* Inside the card the DS page margins would double up: one comfortable inset instead. */
+    --gutter-inline: var(--space-32);
+    /* The floating demo trigger sits outside the card. */
+    --demo-reserve-block-end: 0px;
+    height: auto;
+    max-height: calc(100dvh - 2 * var(--space-48));
+    max-width: var(--container-form);
+    border: var(--divider-thin) solid var(--color-border-subtle);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-card);
+  }
+  .card .main {
+    flex: 0 1 auto;
+  }
+  .card .pad-center,
+  .card .headerless {
+    padding-top: var(--space-40);
+  }
+  .card .footer {
+    border-top: none;
+  }
+}
+
 @media print {
+  .page,
   .frame {
     height: auto;
-    max-width: none;
+    min-height: 0;
     overflow: visible;
     border: none;
     box-shadow: none;

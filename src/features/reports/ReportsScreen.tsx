@@ -1,9 +1,8 @@
 'use client';
 import { IconTile } from '@/components/ui/IconWell';
 import { List, ListRow } from '@/components/ui/ListRow';
-import { AppBottomNav } from '@/components/shell/AppBottomNav';
-import { InnerHeader } from '@/components/shell/Headers';
 import { ScreenLayout } from '@/components/shell/ScreenLayout';
+import { AppHeader } from '@/features/shell/AppHeader';
 import { useI18n } from '@/hooks/i18n';
 import { useJourney } from '@/hooks/session';
 import { routes } from '@/lib/routes';
@@ -15,8 +14,8 @@ export function ReportsScreen() {
   const j = useJourney();
   const defaultRange = j.reports.dateRanges.includes('month') ? 'month' : j.reports.dateRanges[0];
   return (
-    <ScreenLayout header={<InnerHeader title={t('reports.title')} back={false} />} nav={<AppBottomNav active="reports" />}>
-      <List label={t('reports.title')}>
+    <ScreenLayout header={<AppHeader title={t('reports.title')} />} area="reports" bottomNav>
+      <List label={t('reports.title')} grid>
         {j.reports.blocks.map((block) => (
           <ListRow
             key={block}

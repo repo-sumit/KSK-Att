@@ -4,8 +4,8 @@ import { useMemo } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/icons/Icon';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { InnerHeader } from '@/components/shell/Headers';
 import { ScreenLayout } from '@/components/shell/ScreenLayout';
+import { AppHeader } from '@/features/shell/AppHeader';
 import { LEAVE_TYPES } from '@/domain/status';
 import { useI18n } from '@/hooks/i18n';
 import { useSession } from '@/hooks/session';
@@ -48,7 +48,7 @@ export function MarkScreen() {
 
   if (!roster) {
     return (
-      <ScreenLayout header={<InnerHeader title={t('common.loading')} backHref={routes.attendance} />}>
+      <ScreenLayout area="attendance" width="reading" header={<AppHeader back="back" title={t('common.loading')} backHref={routes.attendance} />}>
         <Skeleton label={t('common.loading')} />
       </ScreenLayout>
     );
@@ -78,9 +78,11 @@ export function MarkScreen() {
 
   return (
     <ScreenLayout
+      area="attendance"
+      width="reading"
       surface="raised"
       padding="none"
-      header={<InnerHeader title={card.trade.name} subtitle={batchTitle(t, card.batch)} backHref={routes.attendance} />}
+      header={<AppHeader back="back" title={card.trade.name} subtitle={batchTitle(t, card.batch)} backHref={routes.attendance} />}
       top={<RosterSummary meta={meta} counts={counts} closingAt={soon ? format.clockTime(card.address.date, soon) : undefined} staleSince={roster.packStale && roster.packDownloadedAt ? format.dayMonth(toLocalDate(new Date(roster.packDownloadedAt))) : undefined} />}
       footer={
         <>

@@ -11,9 +11,8 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { StatTiles } from '@/components/ui/StatTiles';
 import { StatusPill } from '@/components/ui/StatusPill';
 import { useToast } from '@/components/ui/Toast';
-import { AppBottomNav } from '@/components/shell/AppBottomNav';
-import { InnerHeader } from '@/components/shell/Headers';
 import { ScreenLayout } from '@/components/shell/ScreenLayout';
+import { AppHeader } from '@/features/shell/AppHeader';
 import type { StatusCode } from '@/domain/status';
 import { useI18n } from '@/hooks/i18n';
 import { useServices } from '@/hooks/services';
@@ -78,7 +77,7 @@ export function StaffScreen() {
     <ScreenLayout
       surface="raised"
       padding="none"
-      header={<InnerHeader title={t('nav.attendance')} back={false} />}
+      header={<AppHeader title={t('nav.attendance')} />}
       top={
         <div className={styles.top}>
           <ViewSwitch value="staff" onSwitch={(go) => (changes > 0 ? setLeaving(() => go) : go())} />
@@ -100,7 +99,11 @@ export function StaffScreen() {
           </Button>
         ) : undefined
       }
-      nav={changes > 0 ? undefined : <AppBottomNav active="attendance" />}
+      area="attendance"
+      // While marks are unsaved the Save action takes the nav's place (phones), and leaving asks first.
+      bottomNav={changes === 0}
+      guardNavigation={changes > 0 ? (go) => setLeaving(() => go) : undefined}
+      width="reading"
     >
       {!rows ? (
         <Skeleton label={t('common.loading')} />

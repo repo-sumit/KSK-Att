@@ -5,12 +5,17 @@
 import type { ConfigLayer } from '@/config/types';
 import { DEFAULT_SIMULATION, type SimulationState } from '@/services/simulation';
 import type { LocalTime } from '@/lib/time';
+import type { PersonaId } from './personas';
 
 export type DemoClockSetting = { readonly mode: 'fixed'; readonly time: LocalTime } | { readonly mode: 'real' };
 
 export interface DemoState {
   readonly version: 1;
   readonly presetId: string | null;
+  /** The persona the presenter picked last (preset, quick login, skip login): demo autofill uses its credentials. */
+  readonly persona: PersonaId;
+  /** Advanced: quick login signs straight in instead of opening the login screens. */
+  readonly skipLogin: boolean;
   readonly config: ConfigLayer;
   readonly simulation: SimulationState;
   readonly clock: DemoClockSetting;
@@ -22,6 +27,8 @@ export const DEFAULT_DEMO_TIME: LocalTime = '10:15';
 export const DEFAULT_DEMO_STATE: DemoState = {
   version: 1,
   presetId: 'open',
+  persona: 'open',
+  skipLogin: false,
   config: {},
   simulation: DEFAULT_SIMULATION,
   clock: { mode: 'fixed', time: DEFAULT_DEMO_TIME },

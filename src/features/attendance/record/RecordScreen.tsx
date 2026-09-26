@@ -9,8 +9,8 @@ import { Latin } from '@/components/ui/Latin';
 import { Segmented } from '@/components/ui/Segmented';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StatusChip } from '@/components/ui/StatusChip';
-import { InnerHeader } from '@/components/shell/Headers';
 import { ScreenLayout } from '@/components/shell/ScreenLayout';
+import { AppHeader } from '@/features/shell/AppHeader';
 import { parseSessionKey, toSessionKey } from '@/domain/attendance';
 import { countMarks } from '@/domain/marking';
 import { useI18n } from '@/hooks/i18n';
@@ -49,7 +49,7 @@ export function RecordScreen() {
   const batch = ctx.data.batches.find((b) => b.id === address?.batchId);
   const trade = ctx.data.trades.find((x) => x.id === batch?.tradeId);
 
-  const header = <InnerHeader title={trade?.name ?? t('common.loading')} subtitle={batch ? batchTitle(t, batch) : undefined} backHref={routes.attendance} />;
+  const header = <AppHeader back="back" title={trade?.name ?? t('common.loading')} subtitle={batch ? batchTitle(t, batch) : undefined} backHref={routes.attendance} />;
   const daySwitch =
     ctx.journey.corrections && dailySlot ? (
       <Segmented
@@ -65,13 +65,13 @@ export function RecordScreen() {
       />
     ) : null;
 
-  if (loading && !detail) return <ScreenLayout header={header}><Skeleton label={t('common.loading')} /></ScreenLayout>;
+  if (loading && !detail) return <ScreenLayout area="attendance" width="reading" header={header}><Skeleton label={t('common.loading')} /></ScreenLayout>;
 
   const submission = detail?.submission;
   if (!detail || !submission) {
     const session = card ? [label(card).title, label(card).meta].filter(Boolean).join(' · ') : '';
     return (
-      <ScreenLayout header={header} top={daySwitch ? <div className={styles.top}>{daySwitch}</div> : undefined}>
+      <ScreenLayout area="attendance" width="reading" header={header} top={daySwitch ? <div className={styles.top}>{daySwitch}</div> : undefined}>
         <EmptyState
           icon="clipboard-check"
           title={t('record.notSubmittedTitle')}
@@ -97,6 +97,8 @@ export function RecordScreen() {
 
   return (
     <ScreenLayout
+      area="attendance"
+      width="reading"
       surface="raised"
       padding="none"
       header={header}

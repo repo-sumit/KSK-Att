@@ -1,6 +1,6 @@
 import { expect, preset, test } from './fixtures';
 
-test('first-time user: login with confirmations, face registration (simulated), then permission primer', async ({ page, consoleErrors }) => {
+test('first-time user: login with confirmations, face registration (simulated camera), then permission primer', async ({ page, consoleErrors }) => {
   void consoleErrors;
   await preset(page, 'first_time', /\/login$/);
   await page.getByLabel('Institute code').fill('27499');
@@ -21,7 +21,7 @@ test('first-time user: login with confirmations, face registration (simulated), 
 
   await page.waitForURL(/\/face/);
   await expect(page.getByText('Set up face verification')).toBeVisible();
-  await expect(page.getByText('Demo simulation · no photo is taken')).toBeVisible();
+  await expect(page.getByText('Demo simulation · no camera or photo is used')).toBeVisible();
   await page.getByRole('button', { name: 'Start' }).click();
   await expect(page.getByRole('heading', { name: 'Camera required' })).toBeVisible();
   await page.getByRole('button', { name: 'Allow camera' }).click();

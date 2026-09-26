@@ -48,10 +48,15 @@ export function ListRow({ title, subtitle, leading, trailing, href, onClick, min
   );
 }
 
-export function List({ children, label, className }: { readonly children: ReactNode; readonly label?: string; readonly className?: string }) {
-  return (
-    <ul className={cx(styles.list, className)} aria-label={label}>
+/**
+ * A List card. `grid`: where there is room (≥ 640px of content) its rows become
+ * separate cards in two columns — trade and report pickers on tablets and desktops.
+ */
+export function List({ children, label, className, grid = false }: { readonly children: ReactNode; readonly label?: string; readonly className?: string; readonly grid?: boolean }) {
+  const list = (
+    <ul className={cx(styles.list, grid && styles.gridList, className)} aria-label={label}>
       {children}
     </ul>
   );
+  return grid ? <div className={styles.gridWrap}>{list}</div> : list;
 }

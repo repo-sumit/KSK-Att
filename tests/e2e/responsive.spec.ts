@@ -1,12 +1,12 @@
 import AxeBuilder from '@axe-core/playwright';
-import { demo, expect, expectGroupsFit, expectNoOverflow, preset, test } from './fixtures';
+import { demo, expect, expectGroupsFit, expectNoOverflow, openProfileMenu, preset, test } from './fixtures';
 
-const WIDTHS = [320, 360, 375, 390, 412, 768];
+const WIDTHS = [320, 360, 375, 390, 412, 768, 1024, 1280, 1440, 1920];
 
-test('no horizontal overflow on key screens at every phone width', async ({ page, consoleErrors }) => {
+test('no horizontal overflow on key screens, phone to desktop', async ({ page, consoleErrors }) => {
   void consoleErrors;
   await preset(page, 'principal');
-  for (const path of ['/home', '/attendance', '/attendance/staff', '/reports', '/reports/view?r=institute_summary&range=month', '/profile']) {
+  for (const path of ['/home', '/attendance', '/attendance/staff', '/reports', '/reports/view?r=institute_summary&range=month']) {
     await page.goto(path);
     await page.waitForLoadState('networkidle');
     for (const width of WIDTHS) {
@@ -34,12 +34,21 @@ test('roster status buttons fit the row with five statuses, 320px to 412px', asy
 test('key screens pass automated accessibility checks', async ({ page, consoleErrors }) => {
   void consoleErrors;
   await preset(page, 'open');
-  for (const path of ['/home', '/attendance', '/profile', '/profile/offline']) {
+  for (const path of ['/home', '/attendance', '/profile/offline']) {
     await page.goto(path);
     await page.waitForLoadState('networkidle');
     const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
     expect(results.violations.map((v) => `${v.id}: ${v.nodes.length}`)).toEqual([]);
   }
+  // The profile menu and the demo panel, open.
+  await page.goto('/home');
+  await openProfileMenu(page);
+  const menu = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+  expect(menu.violations.map((v) => `menu ${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`)).toEqual([]);
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Open demo controls' }).click();
+  const panel = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+  expect(panel.violations.map((v) => `demo ${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`)).toEqual([]);
 });
 
 test('principal and report screens (grey surfaces) pass automated accessibility checks', async ({ page, consoleErrors }) => {

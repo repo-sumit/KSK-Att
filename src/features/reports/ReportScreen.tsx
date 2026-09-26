@@ -8,8 +8,8 @@ import { Latin } from '@/components/ui/Latin';
 import { Segmented } from '@/components/ui/Segmented';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useToast } from '@/components/ui/Toast';
-import { InnerHeader } from '@/components/shell/Headers';
 import { ScreenLayout } from '@/components/shell/ScreenLayout';
+import { AppHeader } from '@/features/shell/AppHeader';
 import type { DateRangeKind, ReportBlock } from '@/config/types';
 import { useI18n } from '@/hooks/i18n';
 import { useServices } from '@/hooks/services';
@@ -49,10 +49,10 @@ export function ReportScreen() {
     else toast.show(t('reports.printUnavailable'));
   };
 
-  if (!allowed) return <ScreenLayout header={<InnerHeader title={t('reports.title')} backHref={routes.reports} />}><EmptyState icon="chart" title={t('problem.notFoundTitle')} /></ScreenLayout>;
+  if (!allowed) return <ScreenLayout area="reports" width="reading" header={<AppHeader back="back" title={t('reports.title')} backHref={routes.reports} />}><EmptyState icon="chart" title={t('problem.notFoundTitle')} /></ScreenLayout>;
 
   return (
-    <ScreenLayout header={<InnerHeader title={t(REPORT_META[block].title)} backHref={routes.reports} />}>
+    <ScreenLayout area="reports" width="reading" header={<AppHeader back="back" title={t(REPORT_META[block].title)} backHref={routes.reports} />}>
       <div className={styles.printHead}>
         <p className={styles.printTitle}>{t('reports.printTitle', { report: t(REPORT_META[block].title), institute: ctx.institute.name })}</p>
         <p>{t('reports.printMeta', { range: rangeLabel(t, format, range), when: `${format.dayMonthYear(today)} ${format.time(ctx.clock.now())}` })}</p>

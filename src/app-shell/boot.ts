@@ -24,13 +24,14 @@ export async function bootApp(): Promise<AppRuntime> {
   if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
     const { createDemoAdapters } = await import('@/demo/adapters');
     const demo = createDemoAdapters();
-    const container = createMockContainer({ store, preferencesStore, clock: demo.clock, simulation: demo.simulation, configOverrides: demo.configOverrides });
+    const container = createMockContainer({ store, preferencesStore, clock: demo.clock, simulation: demo.simulation, configOverrides: demo.configOverrides, loginAssist: demo.loginAssist });
     demo.repo.subscribe(() => container.bus.emit('demo'));
     container.services.sync.start();
     return { container, demo };
   }
-  // Without the demo there is still no backend: mock data, but real connectivity events and the
-  // real Geolocation API. Face stays simulated and is labelled as such (docs/ARCHITECTURE.md).
+  // Without the demo there is still no backend: mock data, but real connectivity events, the real
+  // Geolocation API, the real camera and the on-device movement check. Face MATCHING stays simulated
+  // and every face screen says so (docs/ARCHITECTURE.md → Face capture).
   const container = createMockContainer({ store, preferencesStore, clock: systemClock, simulation: new StaticSimulationSource(), realDevice: true });
   container.services.sync.start();
   return { container, demo: null };

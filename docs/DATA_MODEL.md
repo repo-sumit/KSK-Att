@@ -53,7 +53,7 @@ interface SessionAddress { batchId; date /* YYYY-MM-DD, IST */; slot; subjectId?
 | Record | Fields | Lifecycle |
 |---|---|---|
 | `AttendanceDraft` | `sessionKey`, `marks`, `updatedAt` | Autosaved 300ms after each tap. Survives leaving the screen. Refused once the session is submitted |
-| `AttendanceSubmission` | `id`, `sessionKey`, `address`, `marks`, `markedBy`, `deviceTimestamp`, `serverTimestamp?`, `location?` (lat, lng, `accuracyM`, `distanceM?`), `syncState` (`pending` / `synced` / `failed`) | **Written once** (atomic check-and-set on the session key), then locked for everyone. The device and server timestamps are both kept (PRD open question 2, clock trust) |
+| `AttendanceSubmission` | `id`, `sessionKey`, `address`, `marks`, `markedBy`, `deviceTimestamp`, `serverTimestamp?`, `location?` (lat, lng, `accuracyM`, `distanceM?`, `source?`: `device` / `simulated`), `syncState` (`pending` / `synced` / `failed`) | **Written once** (atomic check-and-set on the session key), then locked for everyone. The device and server timestamps are both kept (PRD open question 2, clock trust) |
 | `Correction` | `correctionId`, `attendanceId`, `studentId`, `oldMark`, `newMark`, `reason`, `actorId`, `timestamp` | **Append-only.** The submission is never changed; `effectiveMarks(submission, corrections)` folds them in append order |
 | `StaffAttendanceRecord` | `id`, `staffId`, `date`, `status`, `source` (`self` / `principal`), `markedBy`, `deviceTimestamp`, `location?`, `syncState` | One per staff member per day across both paths; the first mark wins |
 | `OfflineQueueItem` | `id`, `kind` (`attendance_submission` / `staff_attendance`), `recordId`, `label`, `enqueuedAt`, `attempts`, `lastError?` | Created for every locked record; removed when the push succeeds |
@@ -63,7 +63,7 @@ Device-held records (`src/domain/device.ts`):
 | Record | Fields | Notes |
 |---|---|---|
 | `BatchPack` | `batchId`, `downloadedAt` | A downloaded roster for offline use; stale after `offline.refreshDays` |
-| `FaceEnrolment` | `staffId`, `enrolledAt`, `sampleCount`, `simulated: true` | **Simulation only**: no image or template is stored (D-009) |
+| `FaceEnrolment` | `staffId`, `enrolledAt`, `sampleCount`, `simulated: true` | Records only that registration happened and how many photos were taken. The photos themselves (in-memory `CapturedFrame` JPEGs) are never stored; no image or template exists anywhere (D-048) |
 | `VerificationPass` | `staffId`, `purpose` (`session:<key>` or `self`), `date`, `grantedAt`, `location?` | Proof that verification ran for this user, session and day |
 
 ## Repository interfaces (`src/repositories/interfaces/index.ts`)
@@ -74,7 +74,7 @@ Device-held records (`src/domain/device.ts`):
 | `AttendanceRepository` | Drafts; `createSubmission` (write-once); list by batch or date range; mark synced | `MockDatabase` | `GET /attendance?batchIds=&from=&to=`; pushes go through `SyncGateway` |
 | `CorrectionRepository` | Append and list corrections (append-only) | `MockDatabase` | `POST /attendance/{attendanceId}/corrections`, `GET /corrections?…` |
 | `StaffAttendanceRepository` | `get`, `getById`, `listForDate`, `listBetween`, `create` (one per day), `markSynced` | `MockDatabase` | reads from the API; pushes through `SyncGateway` |
-| `FaceEnrolmentRepository` | Enrolment status (simulated) | `MockDatabase` | provider-specific |
+| `FaceEnrolmentRepository` | Enrolment status (matching simulated) | `MockDatabase` | provider-specific (the matcher owns any template) |
 | `VerificationRepository` | Passes per user, purpose and day | `MockDatabase` | device-local |
 | `OfflineQueueRepository` | The outbox | `MockDatabase` | device-local (IndexedDB) |
 | `BatchPackRepository` | Downloaded batches | `MockDatabase` | device-local, filled from `GET /institutes/{id}/bundle` |

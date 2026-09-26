@@ -30,6 +30,7 @@ export function ConfirmInstituteScreen() {
 
   return (
     <ScreenLayout
+      card
       surface="default"
       banner={false}
       padding="none"

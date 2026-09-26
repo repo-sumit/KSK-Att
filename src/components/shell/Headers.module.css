@@ -1,61 +1,10 @@
-.header {
-  position: relative;
-  z-index: var(--z-header);
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: var(--space-8);
-  min-height: var(--header-height);
-  padding: calc(var(--space-8) + env(safe-area-inset-top)) calc(var(--space-16) + var(--demo-reserve-inline)) var(--space-8) var(--space-16);
-  background: var(--color-background-surface-raised);
-  border-bottom: var(--divider-thin) solid var(--color-border-subtle);
-  color: var(--color-text-primary);
-}
-.header[data-has-back='true'] {
-  padding-left: var(--space-8);
-}
-.header[data-home='true'] {
-  gap: var(--space-12);
-}
-.emblem {
-  flex: none;
-  width: 36px;
-  height: 36px;
-  object-fit: contain;
-}
-.titles {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
-}
-.title {
-  font: var(--type-title-large);
-  letter-spacing: var(--ls-title-large);
-  /* Up to two lines (larger text, narrow phones) rather than cutting the screen name off. */
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  overflow-wrap: break-word;
-}
-.subtitle {
-  font: var(--type-label-small);
-  letter-spacing: var(--ls-label-small);
-  color: var(--color-text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.caption {
-  font: var(--type-caption);
-  letter-spacing: var(--ls-caption);
-  color: var(--color-text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 .inlineBack {
   flex: none;
   padding: calc(var(--space-8) + env(safe-area-inset-top)) var(--space-8) 0;
+}
+@media (min-width: 600px) {
+  /* Inside a card screen the arrow lines up with the card's content margin. */
+  .inlineBack {
+    padding: var(--space-16) calc(var(--gutter-inline) - var(--space-12)) 0;
+  }
 }

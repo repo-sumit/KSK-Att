@@ -1,7 +1,14 @@
 .cards {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-12);
+}
+/* Students and staff side by side once both cards have room (never more than two). */
+@media (min-width: 720px) {
+  .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--page-gutter);
+  }
 }
 .top {
   display: flex;
@@ -39,6 +46,19 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-8);
+}
+/* DS: standalone buttons stay 280px on tablets and desktops instead of stretching. */
+@media (min-width: 600px) {
+  .actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-12);
+  }
+  .actions > a,
+  .actions > button {
+    flex: 0 1 280px;
+  }
 }
 .nowrap {
   white-space: nowrap;

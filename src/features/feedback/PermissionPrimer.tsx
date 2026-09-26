@@ -18,6 +18,7 @@ export function PermissionPrimer({ kind, purpose = 'verify', onAllow, onNotNow }
   const location = kind === 'location';
   return (
     <ScreenLayout
+      card
       surface="default"
       padding="center"
       footer={

@@ -8,10 +8,12 @@ import { ScreenLayout } from '@/components/shell/ScreenLayout';
 import { useT } from '@/hooks/i18n';
 import { useServices } from '@/hooks/services';
 import { routes } from '@/lib/routes';
+import { LoginAssistButton } from './LoginAssistButton';
 import { useLoginFlow } from './LoginFlow';
 import styles from './Login.module.css';
 
 const FORM_ID = 'institute-code';
+const INPUT_ID = 'institute-code-input';
 
 /** Step 1 (PRD §6.1): the institute code, checked live before anything else is asked. */
 export function InstituteCodeScreen() {
@@ -40,6 +42,7 @@ export function InstituteCodeScreen() {
 
   return (
     <ScreenLayout
+      card
       surface="default"
       banner={false}
       padding="none"
@@ -63,6 +66,7 @@ export function InstituteCodeScreen() {
             <p className={styles.hint}>{t('login.codeHint')}</p>
           </div>
           <Input
+            id={INPUT_ID}
             label={t('login.codeLabel')}
             value={code}
             onChange={(v) => {
@@ -75,6 +79,14 @@ export function InstituteCodeScreen() {
             enterKeyHint="go"
             latin
             error={error}
+          />
+          <LoginAssistButton
+            field="instituteCode"
+            inputId={INPUT_ID}
+            onFill={(v) => {
+              setCode(v);
+              setError(undefined);
+            }}
           />
         </form>
       </div>

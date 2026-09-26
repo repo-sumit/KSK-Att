@@ -10,7 +10,8 @@ import { selectableStatuses } from '@/domain/marking';
 import type { StatusCode } from '@/domain/status';
 import type { AppConfiguration, DateRangeKind, DefaultStatus, Language, MarkingFrequency, ReportBlock } from './types';
 
-export type NavTab = 'home' | 'attendance' | 'reports' | 'profile';
+/** Primary destinations. Profile is not one: it opens from the header avatar on every screen (D-046). */
+export type NavTab = 'home' | 'attendance' | 'reports';
 export type LocationStep = 'none' | 'background' | 'fence';
 
 export interface Journey {
@@ -84,7 +85,7 @@ export function deriveJourney(config: AppConfiguration, user: StaffMember, acces
     .filter((b) => b !== 'correction_log' || config.identity.principalCanCorrect);
 
   const reportsEnabled = config.reports.enabled && blocks.length > 0;
-  const navTabs: NavTab[] = ['home', 'attendance', ...(reportsEnabled ? (['reports'] as const) : []), 'profile'];
+  const navTabs: NavTab[] = ['home', 'attendance', ...(reportsEnabled ? (['reports'] as const) : [])];
 
   return {
     role: user.role,

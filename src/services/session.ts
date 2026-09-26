@@ -9,14 +9,14 @@ import type { MasterDataRepository } from '@/repositories/interfaces';
 import type { AuthService } from './auth';
 import type { ConfigurationService } from './configuration';
 import type { SessionContext } from './context';
-import type { FaceVerificationService } from './face';
+import type { FaceMatchService } from './face';
 
 export class SessionService {
   constructor(
     private readonly auth: AuthService,
     private readonly masterData: MasterDataRepository,
     private readonly configuration: ConfigurationService,
-    private readonly face: FaceVerificationService,
+    private readonly face: FaceMatchService,
     private readonly clock: Clock,
   ) {}
 

@@ -1,15 +1,10 @@
-.layout {
-  display: flex;
-  min-height: 100dvh;
-}
-.app {
-  flex: 1;
-  min-width: 0;
-}
-.side {
-  display: none;
-}
-.pill {
+/*
+ * DEMO ONLY. A collapsed trigger on every screen size (D-036, D-047).
+ * Phones: top right, in the space headers reserve for it, so it never covers
+ * a row, a CTA or the bottom navigation. Tablets and desktops: bottom right,
+ * outside the centred content column; nothing is reserved.
+ */
+.trigger {
   position: fixed;
   top: calc(env(safe-area-inset-top) + var(--space-12));
   right: var(--space-12);
@@ -18,40 +13,66 @@
   align-items: center;
   gap: var(--space-4);
   min-height: 36px;
-  padding: 0 var(--space-8);
+  padding: 0 var(--space-12) 0 var(--space-8);
   border: var(--divider-thin) solid var(--color-status-warning);
   border-radius: var(--radius-full);
   background: var(--color-surface-warning-subtle);
   color: var(--color-text-warning);
   box-shadow: var(--shadow-raised);
-  font: var(--type-caption);
-  letter-spacing: var(--ls-caption);
-  font-weight: var(--font-weight-bold);
+  font: var(--type-label-small-strong);
+  letter-spacing: var(--ls-label-small);
 }
-.sheet {
+/* The visible hit area is 36px; the real one reaches the 44px minimum. */
+.trigger::after {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * var(--space-4));
+}
+.trigger[aria-expanded='true'] {
+  background: var(--color-status-warning-subtle);
+}
+
+/* Phones: a modal bottom sheet, up to 90% of the screen, scrolling inside. */
+.panel {
   position: fixed;
   inset: auto 0 0 0;
+  z-index: calc(var(--z-demo) + 1);
   width: 100%;
-  max-width: 480px;
-  max-height: 88dvh;
-  margin: 0 auto;
+  max-width: 100%;
+  max-height: 90dvh;
+  margin: 0;
   padding: 0;
   border: none;
   border-radius: var(--radius-xl) var(--radius-xl) var(--radius-none) var(--radius-none);
   background: var(--color-background-surface-raised);
   box-shadow: var(--shadow-overlay);
+  color: var(--color-text-primary);
   overflow-y: auto;
+  /* One wide control must never make the whole panel pan sideways. */
+  overflow-x: hidden;
+  overscroll-behavior: contain;
 }
-.sheet::backdrop {
+.panel::backdrop {
   background: var(--color-scrim);
 }
-.sheetBar {
+.panelBar {
   position: sticky;
   top: 0;
+  z-index: 1;
   display: flex;
-  justify-content: flex-end;
-  padding: var(--space-8) var(--space-8) 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+  padding: var(--space-8) var(--space-8) var(--space-8) var(--space-16);
+  border-bottom: var(--divider-thin) solid var(--color-border-subtle);
   background: var(--color-background-surface-raised);
+}
+.panelTitle {
+  font: var(--type-title-large);
+  letter-spacing: var(--ls-title-large);
+}
+.panelTitle:focus {
+  outline: none;
 }
 .close {
   display: inline-flex;
@@ -65,44 +86,54 @@
   color: var(--color-icon-primary);
 }
 
-/* Phones and tablets: the pill sits in space the headers reserve for it. */
-@media (max-width: 1023px) {
+/* Tablets and desktops: the bottom-right trigger floats over the page, so the last row can always scroll clear of it. */
+@media (min-width: 600px) {
+  :global(html:root) {
+    --demo-reserve-block-end: 72px;
+  }
+}
+/* Phones: headers keep the top-right corner free for the trigger. */
+@media (max-width: 599px) {
   /* html:root outranks the :root defaults in tokens.css whatever the stylesheet order. */
   :global(html:root) {
     --demo-reserve-inline: 84px;
     --demo-reserve-block: 40px;
   }
 }
-/* Narrow phones: icon-only pill (its aria-label still says "Open demo controls"), so headers keep their room. */
+/* Narrow phones: icon-only trigger (its aria-label still says "Open demo controls"), so headers keep their room. */
 @media (max-width: 359px) {
   :global(html:root) {
     --demo-reserve-inline: 48px;
   }
-  .pill {
+  .trigger {
     width: 36px;
     padding: 0;
     justify-content: center;
   }
-  .pillText {
+  .triggerText {
     display: none;
   }
 }
 
-/* Wide screens (projector, laptop): docked panel, the app column centred beside it. */
-@media (min-width: 1024px) {
-  .side {
-    display: block;
-    flex: none;
-    width: 340px;
-    height: 100dvh;
-    position: sticky;
-    top: 0;
-    overflow-y: auto;
-    border-right: var(--divider-thin) solid var(--color-border-subtle);
-    background: var(--color-background-surface-raised);
+/* Tablets and desktops: trigger bottom right; the panel is a floating drawer that overlays the app. */
+@media (min-width: 600px) {
+  .trigger {
+    top: auto;
+    right: var(--space-24);
+    bottom: calc(env(safe-area-inset-bottom) + var(--space-24));
+    min-height: var(--touch-target-min);
+    padding: 0 var(--space-16) 0 var(--space-12);
   }
-  .pill,
-  .sheet {
-    display: none;
+  .trigger::after {
+    content: none;
+  }
+  .panel {
+    /* Below the app header, so the avatar and navigation stay usable while the drawer is open. */
+    inset: calc(env(safe-area-inset-top) + var(--header-height-wide) + var(--space-8)) var(--space-16) var(--space-16) auto;
+    width: 380px;
+    max-height: none;
+    height: auto;
+    border: var(--divider-thin) solid var(--color-border-subtle);
+    border-radius: var(--radius-xl);
   }
 }

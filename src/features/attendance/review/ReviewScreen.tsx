@@ -10,8 +10,8 @@ import { Icon, type IconName } from '@/components/ui/icons/Icon';
 import { Latin } from '@/components/ui/Latin';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useToast } from '@/components/ui/Toast';
-import { InnerHeader } from '@/components/shell/Headers';
 import { ScreenLayout } from '@/components/shell/ScreenLayout';
+import { AppHeader } from '@/features/shell/AppHeader';
 import { countMarks } from '@/domain/marking';
 import type { Mark, StatusCode } from '@/domain/status';
 import { useI18n } from '@/hooks/i18n';
@@ -50,7 +50,7 @@ export function ReviewScreen() {
     if (redirect && !busy) router.replace(redirect);
   }, [redirect, busy, router]);
 
-  if (!data) return <ScreenLayout header={<InnerHeader title={t('review.title')} />}><Skeleton label={t('common.loading')} /></ScreenLayout>;
+  if (!data) return <ScreenLayout area="attendance" width="reading" header={<AppHeader back="back" title={t('review.title')} />}><Skeleton label={t('common.loading')} /></ScreenLayout>;
   if (!data.ok) return null;
 
   const { card, students, marks } = data.value;
@@ -82,7 +82,9 @@ export function ReviewScreen() {
 
   return (
     <ScreenLayout
-      header={<InnerHeader title={t('review.title')} backHref={routes.mark(key)} />}
+      area="attendance"
+      width="reading"
+      header={<AppHeader back="back" title={t('review.title')} backHref={routes.mark(key)} />}
       footer={
         <>
           <Button fullWidth onClick={() => setSheet(true)}>

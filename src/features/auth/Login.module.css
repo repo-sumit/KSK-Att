@@ -9,6 +9,26 @@
   /* ScreenLayout's headerless padding (16px + the demo reserve) plus 32px = the prototype's 48px. */
   padding-top: var(--space-32);
 }
+/* Short phones (320×568, or under the host's app bar): everything, including the demo helper, above the Continue bar. */
+@media (max-height: 640px) and (max-width: 599px) {
+  .bodyFirst {
+    gap: var(--space-24);
+    padding-top: var(--space-8);
+  }
+  .lockup {
+    gap: var(--space-8);
+  }
+  .emblem {
+    width: 56px;
+    height: 56px;
+  }
+}
+/* In the tablet/desktop card the shared card inset already applies. */
+@media (min-width: 600px) {
+  .bodyFirst {
+    padding-top: 0;
+  }
+}
 .lockup {
   display: flex;
   flex-direction: column;
@@ -112,4 +132,42 @@
   font: var(--type-body-medium);
   letter-spacing: var(--ls-body-medium);
   color: var(--color-text-secondary);
+}
+/* Demo prefill: styled as presenter tooling (dashed, warning tone), never as part of the login form. */
+.assist {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  min-height: var(--touch-target-min);
+  max-width: 100%;
+  padding: var(--space-4) var(--space-16) var(--space-4) var(--space-12);
+  border: var(--divider-thin) dashed var(--color-status-warning);
+  border-radius: var(--radius-full);
+  background: var(--color-surface-warning-subtle);
+  color: var(--color-text-warning);
+  text-align: left;
+  transition: background-color var(--motion-fast) ease;
+}
+.assist:active {
+  background: var(--color-status-warning-subtle);
+}
+.assist > svg {
+  flex: none;
+}
+.assistText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.assistLabel {
+  font: var(--type-label-small-strong);
+  letter-spacing: var(--ls-label-small);
+}
+.assistWho {
+  font: var(--type-caption);
+  letter-spacing: var(--ls-caption);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

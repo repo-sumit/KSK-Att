@@ -1,0 +1,55 @@
+.headerNav {
+  display: none;
+}
+@media (min-width: 600px) {
+  .headerNav {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    min-width: 0;
+  }
+  .item {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-8);
+    min-height: var(--touch-target-min);
+    padding: 0 var(--space-12);
+    border-radius: var(--radius-full);
+    color: var(--color-text-secondary);
+    font: var(--type-label-medium);
+    letter-spacing: var(--ls-label-medium);
+    white-space: nowrap;
+    transition: background-color var(--motion-fast) ease;
+  }
+  .icon {
+    flex: none;
+    color: var(--color-icon-secondary);
+  }
+  .current {
+    background: var(--color-surface-brand-subtle);
+    color: var(--color-text-brand-subdued);
+    font-weight: var(--font-weight-semibold);
+  }
+  .current .icon {
+    color: var(--color-icon-brand);
+  }
+  .item:active {
+    background: var(--color-background-surface);
+  }
+  .current:active {
+    background: var(--color-surface-brand-subtle);
+  }
+}
+/* Hover only adds affordance for mouse users; nothing depends on it. */
+@media (min-width: 600px) and (hover: hover) {
+  .item:not(.current):hover {
+    background: var(--color-hero-banner);
+    color: var(--color-text-primary);
+  }
+}
+/* Medium widths: labels only, so three or four destinations fit beside the brand at 600px. */
+@media (min-width: 600px) and (max-width: 767px) {
+  .icon {
+    display: none;
+  }
+}

@@ -31,39 +31,84 @@
   letter-spacing: var(--ls-body-medium);
 }
 .tips li svg {
+  flex: none;
   color: var(--color-icon-secondary);
 }
-.tips .simulated {
+.introNote {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--space-4);
   font: var(--type-caption);
   letter-spacing: var(--ls-caption);
   color: var(--color-text-secondary);
+  text-wrap: pretty;
 }
+.introNote > svg {
+  flex: none;
+  margin-top: var(--space-2);
+}
+
+/* ---- Registration capture (dark) ---- */
 .capture {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--space-16);
+  /* main (padding: none) already sets the column's gutter; this is the rows' own 16px. */
   padding: calc(var(--space-16) + env(safe-area-inset-top)) var(--space-16) var(--space-16);
+  text-align: center;
 }
 .progress {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: var(--space-8);
   width: 100%;
 }
-.segments {
+.slots {
   display: flex;
-  gap: var(--space-8);
+  justify-content: center;
+  gap: var(--space-12);
 }
-.segment {
-  flex: 1;
-  height: 4px;
+.slot {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border: var(--divider-medium) dashed var(--color-camera-ring-muted);
   border-radius: var(--radius-full);
+}
+.slotNow {
+  border-style: solid;
+  border-color: var(--color-camera-on);
+}
+.slotDone {
+  border-style: solid;
+  border-color: var(--color-status-success);
   background: var(--color-camera-muted);
 }
-.segDone { background: var(--color-status-success); }
-.segNow { background: var(--color-camera-on); }
+.thumb {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+  /* Photos are shown as the preview was: mirrored. */
+  transform: scaleX(-1);
+}
+.slotCheck {
+  position: absolute;
+  right: calc(-1 * var(--space-4));
+  bottom: calc(-1 * var(--space-4));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-full);
+  background: var(--color-status-success);
+  color: var(--color-icon-on-primary);
+}
 .stepOf,
 .hint {
   font: var(--type-label-small);
@@ -72,25 +117,62 @@
 }
 .hint {
   font: var(--type-body-small);
-  text-align: center;
+  text-wrap: pretty;
 }
 .captureTitle {
   font: var(--type-heading-medium);
   letter-spacing: var(--ls-heading-medium);
   color: var(--color-camera-on);
 }
+
+/* ---- Camera viewport (shared by registration and the daily check) ---- */
 .viewport {
   position: relative;
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: min(288px, 100%);
-  aspect-ratio: 4 / 5;
   border-radius: var(--radius-3xl);
   background: var(--color-camera-bg);
   overflow: hidden;
 }
-.placeholder { color: var(--color-camera-muted); }
+/*
+ * Portrait frame on phones; never stretched to a monitor (brief §28). It shrinks
+ * with the screen height but never below a usable floor: a very short screen
+ * (landscape, split screen, a WebView under the host's app bar) scrolls instead.
+ */
+.vp-enrol {
+  width: max(200px, min(288px, 100%, (100dvh - 380px) * 0.8));
+  aspect-ratio: 4 / 5;
+}
+.vp-verify {
+  width: max(184px, min(248px, 70vw, (100dvh - 380px) * 0.83));
+  aspect-ratio: 248 / 300;
+}
+@media (min-width: 600px) {
+  .vp-enrol {
+    width: max(240px, min(var(--container-camera), 100%, (100dvh - 400px) * 0.8));
+  }
+  .vp-verify {
+    width: max(220px, min(320px, 100%, (100dvh - 420px) * 0.83));
+  }
+}
+.video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* A selfie preview reads like a mirror; the frames themselves are not mirrored. */
+  transform: scaleX(-1);
+  opacity: 0;
+}
+.videoLive {
+  opacity: 1;
+}
+.placeholder {
+  color: var(--color-camera-muted);
+}
 .captureOval {
   position: absolute;
   inset: 11% 15% 17%;
@@ -98,15 +180,15 @@
   border: 3px dashed var(--color-camera-on);
   transition: border-color var(--motion-base) ease;
 }
-.ringMuted { border-color: var(--color-camera-ring-muted); }
-.ringOn { border-color: var(--color-camera-on); }
-.ringGood { border-color: var(--color-status-success); border-style: solid; }
-.ringWarn { border-color: var(--color-status-warning); }
+.ring-muted { border-color: var(--color-camera-ring-muted); }
+.ring-on { border-color: var(--color-camera-on); }
+.ring-good { border-color: var(--color-status-success); border-style: solid; }
+.ring-warn { border-color: var(--color-status-warning); }
 .pillWrap {
   position: absolute;
-  left: var(--space-16);
-  right: var(--space-16);
-  bottom: var(--space-16);
+  left: var(--space-12);
+  right: var(--space-12);
+  bottom: var(--space-12);
   display: flex;
   justify-content: center;
 }
@@ -114,21 +196,44 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-8);
+  max-width: 100%;
   padding: var(--space-8) var(--space-16);
   border-radius: var(--radius-full);
   font: var(--type-title-small);
   letter-spacing: var(--ls-title-small);
+  text-align: left;
 }
-.gError { background: var(--color-surface-error-subtle); color: var(--color-text-error); }
-.gWarning { background: var(--color-surface-warning-subtle); color: var(--color-text-warning); }
-.gInfo { background: var(--color-surface-info-subtle); color: var(--color-text-info); }
-.gSuccess { background: var(--color-surface-success-subtle); color: var(--color-text-success); }
-.simulatedNote {
+.guide > svg {
+  flex: none;
+}
+.tapStart {
   display: inline-flex;
   align-items: center;
+  gap: var(--space-8);
+  min-height: var(--touch-target-min);
+  padding: 0 var(--space-16);
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--color-background-surface-raised);
+  color: var(--color-text-brand-subdued);
+  font: var(--type-title-small);
+  letter-spacing: var(--ls-title-small);
+}
+.g-error { background: var(--color-surface-error-subtle); color: var(--color-text-error); }
+.g-warning { background: var(--color-surface-warning-subtle); color: var(--color-text-warning); }
+.g-info { background: var(--color-surface-info-subtle); color: var(--color-text-info); }
+.g-success { background: var(--color-surface-success-subtle); color: var(--color-text-success); }
+.simulatedNote {
+  display: inline-flex;
+  align-items: flex-start;
   justify-content: center;
   gap: var(--space-4);
   font: var(--type-label-small);
   letter-spacing: var(--ls-label-small);
   color: var(--color-camera-text-secondary);
+  text-wrap: pretty;
+}
+.simulatedNote > svg {
+  flex: none;
+  margin-top: var(--space-2);
 }

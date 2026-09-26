@@ -205,19 +205,35 @@
   --divider-medium: 2px;
   --border-selected: 1.5px;
 
-  /* ---- Grid ---- */
+  /* ---- Grid (SwiftChat DS): small 320–599 · 4 col · 16 margin; medium 600–1135 · 8 col · 36; large 1136+ · 12 col · 64 ---- */
   --grid-mobile-margin: 16px;
   --grid-tablet-margin: 36px;
-  --app-max-width: 412px;
+  --grid-desktop-margin: 64px;
+  --grid-mobile-gutter: 20px;
+  --grid-tablet-gutter: 36px;
+  --grid-desktop-gutter: 36px;
+  /* The current breakpoint's page margin and column gutter (redefined below). */
+  --page-margin: var(--grid-mobile-margin);
+  --page-gutter: var(--grid-mobile-gutter);
+  /* Content columns. Mobile-first: on phones every column is the full width; from
+   * medium up, content keeps a readable measure instead of stretching (D-045). */
+  --container-form: 480px; /* login, confirmations, single-question screens */
+  --container-reading: 800px; /* roster, review, records, reports: row lists stay scannable */
+  --container-wide: 1008px; /* home, class lists: 12 columns at 1136 minus 64px margins */
+  --container-footer: 280px; /* DS: standalone buttons stay 280px and centred on tablets and desktops */
+  --container-camera: 480px;
+  --container-dialog: 560px; /* sheets and confirmations: 6/8 and 6/12 columns */
 
   /* ---- Touch & layout ---- */
   --touch-target-min: 44px;
   --header-height: 60px;
+  --header-height-wide: 64px;
   --row-min-height: 64px;
   --cta-height: 56px;
 
   /* ---- Layering ---- */
   --z-header: 10;
+  --z-menu: 30;
   --z-sheet: 40;
   --z-toast: 50;
   --z-demo: 60;
@@ -231,6 +247,21 @@
   /* Space the demo control reserves in headers; 0 when the demo is off. */
   --demo-reserve-inline: 0px;
   --demo-reserve-block: 0px;
+  /* Extra scroll room at the bottom of the scroller for the floating trigger (600px and up). */
+  --demo-reserve-block-end: 0px;
 
   color-scheme: light;
+}
+
+@media (min-width: 600px) {
+  :root {
+    --page-margin: var(--grid-tablet-margin);
+    --page-gutter: var(--grid-tablet-gutter);
+  }
+}
+@media (min-width: 1136px) {
+  :root {
+    --page-margin: var(--grid-desktop-margin);
+    --page-gutter: var(--grid-desktop-gutter);
+  }
 }

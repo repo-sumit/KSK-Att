@@ -53,7 +53,7 @@ const eslintConfig = defineConfig([
       'no-restricted-imports': ['error', { patterns: [noMockData, noDemo] }],
     },
   },
-  globalIgnores(['.next/**', 'out/**', 'build/**', 'next-env.d.ts', 'test-results/**', 'playwright-report/**']),
+  globalIgnores(['.next/**', '.next-nodemo/**', 'out/**', 'build/**', 'next-env.d.ts', 'test-results/**', 'playwright-report/**', 'public/vendor/**']),
 ]);
 
 export default eslintConfig;

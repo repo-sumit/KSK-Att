@@ -7,8 +7,8 @@ import { Icon } from '@/components/ui/icons/Icon';
 import { Latin } from '@/components/ui/Latin';
 import { Section } from '@/components/ui/Section';
 import { useToast } from '@/components/ui/Toast';
-import { InnerHeader } from '@/components/shell/Headers';
 import { ScreenLayout } from '@/components/shell/ScreenLayout';
+import { AppHeader } from '@/features/shell/AppHeader';
 import { useI18n } from '@/hooks/i18n';
 import { useServices } from '@/hooks/services';
 import { useSession } from '@/hooks/session';
@@ -49,7 +49,8 @@ export function DownloadScreen() {
 
   return (
     <ScreenLayout
-      header={<InnerHeader title={t('offline.downloadTitle')} backHref={routes.offline} />}
+      width="reading"
+      header={<AppHeader back="back" title={t('offline.downloadTitle')} backHref={routes.offline} />}
       footer={chosen.size > 0 ? <Button fullWidth leadingIcon="download" onClick={() => void download()}>{t('offline.downloadCta', { count: chosen.size })}</Button> : undefined}
     >
       {ctx.access.tradeIds.map((tradeId) => {

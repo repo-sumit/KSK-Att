@@ -20,6 +20,7 @@ export function useRoster(key: string) {
   const [marks, dispatch] = useReducer(markReducer, {});
   const [attention, setAttention] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const pendingSave = useRef<(() => void) | null>(null);
   const loaded = useRef(false);
 
   useEffect(() => {
@@ -43,10 +44,20 @@ export function useRoster(key: string) {
   // Debounced draft persistence; never blocks a tap.
   useEffect(() => {
     if (!loaded.current || !roster) return;
+    const save = () => {
+      pendingSave.current = null;
+      void attendance.saveDraft(ctx, key, marks);
+    };
+    pendingSave.current = save;
     clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => void attendance.saveDraft(ctx, key, marks), DRAFT_DEBOUNCE_MS);
+    saveTimer.current = setTimeout(save, DRAFT_DEBOUNCE_MS);
     return () => clearTimeout(saveTimer.current);
   }, [marks, roster, attendance, ctx, key]);
+  // Leaving the roster within the debounce (one click on the header navigation) still keeps the last taps.
+  useEffect(() => {
+    const pending = pendingSave;
+    return () => pending.current?.();
+  }, []);
 
   const onStatus = useCallback((id: string, status: StatusCode) => dispatch({ type: 'status', id, status }), []);
   const onDetail = useCallback((id: string, mark: Mark) => dispatch({ type: 'detail', id, mark }), []);
@@ -67,6 +78,7 @@ export function useRoster(key: string) {
       return;
     }
     clearTimeout(saveTimer.current);
+    pendingSave.current = null;
     await attendance.saveDraft(ctx, key, marks);
     router.push(routes.review(key));
   }, [issues, attendance, ctx, key, marks, router]);

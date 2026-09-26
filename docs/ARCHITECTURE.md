@@ -11,16 +11,18 @@ flowchart TD
     FEAT --> KIT["src/components<br/>ui kit + shell"]
     FEAT --> HOOKS["src/hooks<br/>useServices · useQuery · useJourney · useSync · i18n"]
   end
-  HOOKS --> SVC["src/services<br/>Auth · Session · Attendance · Verification · Corrections<br/>StaffAttendance · Sync · Packs · Reports · Connectivity"]
+  HOOKS --> SVC["src/services<br/>Auth · Session · Attendance · Verification · Corrections<br/>StaffAttendance · Sync · Packs · Reports · Connectivity<br/>FaceCapture · Liveness · FaceMatch · LoginAssist"]
   SVC --> DOM["src/domain (pure)<br/>entities · rules · marking · schedule · access · geo"]
   SVC --> CFG["src/config (pure)<br/>types · defaults · states · resolve · validate · journey"]
   SVC --> RI["src/repositories/interfaces"]
   RI --> MOCK["src/repositories/mock<br/>MockDatabase over KeyValueStore (localStorage ksk:v1)"]
   RI -. later .-> API["src/repositories/api<br/>typed stubs → real endpoints"]
   MOCK --> DATA["src/data/mock<br/>deterministic seed + history"]
-  SVC --> SIM["SimulationSource<br/>location · face · permissions · network · sync"]
+  SVC --> CAM["src/services/camera<br/>real camera · MediaPipe face detection (lazy)"]
+  SVC --> SIM["SimulationSource<br/>location · face match · camera choice · permissions · network · sync"]
   DEMO["src/demo (demo builds only)<br/>clock · simulation · config overrides · panel"] -.-> SIM
   DEMO -.-> CFG
+  DEMO -.-> LA["LoginAssistSource<br/>(demo credentials)"]
 ```
 
 Dependency rules are enforced in `eslint.config.mjs`:
@@ -71,7 +73,7 @@ All routes are static. IDs travel in the query string, so every page can be prer
 |---|---|
 | `/` | Entry redirect (session → `/home`, else `/login`); `?preset=` applies a demo preset |
 | `/login`, `/login/institute`, `/login/trainer`, `/login/identity` | Institute code → confirm → Trainer ID → confirm |
-| `/face?next=` | Face setup (simulated), then continue to `next` (validated by `safeNext`) |
+| `/face?next=` | Face registration (real camera, prototype movement check, simulated matching), then continue to `next` (validated by `safeNext`) |
 | `/home` | Instructor home, or institute overview for the principal |
 | `/attendance` | Class selection (trade picker, assigned batches, timetable, or institute view) |
 | `/attendance/trade?id=` | One trade's batches |
@@ -82,9 +84,26 @@ All routes are static. IDs travel in the query string, so every page can be prer
 | `/attendance/staff` | Principal staff marking |
 | `/me/attendance` | Self attendance |
 | `/reports`, `/reports/view?r=&range=` | Report list and report detail (print view) |
-| `/profile`, `/profile/offline`, `/profile/offline/download` | Profile, offline data, download batches |
+| `/profile/offline`, `/profile/offline/download` | Offline data and download batches, opened from the profile menu. `/profile` itself redirects to `/home` (`next.config.ts`): profile is a menu, not a page (D-046) |
 
 `s` is a **session key**: `batchId.date.slot[.subjectId]`, for example `ele-s1u2.2026-09-25.daily`, `ele-s1u2.2026-09-25.p3` or `ele-s1u1.2026-09-25.daily.es`.
+
+## Screen frame, header and navigation (responsive)
+
+**Mobile-first is not a fixed mobile viewport (D-045).** Phones are the primary design; from the SwiftChat medium breakpoint (600px) up, the same screens fill the viewport and keep a readable column instead of a 412px phone frame.
+
+- `ScreenLayout` (`src/components/shell`) is every screen's frame: header → connectivity banner → optional fixed `top` → `main` (the only scroller) → dock (toast, footer, bottom nav). Props that matter for layout:
+  - `width`: the content measure from 600px up — `form` 480px, `reading` 800px (roster, review, records, reports, staff), `wide` 1008px (home, class lists). Phones always use the full width.
+  - `card`: from 600px up the whole screen becomes a centred form-width card on the muted page (login steps, face intro, permission primers, result and stand-alone problem screens), with the action directly under the content.
+  - `area` + `bottomNav`: which destination the screen belongs to (marked current in both navigations) and whether it is a tab root (bottom nav on phones).
+  - `guardNavigation`: lets a screen with unsaved work intercept header / bottom navigation (the principal's unsaved staff marks).
+- Gutters are CSS custom properties on the frame (`--gutter-inline`, `--gutter-flush`, `--gutter-footer`, `--gutter-wide`), computed as `max(page margin, (100% − column) / 2)`. The `100%` resolves where each is used, so full-bleed bars (header, banner, footer, summary strips) keep their backgrounds while their content lines up with the column. Use them only on the frame's full-width children: inside `main` (which already applies the gutter), content uses its own 16px. Page margins follow the DS grid (16 / 36 / 64px), and two-column grids use `--page-gutter` (20 / 36 / 36px).
+- `main` is the only scroller, and none of its direct children may shrink (`.main > * { flex-shrink: 0 }`), or lists with `overflow: hidden` clip their own rows.
+- `inlineFooter`: from 600px, the footer follows the content instead of docking at the bottom edge. It is used for problem and confirmation screens inside the app, so their one action isn't a monitor-height away.
+- **One header: `AppHeader`** (`src/features/shell/AppHeader.tsx`) on every signed-in screen with chrome. Phones: a single 60px bar — the KSK brand on tab roots, back + screen title on task screens — with the avatar at the top right. 600px and up: a full-width bar (brand · primary navigation · avatar) aligned to the wide column, plus a context row (back + title) aligned to the screen's column. Immersive single-task steps (camera capture, permission primers, result screens) have no chrome, as in the prototype.
+- **Navigation** (`src/components/shell/AppNav.tsx`) renders the journey's `navTabs` (Home, Attendance, Reports) twice: the DS bottom navigation on phones (tab roots only), and a compact row in the header from 600px up. Never a sidebar. Profile is not a destination.
+- **Profile menu** (`src/features/profile/ProfileMenu.tsx`): the avatar opens a native `<dialog>` — a bottom sheet on phones, a menu anchored under the avatar on wider screens. Identity (name, role, institute, Trainer ID), language, face registration status, offline data (instructors), help, logout. It is the single profile entry point.
+- Grids go to two columns only where each card still reads at a glance (class cards, trade and report pickers, the principal's two status cards, home's "today" pair), via container or media queries. Never more than two.
 
 ## Where the rules live
 
@@ -123,6 +142,42 @@ stateDiagram-v2
 - The principal's view shows only what has reached the server. An unsynced record cannot be corrected (`not_synced`).
 - Real offline navigation in a WebView would need a service worker for the static shells. That work belongs to production hardening, not this build.
 
+## Face capture, liveness-style check and matching (D-048)
+
+Three separate seams, so a production provider can replace each without touching screens:
+
+```mermaid
+flowchart LR
+  UI["FaceEnrolScreen / VerificationFlow<br/>useFaceCapture → CameraView (live video)"] --> FC["FaceCaptureService<br/>SwitchableFaceCapture"]
+  FC --> DEV["CameraFaceCaptureService<br/>getUserMedia, facingMode user"]
+  FC --> SIMC["SimulatedFaceCaptureService<br/>demo: no camera"]
+  UI --> LV["LivenessService<br/>RoutedLiveness"]
+  LV --> BCL["BasicClientLivenessService<br/>MediaPipe BlazeFace on-device,<br/>guided countdown fallback"]
+  LV --> SIML["SimulatedLivenessService"]
+  UI --> FM["FaceMatchService<br/>MockFaceMatchService (simulated)"]
+```
+
+- **Camera (real).** `CameraFaceCaptureService` opens the front camera with `getUserMedia({ video: { facingMode: { ideal: 'user' } } })`. The preview is mirrored with CSS only; frames are not. A capture draws the current video frame to a canvas (longest side 640px) and makes an in-memory JPEG `Blob`. The stream is stopped when the screen unmounts. `getUserMedia` failures map to `permission_denied`, `not_found`, `busy`, `unsupported`, `failed` (legacy WebView names included), each with its own problem screen.
+- **Movement check (prototype).** `BasicClientLivenessService` loads MediaPipe Tasks Vision **0.10.35** (pinned: 1.0.x posts usage metrics to a Google endpoint with no opt-out, D-049) by dynamic `import()` only on face screens. The wasm runtime is copied from `node_modules` to `public/vendor/mediapipe/<version>/` by `scripts/vendor-mediapipe.mjs` (runs before `dev` and `build`); the BlazeFace short-range model (Apache-2.0, 229,746 bytes, SHA-256 `b4578f35…152f`) is in `public/models/`. Both are served from this origin with a one-year immutable cache. The CPU delegate is used (faster than GPU for this model; avoids known Android WebView GPU failures). About 3.5 MB gzipped on first use, then cached.
+  - Rules are pure and unit-tested (`src/services/camera/liveness-rules.ts`).
+    - **What each frame must show:** one face (score ≥ 0.7; a second face ≥ 0.5 blocks), sized 28–65% of the preview's short side, with keypoints inside the visible preview and near the oval (a landscape webcam is judged inside its portrait crop), and brightness ≥ 40/255.
+    - **Straight:** "Face detected", then "Hold still" for 8 steady frames at |yaw ratio| ≤ 0.10.
+    - **Turn left, then turn right:** 3 frames at ≥ 0.18 (about 16°). The head must pass back through centre, or reach the other side, between turns. Eye distance must stay ≥ 75% of frontal, so moving away isn't a turn, and a turn that is too far asks "Turn back a little".
+    - **Mirrored cameras:** a steady opposite turn for 1.5 s at the first turn is taken as a mirrored camera.
+    - **Guidance** changes only after holding for 2 frames.
+    - **Timeouts:** the check gives up after 60 s (registration) or 30 s (daily) and names the dominant reason: too dark, several faces, face not seen, wrong distance, not in the oval, or head turn not seen.
+    - **Camera failures:** a preview that never starts, or a camera track that ends, is reported as a camera failure. If the WebView blocks playback without a gesture, a "Tap to start the camera" button appears.
+  - **Fallback:** if WebGL is missing, the runtime or model can't load within 12 s, or detection throws, the same steps run as guided captures with a visible 3-2-1 countdown. After two failed checks on a screen, the next attempt is guided too; on the daily check they also count towards `faceRetryLimit`. The demo can force this ("Face detection: Guided only").
+  - **What it is not:** production liveness. A printed photo moved by hand or a replayed video can pass it. It checks presence and head movement only.
+- **Matching (simulated).** `MockFaceMatchService` never compares faces. Enrolment records `{ staffId, enrolledAt, sampleCount, simulated: true }`; the photos are dropped. Verification returns the demo panel's outcome. Every face screen says "Prototype · photos are not saved · face matching is simulated" while `faceMatch.simulated` is true.
+- **Privacy.** Photos live in memory for the current screen only (thumbnails are object URLs, revoked on unmount; a photo that finishes after the screen closed is dropped). `camera.spec.ts` asserts three things during a real-camera registration: nothing image-like in localStorage or sessionStorage, no IndexedDB database, and no request other than same-origin GETs for app files.
+- **WebView host requirements.** SwiftChat must grant `RESOURCE_VIDEO_CAPTURE` in `WebChromeClient.onPermissionRequest` (and hold the Android CAMERA permission), allow inline media playback, and load the app over HTTPS. Otherwise the page sees `NotAllowedError` (shown as "Camera access is blocked"). `next.config.ts` sends `Permissions-Policy: camera=(self), geolocation=(self), microphone=()`.
+- **Production boundary.** Replace `MockFaceMatchService` (and `BasicClientLivenessService`) with a certified provider behind the same interfaces: server-side or on-device matching, certified presentation-attack detection, consent and a retention policy set by the state. The screens need no change; the "prototype" labels disappear when `faceMatch.simulated` is false.
+
+## Location: real or simulated
+
+`LocationProvider.currentPosition` returns a `DevicePosition` with `source: 'device'` (`BrowserLocationProvider`, the Geolocation API) or `source: 'simulated'` (`SimulatedLocationProvider`, the demo's chosen outcome). The source is kept on the captured location (`CapturedLocation.source`) for audit and is never shown to instructors. Demo builds simulate by default; the panel's "Real GPS" defers to the device. Demo-off builds always use the device.
+
 ## Configuration resolution
 
 ```mermaid
@@ -143,14 +198,16 @@ See [CONFIGURATION.md](CONFIGURATION.md) for every option.
 - All demo code is in `src/demo`. Two places load it, each through an inline `process.env.NEXT_PUBLIC_DEMO_MODE === 'true'` comparison so the bundler can drop the branch: `bootApp()` (adapters) and `AppProviders` (the `DemoRoot` panel).
 - `npm run check:demo` builds with the flag off and fails if any demo marker string reaches the static output.
 - Demo state lives in its own namespace (`ksk-demo:v1`). Reset Demo clears `ksk:v1`, `ksk-demo:v1` and `ksk-prefs`, then reloads.
+- **Login autofill seam.** The product defines `LoginAssistSource` (`src/services/login-assist.ts`); the container exposes `services.loginAssist` (null in production). The demo adapter supplies the selected persona's institute code and Trainer ID from `src/demo/personas.ts`. The login screens render `LoginAssistButton` only when a source exists, and it only fills the field on a tap: no demo copy or credentials live in product code.
+- **Floating panel.** `DemoRoot` renders the app plus a collapsed "Demo" trigger (top right on phones, in space the header reserves; bottom right from 600px) and a native `<dialog>`: a modal bottom sheet on phones, a non-modal drawer on the right from 600px so the app stays usable while settings change. It never takes layout space. The panel's content mounts only while open.
 
 ## Storage namespaces
 
 | Namespace | Owner | Contents |
 |---|---|---|
-| `ksk:v1` | `MockDatabase` | submissions, drafts, corrections, staff records, face enrolments (simulated), verification passes, offline queue, batch packs, session, seed marker |
+| `ksk:v1` | `MockDatabase` | submissions, drafts, corrections, staff records, face enrolments (the fact of enrolment only: date and photo count, never an image), verification passes, offline queue, batch packs, session, seed marker |
 | `ksk-prefs` | `DevicePreferencesRepository` | language (read before hydration by the boot script in `layout.tsx`) |
-| `ksk-demo:v1` | `DemoStateRepository` | preset, config overrides, simulation, clock |
+| `ksk-demo:v1` | `DemoStateRepository` | preset, selected persona, "skip login", config overrides, simulation (incl. camera choice), clock |
 
 `LocalStorageStore` throws `StorageWriteError` when a write fails (quota or private mode). `createDefaultStore` falls back to an in-memory store when the WebView blocks or lacks localStorage.
 
@@ -158,7 +215,7 @@ See [CONFIGURATION.md](CONFIGURATION.md) for every option.
 
 1. **Implement `src/repositories/api/*`.** Each stub documents its endpoint. Wire them in a new `createApiContainer()` beside `createMockContainer()`. No screen changes.
 2. **Authentication.** Replace `MockAuthService` with SwiftChat identity (or institute code + Trainer ID + a second factor, PRD open question 1). Tokens must stay out of client code; use the host bridge or httpOnly cookies from an API.
-3. **Face verification.** Implement `FaceVerificationService` against a real liveness and matching provider, with consent, data retention and on-device or server matching decided by the state. The current implementation is a simulation.
+3. **Face verification.** Keep `CameraFaceCaptureService`; replace `MockFaceMatchService` and `BasicClientLivenessService` with a certified matching and presentation-attack-detection provider behind `FaceMatchService` / `LivenessService`, with consent, retention and on-device or server matching decided by the state. Today the camera and movement check are real; matching is a simulation.
 4. **Location.** `BrowserLocationProvider` exists. Confirm that the SwiftChat WebView grants geolocation, or add a host bridge.
 5. **Offline shells.** Add a service worker (or the host's cache) so routes load with no network.
 6. **Server-side rules.** The server must re-check every invariant in `src/domain/rules.ts`. The client checks are for UX, not trust.

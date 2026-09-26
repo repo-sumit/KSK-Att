@@ -2,9 +2,11 @@
   "name": "ksk-attendance",
   "version": "0.1.0",
   "private": true,
-  "description": "KSK Attendance MiniApp (Maharashtra) \u2014 SwiftChat embedded attendance for ITI instructors and principals",
+  "description": "KSK Attendance MiniApp (Maharashtra) — SwiftChat embedded attendance for ITI instructors and principals",
   "scripts": {
+    "predev": "node scripts/vendor-mediapipe.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/vendor-mediapipe.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -17,6 +19,7 @@
     "check:demo": "node scripts/check-demo-stripped.mjs"
   },
   "dependencies": {
+    "@mediapipe/tasks-vision": "0.10.35",
     "next": "16.3.6",
     "react": "19.2.8",
     "react-dom": "19.2.8"

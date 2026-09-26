@@ -1,10 +1,13 @@
 'use client';
-import { useEffect, useEffectEvent, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useServices } from '@/hooks/services';
 import { useSession } from '@/hooks/session';
 import { useSimDelay } from '@/hooks/useSimDelay';
+import type { CapturedFrame } from '@/services/face';
 import type { LocationCheck } from '@/services/location';
 import type { VerificationPurpose } from '@/services/verification';
+import { faceProblem, isCheckFailure } from '../face/guidance';
+import type { FaceRunFailure } from '../face/useFaceCapture';
 import type { ProblemKind } from '../feedback/problems';
 
 export type VerifyPhase =
@@ -13,7 +16,9 @@ export type VerifyPhase =
   | { readonly kind: 'locating'; readonly visible: boolean }
   | { readonly kind: 'located' }
   | { readonly kind: 'confirm'; readonly distanceM: number }
+  /** The screen shows the live camera (FaceCheck) and reports back through faceCaptured / faceFailed. */
   | { readonly kind: 'facing' }
+  | { readonly kind: 'matching' }
   | { readonly kind: 'faced' }
   | { readonly kind: 'problem'; readonly problem: ProblemKind; readonly distanceM?: number; readonly retry: 'all' | 'face' | 'none' }
   | { readonly kind: 'passed' };
@@ -25,6 +30,8 @@ const HOLD_MS = 900;
  * The verification module (PRD §8) as a state machine the screen renders.
  * Location runs before face. Location failures are not retryable from the same
  * place ("go to the institute"); face failures retry up to the configured limit.
+ * The face step opens the real camera (or the demo's simulated one); matching
+ * the photo is simulated in this build.
  */
 export function useVerification(purpose: VerificationPurpose, onPassed: () => void) {
   const ctx = useSession();
@@ -33,28 +40,16 @@ export function useVerification(purpose: VerificationPurpose, onPassed: () => vo
   const j = ctx.journey.verification;
   const [phase, setPhase] = useState<VerifyPhase>({ kind: 'starting' });
   const [attempt, setAttempt] = useState(0);
+  /** No-match results and failed movement checks both count towards the configured retry limit. */
   const [faceFailures, setFaceFailures] = useState(0);
+  /** Failed movement checks only: after two, the camera takes the photo on a countdown instead (D-048). */
+  const [checkFailures, setCheckFailures] = useState(0);
   const [location, setLocation] = useState<LocationCheck | undefined>(undefined);
+  /** The primer was just accepted: open the camera (which asks) instead of asking again. */
+  const [primed, setPrimed] = useState(false);
+  const run = useRef<AbortController | null>(null);
 
-  const runFace = async (signal: AbortSignal, loc: LocationCheck | undefined) => {
-    if (j.face) {
-      if ((await verification.cameraPermission()) !== 'granted') {
-        if (!signal.aborted) setPhase({ kind: 'primer', permission: 'camera' });
-        return;
-      }
-      setPhase({ kind: 'facing' });
-      const face = await verification.checkFace(ctx, signal);
-      if (signal.aborted) return;
-      if (!face.ok) {
-        if (face.error === 'camera_denied') return setPhase({ kind: 'problem', problem: 'cameraDeniedVerify', retry: 'face' });
-        const failures = faceFailures + 1;
-        setFaceFailures(failures);
-        const limited = j.faceRetryLimit !== null && failures >= j.faceRetryLimit;
-        return setPhase({ kind: 'problem', problem: limited ? 'faceLimit' : 'face', retry: limited ? 'none' : 'face' });
-      }
-      setPhase({ kind: 'faced' });
-      if (!(await hold(HOLD_MS, signal))) return;
-    }
+  const finish = async (signal: AbortSignal, loc: LocationCheck | undefined) => {
     await verification.grant(ctx, purpose, loc);
     if (!signal.aborted) {
       setPhase({ kind: 'passed' });
@@ -62,13 +57,25 @@ export function useVerification(purpose: VerificationPurpose, onPassed: () => vo
     }
   };
 
+  const runFace = async (signal: AbortSignal, loc: LocationCheck | undefined) => {
+    if (!j.face) return finish(signal, loc);
+    // Only "prompt" shows the primer first. A "denied" answer is only a hint (WebViews differ): opening
+    // the camera reports a real block itself, as "Camera access is blocked".
+    if (!primed) {
+      const permission = await verification.cameraPermission();
+      if (signal.aborted) return;
+      if (permission === 'prompt') return setPhase({ kind: 'primer', permission: 'camera' });
+    }
+    setPhase({ kind: 'facing' });
+  };
+
   const runAll = useEffectEvent(async (signal: AbortSignal, from: 'all' | 'face') => {
     if (from === 'face') return runFace(signal, location);
     if (j.location !== 'none') {
       const permission = await verification.locationPermission();
       if (signal.aborted) return;
+      // "denied" is only a hint (WebViews answer differently): asking for a fix reports a real denial itself.
       if (permission === 'prompt') return setPhase({ kind: 'primer', permission: 'location' });
-      if (permission === 'denied') return setPhase({ kind: 'problem', problem: 'locationDenied', retry: 'all' });
       setPhase({ kind: 'locating', visible: j.location === 'fence' || j.face });
       const result = await verification.checkLocation(ctx);
       if (signal.aborted) return;
@@ -97,6 +104,7 @@ export function useVerification(purpose: VerificationPurpose, onPassed: () => vo
   const [from, setFrom] = useState<'all' | 'face'>('all');
   useEffect(() => {
     const controller = new AbortController();
+    run.current = controller;
     // Started from a task, not synchronously in the effect body; aborted on unmount.
     const timer = setTimeout(() => void runAll(controller.signal, from), 0);
     return () => {
@@ -110,20 +118,52 @@ export function useVerification(purpose: VerificationPurpose, onPassed: () => vo
     setAttempt((a) => a + 1);
   };
 
+  const limitReached = (failures: number) => j.faceRetryLimit !== null && failures >= j.faceRetryLimit;
+
   return {
     phase,
     location,
+    /** Take the daily photo on a countdown (detection repeatedly couldn't finish). */
+    guidedCapture: checkFailures >= 2,
     retry: () => restart(phase.kind === 'problem' && phase.retry === 'face' ? 'face' : 'all'),
     allowLocation: async () => {
       const state = await verification.requestLocationPermission();
       if (state === 'granted') restart('all');
       else setPhase({ kind: 'problem', problem: 'locationDenied', retry: 'all' });
     },
-    allowCamera: async () => {
-      const state = await verification.requestCameraPermission();
-      if (state === 'granted') restart('face');
-      else setPhase({ kind: 'problem', problem: 'cameraDeniedVerify', retry: 'face' });
+    /** From the camera primer (or "Try again" after a block): open the camera, which asks for permission. */
+    allowCamera: () => {
+      setPrimed(true);
+      restart('face');
     },
     confirmLocation: () => restart('face'),
+    /** FaceCheck took the photo: match it (simulated), then pass. */
+    faceCaptured: async (frame: CapturedFrame) => {
+      const signal = run.current?.signal;
+      if (!signal || signal.aborted) return;
+      setPhase({ kind: 'matching' });
+      const result = await verification.matchFace(ctx, frame);
+      if (signal.aborted) return;
+      if (!result.ok && result.error !== 'not_required') {
+        const failures = faceFailures + 1;
+        setFaceFailures(failures);
+        const limited = limitReached(failures);
+        return setPhase({ kind: 'problem', problem: limited ? 'faceLimit' : 'face', retry: limited ? 'none' : 'face' });
+      }
+      setPhase({ kind: 'faced' });
+      if (!(await hold(HOLD_MS, signal))) return;
+      await finish(signal, location);
+    },
+    /** The camera couldn't open, or the check couldn't see one clear face. */
+    faceFailed: (error: FaceRunFailure) => {
+      if (error === 'permission_denied') setPrimed(false);
+      if (isCheckFailure(error)) {
+        const failures = faceFailures + 1;
+        setFaceFailures(failures);
+        setCheckFailures((n) => n + 1);
+        if (limitReached(failures)) return setPhase({ kind: 'problem', problem: 'faceLimit', retry: 'none' });
+      }
+      setPhase({ kind: 'problem', problem: faceProblem(error, 'verify'), retry: 'face' });
+    },
   };
 }

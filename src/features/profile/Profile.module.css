@@ -45,3 +45,13 @@
   flex-direction: column;
   gap: var(--space-8);
 }
+/* DS: standalone buttons stay 280px on tablets and desktops. */
+@media (min-width: 600px) {
+  .actions {
+    align-items: flex-start;
+  }
+  .actions > a,
+  .actions > button {
+    width: 280px;
+  }
+}

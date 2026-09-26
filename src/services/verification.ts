@@ -9,7 +9,7 @@ import { err, ok, type Result } from '@/lib/result';
 import { toLocalDate } from '@/lib/time';
 import type { VerificationPass, VerificationRepository } from '@/repositories/interfaces';
 import type { SessionContext } from './context';
-import type { FaceMatchError, FaceVerificationService } from './face';
+import type { CapturedFrame, FaceCaptureService, FaceMatchError, FaceMatchService } from './face';
 import { checkLocation, type LocationCheck, type LocationCheckError, type LocationProvider } from './location';
 import type { PermissionState } from './simulation';
 
@@ -21,7 +21,8 @@ export class VerificationService {
   constructor(
     private readonly passes: VerificationRepository,
     private readonly location: LocationProvider,
-    private readonly face: FaceVerificationService,
+    private readonly camera: FaceCaptureService,
+    private readonly faces: FaceMatchService,
   ) {}
 
   async hasPass(ctx: SessionContext, purpose: VerificationPurpose): Promise<boolean> {
@@ -35,11 +36,9 @@ export class VerificationService {
   requestLocationPermission(): Promise<PermissionState> {
     return this.location.requestPermission();
   }
+  /** The camera itself is opened by the face screen (it needs the live preview); this only reads the permission. */
   cameraPermission(): Promise<PermissionState> {
-    return this.face.cameraPermission();
-  }
-  requestCameraPermission(): Promise<PermissionState> {
-    return this.face.requestCameraPermission();
+    return this.camera.permission();
   }
 
   /** Geo-tagging captures silently; geo-fencing also enforces the radius. */
@@ -49,9 +48,10 @@ export class VerificationService {
     return checkLocation(this.location, step === 'fence' ? 'fencing' : 'tagging', ctx.institute.location, ctx.config.verification.fenceRadiusM);
   }
 
-  async checkFace(ctx: SessionContext, signal: AbortSignal): Promise<Result<true, FaceMatchError | 'not_required'>> {
+  /** Matches the photo from the face check. Simulated in this build (MockFaceMatchService): no comparison happens. */
+  async matchFace(ctx: SessionContext, frame: CapturedFrame): Promise<Result<true, FaceMatchError | 'not_required'>> {
     if (!ctx.journey.verification.face) return err('not_required');
-    return this.face.verify(ctx.user.id, signal);
+    return this.faces.verify(ctx.user.id, frame);
   }
 
   async grant(ctx: SessionContext, purpose: VerificationPurpose, location?: LocationCheck): Promise<Result<VerificationPass, never>> {

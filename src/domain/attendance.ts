@@ -67,6 +67,11 @@ export interface CapturedLocation extends GeoPoint {
   readonly accuracyM: number;
   /** Distance to the institute, when geo-fencing computed it. */
   readonly distanceM?: number;
+  /**
+   * Where the fix came from: 'device' = the browser Geolocation API, 'simulated' = the
+   * demo's chosen outcome. Kept with the record (audit), never shown to instructors.
+   */
+  readonly source?: 'device' | 'simulated';
 }
 
 /** One submitted marking session. Immutable once written. */

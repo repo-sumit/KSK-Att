@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { Segmented } from '@/components/ui/Segmented';
+import { Icon } from '@/components/ui/icons/Icon';
 import { useI18n } from '@/hooks/i18n';
 import { useServices } from '@/hooks/services';
 import { useSessionState } from '@/hooks/session';
@@ -10,24 +10,27 @@ import { useQuery } from '@/hooks/useQuery';
 import { cx } from '@/lib/cx';
 import type { DemoAdapters } from '../adapters';
 import type { DemoController } from '../controller';
-import { PERSONAS, type DemoRole } from '../personas';
+import { PERSONAS } from '../personas';
 import { PRESETS } from '../presets';
-import { DemoSettings } from './DemoSettings';
+import { Choice, DemoSettings } from './DemoSettings';
 import { useDemoState } from './useDemoState';
 import styles from './DemoPanel.module.css';
 
-/** DEMO ONLY — presenter controls. Never part of the instructor product (English only on purpose). */
+/**
+ * DEMO ONLY — presenter controls. Never part of the instructor product (English only on purpose).
+ * Order follows how a demo is run: pick a story (presets), or pick who logs in
+ * (quick login); everything else waits under Advanced.
+ */
 export function DemoPanel({ demo, controller, onDone }: { readonly demo: DemoAdapters; readonly controller: DemoController; readonly onDone?: () => void }) {
   const state = useDemoState(demo);
   const { state: session } = useSessionState();
-  const { configuration, face } = useServices();
+  const { configuration, faceMatch } = useServices();
   const { language } = useI18n();
   const ctx = session.status === 'ready' ? session.ctx : null;
   const config = ctx?.config ?? configuration.base();
-  const current = PERSONAS.find((p) => p.staffId === ctx?.user.id);
-  const [role, setRole] = useState<DemoRole>(current?.role ?? 'instructor');
+  const signedIn = PERSONAS.find((p) => p.staffId === ctx?.user.id);
   const [confirmReset, setConfirmReset] = useState(false);
-  const { data: enrolled } = useQuery(`demo-face:${ctx?.user.id}`, () => (ctx ? face.isEnrolled(ctx.user.id) : Promise.resolve(true)), ['face']);
+  const { data: enrolled } = useQuery(`demo-face:${ctx?.user.id}`, () => (ctx ? faceMatch.isEnrolled(ctx.user.id) : Promise.resolve(true)), ['face']);
   const run = (p: Promise<void> | void) => {
     void Promise.resolve(p).then(() => onDone?.());
   };
@@ -35,19 +38,18 @@ export function DemoPanel({ demo, controller, onDone }: { readonly demo: DemoAda
   return (
     <div className={styles.panel} lang="en">
       <div className={styles.head}>
-        <p className={styles.title}>Demo controls</p>
         <Badge tone="warning">DEMO — not part of the product</Badge>
         <p className={styles.state}>
-          {current ? `${current.title} · ` : 'Signed out · '}
+          {signedIn ? `${signedIn.title} · ` : 'Signed out · '}
           {state.simulation.online ? 'Online' : 'Offline'} · {language === 'mr' ? 'मराठी' : 'English'}
         </p>
       </div>
 
-      <section className={styles.section}>
-        <h3 className={styles.sectionTitle}>Quick presets</h3>
+      <section className={styles.section} aria-labelledby="demo-presets">
+        <h3 id="demo-presets" className={styles.sectionTitle}>Quick presets</h3>
         <div className={styles.presets}>
           {PRESETS.map((p) => (
-            <button key={p.id} type="button" className={cx(styles.preset, state.presetId === p.id && styles.active)} onClick={() => run(controller.applyPreset(p.id))}>
+            <button key={p.id} type="button" className={cx(styles.preset, state.presetId === p.id && styles.active)} aria-pressed={state.presetId === p.id} onClick={() => run(controller.applyPreset(p.id))}>
               <span className={styles.presetTitle}>{p.title}</span>
               <span className={styles.presetLine}>{p.line}</span>
             </button>
@@ -55,36 +57,43 @@ export function DemoPanel({ demo, controller, onDone }: { readonly demo: DemoAda
         </div>
       </section>
 
-      <section className={styles.section}>
-        <h3 className={styles.sectionTitle}>Role &amp; persona</h3>
-        <Segmented
-          label="Role"
-          size="sm"
-          fullWidth
-          value={role}
-          onChange={setRole}
-          options={[
-            { value: 'instructor', label: 'Instructor' },
-            { value: 'group_instructor', label: 'Group instr.' },
-            { value: 'principal', label: 'Principal' },
-          ]}
-        />
+      <section className={styles.section} aria-labelledby="demo-login">
+        <h3 id="demo-login" className={styles.sectionTitle}>Quick login</h3>
+        <p className={styles.hint}>
+          {state.skipLogin
+            ? 'Signs straight in as this person (Skip login is on under Advanced).'
+            : 'Opens the login screens. Tap "Use demo login" there to fill this person’s institute code and Trainer ID.'}
+        </p>
         <ul className={styles.personas}>
-          {PERSONAS.filter((p) => p.role === role).map((p) => (
+          {PERSONAS.map((p) => (
             <li key={p.id}>
-              <button type="button" className={cx(styles.persona, current?.id === p.id && styles.active)} onClick={() => run(controller.signInAs(p.id))}>
-                <span className={styles.presetTitle}>{p.title}</span>
-                <span className={styles.presetLine}>
-                  {p.line} · {p.trainerId}
+              <button type="button" className={cx(styles.persona, state.persona === p.id && styles.active)} onClick={() => run(controller.quickLogin(p.id))}>
+                <span className={styles.personaText}>
+                  <span className={styles.presetTitle}>{p.title}</span>
+                  <span className={styles.presetLine}>
+                    {p.name} · {p.trainerId}
+                  </span>
                 </span>
+                <Icon name={state.skipLogin ? 'log-in' : 'arrow-right'} size={18} className={styles.personaIcon} />
               </button>
             </li>
           ))}
         </ul>
-        <p className={styles.hint}>Login: institute code 27410, then a Trainer ID above.</p>
       </section>
 
-      <DemoSettings config={config} state={state} controller={controller} faceEnrolled={enrolled ?? true} language={language} />
+      <details className={styles.advanced}>
+        <summary className={styles.summary}>
+          <span>Advanced</span>
+          <Icon name="chevron-down" size={20} className={styles.summaryIcon} />
+        </summary>
+        <div className={styles.advancedBody}>
+          <section className={styles.section}>
+            <h3 className={styles.sectionTitle}>Login</h3>
+            <Choice label="Skip login screens" value={state.skipLogin ? 'on' : 'off'} options={[['off', 'Off'], ['on', 'On']]} onChange={(v) => controller.setSkipLogin(v === 'on')} />
+          </section>
+          <DemoSettings config={config} state={state} controller={controller} faceEnrolled={enrolled ?? true} language={language} />
+        </div>
+      </details>
 
       <section className={styles.section}>
         {confirmReset ? (

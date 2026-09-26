@@ -28,12 +28,17 @@ import { MockAuthService, type AuthService } from './auth';
 import { ConfigurationService, type ConfigOverridesSource } from './configuration';
 import { BrowserConnectivity, SimulatedConnectivity, type ConnectivityService } from './connectivity';
 import { CorrectionService } from './corrections';
-import type { FaceVerificationService } from './face';
+import { BasicClientLivenessService } from './camera/client-liveness';
+import { CameraFaceCaptureService } from './camera/device-camera';
+import { loadFaceDetector } from './camera/face-detector';
+import { RoutedLiveness, SwitchableFaceCapture } from './camera/routing';
+import type { FaceCaptureService, FaceMatchService, LivenessService } from './face';
+import type { LoginAssistSource } from './login-assist';
 import { BatchPackService } from './packs';
 import { BrowserLocationProvider, type LocationProvider } from './location';
 import { ReportService } from './reports';
 import { SessionService } from './session';
-import { SimulatedFaceVerificationService } from './simulated/face';
+import { MockFaceMatchService, SimulatedFaceCaptureService, SimulatedLivenessService } from './simulated/face';
 import { SimulatedLocationProvider } from './simulated/location';
 import { SimulatedSyncGateway } from './simulated/sync-gateway';
 import { simulatedDelay, type SimulationSource } from './simulation';
@@ -47,13 +52,20 @@ export interface Services {
   readonly configuration: ConfigurationService;
   readonly attendance: AttendanceService;
   readonly verification: VerificationService;
-  readonly face: FaceVerificationService;
+  /** The camera (real front camera, or the demo's simulated one). */
+  readonly faceCapture: FaceCaptureService;
+  /** Guides the steps and takes the photos: a prototype movement check, not production liveness. */
+  readonly liveness: LivenessService;
+  /** Enrolment + matching: SIMULATED in this build (MockFaceMatchService). */
+  readonly faceMatch: FaceMatchService;
   readonly corrections: CorrectionService;
   readonly staffAttendance: StaffAttendanceService;
   readonly reports: ReportService;
   readonly sync: SyncService;
   readonly packs: BatchPackService;
   readonly connectivity: ConnectivityService;
+  /** Demo-only prefill for the login inputs; null in production (nothing renders). */
+  readonly loginAssist: LoginAssistSource | null;
 }
 
 export interface AppContainer {
@@ -76,6 +88,7 @@ export interface MockContainerOptions {
   readonly state?: StateConfiguration;
   /** Production wiring: real browser online/offline events and Geolocation API. */
   readonly realDevice?: boolean;
+  readonly loginAssist?: LoginAssistSource;
 }
 
 export function createMockContainer(opts: MockContainerOptions): AppContainer {
@@ -101,11 +114,17 @@ export function createMockContainer(opts: MockContainerOptions): AppContainer {
 
   const configuration = new ConfigurationService(opts.state ?? MAHARASHTRA, opts.configOverrides);
   const connectivity: ConnectivityService = opts.realDevice ? new BrowserConnectivity() : new SimulatedConnectivity(opts.simulation);
-  const face = new SimulatedFaceVerificationService(opts.simulation, faceEnrolment, opts.clock);
+  // Face (D-048): real camera + on-device movement check; matching is simulated until a provider exists.
+  const faceCapture = new SwitchableFaceCapture(opts.simulation, new CameraFaceCaptureService(opts.clock), new SimulatedFaceCaptureService(opts.simulation, opts.clock));
+  const liveness = new RoutedLiveness(
+    new BasicClientLivenessService({ mode: () => opts.simulation.get().liveness, loadDetector: loadFaceDetector, wait: delay }),
+    new SimulatedLivenessService(opts.simulation),
+  );
+  const faceMatch = new MockFaceMatchService(opts.simulation, faceEnrolment, opts.clock);
   const auth = new MockAuthService(masterData, repositories.session, opts.clock);
 
   const location: LocationProvider = opts.realDevice ? new BrowserLocationProvider() : new SimulatedLocationProvider(opts.simulation);
-  const session = new SessionService(auth, masterData, configuration, face, opts.clock);
+  const session = new SessionService(auth, masterData, configuration, faceMatch, opts.clock);
 
   const sync = new SyncService({
     queue: repositories.offlineQueue,
@@ -125,10 +144,12 @@ export function createMockContainer(opts: MockContainerOptions): AppContainer {
     session,
     configuration,
     connectivity,
-    face,
+    faceCapture,
+    liveness,
+    faceMatch,
     sync,
     corrections,
-    verification: new VerificationService(repositories.verification, location, face),
+    verification: new VerificationService(repositories.verification, location, faceCapture, faceMatch),
     attendance: new AttendanceService({
       attendance: repositories.attendance,
       corrections: repositories.corrections,
@@ -142,6 +163,7 @@ export function createMockContainer(opts: MockContainerOptions): AppContainer {
     staffAttendance: new StaffAttendanceService(repositories.staffAttendance, repositories.verification, repositories.offlineQueue, onRecordQueued),
     reports: new ReportService(repositories.attendance, repositories.corrections, repositories.staffAttendance, corrections),
     packs: new BatchPackService(repositories.packs, connectivity),
+    loginAssist: opts.loginAssist ?? null,
   };
 
   return { repositories, services, bus, clock: opts.clock, simulation: opts.simulation, mockDatabase: db };

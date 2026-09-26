@@ -14,8 +14,8 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { StatusChip } from '@/components/ui/StatusChip';
 import { useToast } from '@/components/ui/Toast';
 import { statusIcon, statusTone } from '@/components/ui/status-style';
-import { InnerHeader } from '@/components/shell/Headers';
 import { ScreenLayout } from '@/components/shell/ScreenLayout';
+import { AppHeader } from '@/features/shell/AppHeader';
 import { marksEqual, type Mark } from '@/domain/status';
 import { useI18n } from '@/hooks/i18n';
 import { useServices } from '@/hooks/services';
@@ -58,7 +58,7 @@ export function CorrectScreen() {
   useEffect(() => {
     if (invalid && !done) router.replace(back);
   }, [invalid, done, back, router]);
-  if (!detail) return <ScreenLayout header={<InnerHeader title={t('correction.title')} backHref={back} />}><Skeleton label={t('common.loading')} /></ScreenLayout>;
+  if (!detail) return <ScreenLayout area="attendance" width="form" header={<AppHeader back="back" title={t('correction.title')} backHref={back} />}><Skeleton label={t('common.loading')} /></ScreenLayout>;
   const student = detail.students.find((s) => s.id === studentId);
   const current = detail.marks[studentId];
   if (!student || !current || !ctx.journey.corrections) return null;
@@ -97,7 +97,9 @@ export function CorrectScreen() {
 
   return (
     <ScreenLayout
-      header={<InnerHeader title={t('correction.title')} subtitle={<Latin>{session}</Latin>} backHref={back} />}
+      area="attendance"
+      width="form"
+      header={<AppHeader back="back" title={t('correction.title')} subtitle={<Latin>{session}</Latin>} backHref={back} />}
       footer={
         <Button
           fullWidth

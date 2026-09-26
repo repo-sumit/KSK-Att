@@ -22,6 +22,7 @@ interface ResultScreenProps {
 export function ResultScreen({ tone, icon, title, sub, meta, note, children, primary }: ResultScreenProps) {
   return (
     <ScreenLayout
+      card
       surface="default"
       padding="center"
       footer={

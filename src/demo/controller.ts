@@ -52,13 +52,32 @@ export class DemoController {
     if (session) this.app.mockDatabase.setFaceEnrolled(session.staffId, enrolled, this.now().toISOString());
   }
 
+  /** Skip login (Advanced): straight into the persona's session. */
   async signInAs(personaId: PersonaId, go = true): Promise<void> {
     const persona = personaById(personaId);
     // The persona brings its own mapping; drop any explicit mapping override from the panel.
-    this.demo.repo.update((s) => ({ ...s, config: { ...s.config, mapping: undefined } }));
+    this.demo.repo.update((s) => ({ ...s, persona: persona.id, config: { ...s.config, mapping: undefined } }));
     this.app.mockDatabase.clearPasses();
     await this.app.services.auth.startSession(INSTITUTE_ID, persona.staffId);
     if (go) this.navigate('/home');
+  }
+
+  /**
+   * Quick login: pick who to demonstrate, then show the real login steps with that
+   * persona's credentials one tap away ("Use demo login"). Nothing is typed or
+   * submitted for the presenter. With "Skip login" on, signs straight in instead.
+   */
+  async quickLogin(personaId: PersonaId): Promise<void> {
+    if (this.demo.repo.get().skipLogin) return this.signInAs(personaId);
+    const persona = personaById(personaId);
+    this.demo.repo.update((s) => ({ ...s, persona: persona.id, config: { ...s.config, mapping: undefined } }));
+    this.app.mockDatabase.clearPasses();
+    await this.app.services.auth.signOut();
+    this.navigate('/login');
+  }
+
+  setSkipLogin(skip: boolean): void {
+    this.demo.repo.update((s) => ({ ...s, skipLogin: skip }));
   }
 
   async setNetwork(mode: NetworkMode): Promise<void> {
@@ -96,8 +115,10 @@ export class DemoController {
     this.demo.repo.update((s) => ({
       ...s,
       presetId: preset.id,
+      persona: preset.persona,
       config: preset.config,
-      simulation: { ...DEFAULT_SIMULATION, speed: s.simulation.speed, ...preset.simulation },
+      // Speed and the camera choice belong to the presenting machine (e.g. a laptop without a camera), not to the story.
+      simulation: { ...DEFAULT_SIMULATION, speed: s.simulation.speed, camera: s.simulation.camera, liveness: s.simulation.liveness, ...preset.simulation },
       clock: { mode: 'fixed', time: DEFAULT_DEMO_TIME },
     }));
     this.app.mockDatabase.clearPasses();

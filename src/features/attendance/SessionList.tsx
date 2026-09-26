@@ -25,23 +25,25 @@ export function SessionList({ cards, viewer }: SessionListProps) {
   for (const card of cards) byBatch.set(card.batch.id, [...(byBatch.get(card.batch.id) ?? []), card]);
 
   return (
-    <div className={styles.list}>
-      {[...byBatch.values()].map((group) => {
-        const first = group[0];
-        if (group.length === 1 && first.scheduled.slot.kind === 'daily')
-          return <SessionCardView key={first.key} card={first} variant="batch" viewer={viewer} twiceShape={twiceShape} subjectName={viewer === 'monitor' ? subjectName(first.address.subjectId) : undefined} />;
-        return (
-          <section key={first.batch.id} className={styles.group} aria-label={batchTitle(t, first.batch)}>
-            <div className={styles.groupHead}>
-              <h3 className={styles.groupTitle}>{batchTitle(t, first.batch)}</h3>
-              <span className={styles.groupMeta}>{t('common.students', { count: first.studentCount })}</span>
-            </div>
-            {group.map((card) => (
-              <SessionCardView key={card.key} card={card} variant="slot" viewer={viewer} twiceShape={twiceShape} subjectName={subjectName(card.address.subjectId)} />
-            ))}
-          </section>
-        );
-      })}
+    <div className={styles.board}>
+      <div className={styles.list}>
+        {[...byBatch.values()].map((group) => {
+          const first = group[0];
+          if (group.length === 1 && first.scheduled.slot.kind === 'daily')
+            return <SessionCardView key={first.key} card={first} variant="batch" viewer={viewer} twiceShape={twiceShape} subjectName={viewer === 'monitor' ? subjectName(first.address.subjectId) : undefined} />;
+          return (
+            <section key={first.batch.id} className={styles.group} aria-label={batchTitle(t, first.batch)}>
+              <div className={styles.groupHead}>
+                <h3 className={styles.groupTitle}>{batchTitle(t, first.batch)}</h3>
+                <span className={styles.groupMeta}>{t('common.students', { count: first.studentCount })}</span>
+              </div>
+              {group.map((card) => (
+                <SessionCardView key={card.key} card={card} variant="slot" viewer={viewer} twiceShape={twiceShape} subjectName={subjectName(card.address.subjectId)} />
+              ))}
+            </section>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -50,10 +52,12 @@ export function SessionList({ cards, viewer }: SessionListProps) {
 export function PeriodList({ cards }: { readonly cards: readonly SessionCard[] }) {
   const ctx = useSession();
   return (
-    <div className={styles.list}>
-      {cards.map((card) => (
-        <SessionCardView key={card.key} card={card} variant="period" viewer="marker" twiceShape={ctx.config.marking.twiceShape} />
-      ))}
+    <div className={styles.board}>
+      <div className={styles.list}>
+        {cards.map((card) => (
+          <SessionCardView key={card.key} card={card} variant="period" viewer="marker" twiceShape={ctx.config.marking.twiceShape} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -66,7 +70,7 @@ export interface TradeRowData {
 
 export function TradeRows({ trades, label }: { readonly trades: readonly TradeRowData[]; readonly label: string }) {
   return (
-    <List label={label}>
+    <List label={label} grid>
       {trades.map((trade) => (
         <ListRow key={trade.id} href={routes.trade(trade.id)} title={<Latin>{trade.name}</Latin>} subtitle={trade.meta} trailing="chevron" minHeight={64} />
       ))}

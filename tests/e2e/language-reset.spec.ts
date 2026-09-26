@@ -1,11 +1,14 @@
-import { expect, expectNoOverflow, nav, preset, test } from './fixtures';
+import { expect, expectNoOverflow, nav, openProfileMenu, preset, test } from './fixtures';
 
 test('Marathi: the whole interface switches, digits stay Latin, nothing overflows at 320px', async ({ page, consoleErrors }) => {
   void consoleErrors;
   await preset(page, 'batch');
-  await nav(page, 'Profile').click();
-  await page.getByRole('radio', { name: 'मराठी' }).click();
+  const menu = await openProfileMenu(page);
+  await menu.getByRole('radio', { name: 'मराठी' }).click();
   await expect(page.locator('html')).toHaveAttribute('lang', 'mr');
+  await page.keyboard.press('Escape');
+  await expect(menu).toBeHidden();
+  await nav(page, 'हजेरी').click();
   await nav(page, 'मुख्यपृष्ठ').click();
   await expect(page.getByText('तुमच्या बॅच')).toBeVisible();
   await expect(page.getByText(/सुप्रभात/)).toBeVisible();

@@ -16,8 +16,10 @@ interface VerifyRunProps {
   readonly title: ReactNode;
   readonly subtitle: ReactNode;
   readonly labels: { readonly location: string; readonly identity: string };
-  /** Shown under the face step while the face service is a simulation. */
+  /** Shown under the face step while matching is simulated (or no camera is used). */
   readonly simulatedNote?: string;
+  /** The live camera (FaceCheck) in place of the face placeholder. */
+  readonly faceSlot?: ReactNode;
 }
 
 function Step({ state, icon, label }: { readonly state: StepState; readonly icon: 'map-pin' | 'scan-face'; readonly label: string }) {
@@ -35,7 +37,8 @@ function Step({ state, icon, label }: { readonly state: StepState; readonly icon
 export function VerifyRun(p: VerifyRunProps) {
   const both = p.showLocationStep && p.showFaceStep;
   return (
-    <div className={styles.run} aria-live="polite">
+    // One live region: with the live camera, its own status line announces the guidance.
+    <div className={styles.run} aria-live={p.faceSlot ? undefined : 'polite'}>
       {both && (
         <div className={styles.stepper}>
           <Step state={p.locationState} icon="map-pin" label={p.labels.location} />
@@ -50,6 +53,8 @@ export function VerifyRun(p: VerifyRunProps) {
             <Icon name={p.success ? 'check' : 'map-pin'} size={52} />
           </span>
         </span>
+      ) : p.faceSlot ? (
+        <div className={styles.faceSlot}>{p.faceSlot}</div>
       ) : (
         <span className={styles.faceVisual} aria-hidden="true">
           <Icon name="user" size={120} strokeWidth={1} className={styles.faceUser} />

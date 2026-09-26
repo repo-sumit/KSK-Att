@@ -10,6 +10,8 @@
 }
 .full .option {
   flex: 1;
+  /* Options share the track; a long label ellipsises instead of pushing the track past its row. */
+  min-width: 0;
 }
 .option {
   position: relative;
@@ -29,6 +31,9 @@
   align-items: center;
   justify-content: center;
   width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   padding: 0 var(--space-16);
   border-radius: var(--radius-full);
   font: var(--type-title-small);

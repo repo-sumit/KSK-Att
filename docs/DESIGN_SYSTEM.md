@@ -10,7 +10,8 @@ The source of truth is `Doc/swiftchat-design-system.md` (SwiftChat DS) together 
 | `src/styles/typography.css` | DS text styles as `--type-*` (the `font` shorthand) and `--ls-*` (letter spacing). Marathi twins under `:root:lang(mr)` |
 | `src/styles/globals.css` | Reset, focus ring, `.visually-hidden`, keyframes, reduced motion, print rules |
 | `src/components/ui/*` | The kit: every screen is built from these |
-| `src/components/shell/*` | `ScreenLayout`, headers, connectivity banner, bottom nav, session gate |
+| `src/components/shell/*` | `ScreenLayout` (frame, gutters, card mode), `AppNav` (bottom nav on phones, header nav from 600px), `InlineBackBar`, connectivity banner, session gate |
+| `src/features/shell/AppHeader.tsx` | The one header of every signed-in screen (brand · navigation · avatar) |
 
 Two **DS package extensions** cover the prototype's 12px/600 and 11px/600 text: `--type-label-small-strong` and `--type-caption-strong`, each with a Mukta twin. Other additions to the DS set are `--color-chat-input-background` (the DS chat input white, so fields stay white on the grey page), `--color-surface-pressed` (visible press feedback on white rows and cards) and `--color-interactive-destructive-fill` (the AA filled destructive red).
 
@@ -64,18 +65,45 @@ The registry is in `src/domain/status.ts` (`STATUS_REGISTRY`) and the styling in
 | `StatTiles` | Three-up totals with tabular numerals. Surfaces: `hero` (tinted on white), `raised` (tinted on grey), `plain` (white tiles, tone in the text only: the staff view) |
 | `Card`, `PressableCard`, `ListRow`/`List`, `DetailRows`, `Section` | Content structure |
 | `Banner` | `bar` (sync/offline strip, no tracking so it fits on one line), `card` (stale roster, pending sync, audit notes) and `strip` (the compact record status line); optional action button |
-| `BottomSheet` | A native `<dialog>` (focus trap and Esc for free). It opens with focus on its title, never on an action, because every sheet confirms something irreversible |
+| `BottomSheet` | A native `<dialog>` (focus trap and Esc for free). It opens with focus on its title, never on an action, because every sheet confirms something irreversible. Anchored to the bottom edge at every size (DS), 560px wide and centred from 600px (6/8, 6/12 columns) |
 | `Toast` | Polite live region above the dock |
-| `BottomNav` | 4 tabs; the Reports tab disappears when no report block is enabled |
+| `BottomNav` | Home · Attendance · Reports (Reports disappears when no report block is enabled). Phones only; hidden from 600px, where the same destinations sit in the header. Profile is never a tab |
+| `List grid` | `List` with `grid`: one grouped card on phones; from 640px of content, separate cards in two columns (trade and report pickers) |
 | `Avatar`, `IconWell`/`IconTile`, `ProgressBar`, `Skeleton`, `EmptyState`, `Spinner` | Supporting pieces |
 | `icons/` | 48 stroke icons extracted from the prototype (`paths.ts`) and rendered by `Icon` |
 
 `ScreenLayout` gives every screen the same frame: header → connectivity banner → optional fixed top region (roster summary) → **the only scroller** → dock (toast, footer CTA, bottom nav). Because only the main area scrolls, the summary and CTA can never cover a student row. This is the prototype's "sticky" behaviour without `position: sticky`.
 
+### Shell components added for wider screens and the profile menu
+
+| Component | Phones (< 600px) | 600px and up |
+|---|---|---|
+| `AppHeader` | One 60px bar. Tab roots: KSK emblem, "KSK Attendance", institute; task screens: back/close + screen title. Avatar top right (the demo trigger sits beside it in demo builds) | 64px full-width bar aligned to the wide column: brand · Home / Attendance / Reports · avatar. Task screens add a context row (back + title) aligned to the screen's column |
+| `HeaderNav` | Hidden | Pills with icon + label (labels only below 768px); current page: brand-subtle fill, brand-subdued text, semibold; hover tint for mouse users only |
+| `ProfileMenu` | Bottom sheet (DS sheet: radius xl top, grabber) | 340px menu anchored under the avatar, right edges aligned, radius lg, no scrim |
+| Camera view | Portrait frame 288px (registration) / 248px (daily check), capped by screen height | Up to 480px (registration) / 320px (daily), never full-screen; instructions stay next to the frame |
+| Login autofill (demo) | Dashed warning-tone pill under the field: clearly presenter tooling, not part of the form | Same |
+
 ## Responsive behaviour
 
-- The app column is at most 412px wide and centred. Wider screens show it as a framed column (the demo panel docks beside it at ≥ 1024px).
-- The target widths are 320, 360, 375, 390 and 412, plus 768. E2E checks that no width scrolls horizontally, and that the status pills fit the row at every phone width.
+**Mobile-first is not a fixed mobile viewport (D-045).** Phones (320–599px) are the primary design and are unchanged. From the DS medium breakpoint the app fills the viewport, and content keeps a readable column. Nothing new appears on bigger screens: the same hierarchy, with more breathing room.
+
+| DS grid | Width | Columns | Page margin | Gutter |
+|---|---|---|---|---|
+| Small | 320–599 | 4 | 16 | 20 |
+| Medium | 600–1135 | 8 | 36 | 36 |
+| Large | 1136+ | 12 | 64 | 36 |
+
+Tokens: `--grid-*-margin` and `--page-margin` (the current breakpoint's margin); content columns `--container-form` 480, `--container-reading` 800, `--container-wide` 1008 (12 columns at 1136 minus margins), `--container-footer` 280 (DS standalone button), `--container-dialog` 560, `--container-camera` 480.
+
+- **Frame:** header, banner, top region and footer are full-bleed bars; their content aligns to the screen's column through `--gutter-*` (see ARCHITECTURE → Screen frame). Scrollbars stay visible for mouse users from 600px.
+- **Columns by screen:** form 480 (confirmations, correction, self attendance, verification); reading 800 (roster, review, record, staff, report view, offline data); wide 1008 (home, class and trade lists, reports list).
+- **Card screens:** login steps, face intro, permission primers, result screens and stand-alone problem screens become a centred 480px card on the muted page, with the action right under the content. Problem screens inside a signed-in flow keep the app header and use `inlineFooter`, so their action also sits under the message.
+- **Primary actions:** full width on phones (DS 4/4); 280px and centred from 600px (DS "standalone button", never stretched).
+- **Two columns at most**, with the DS column gutter (`--page-gutter`: 20 / 36 / 36px), only where both halves stay easy to read (the brief overrides the DS 4-up card grid): home's *Student attendance* + *My attendance*, class cards, trade and report pickers, the principal's status cards.
+- **The roster stays a row list** (name, father's name, Present/Absent) in the 800px column. Staff pills keep a 160px width instead of stretching.
+- **Demo controls float** on every size and take no layout space (D-047). Headers reserve space for the trigger on phones only.
+- The target widths are 320, 360, 375, 390 and 412 for phones, and 768, 1024, 1280, 1440 and 1920 beyond. E2E checks that no width scrolls horizontally, that the pills fit the row at every phone width, and that wide screens aren't stuck at phone width or stretched (`desktop.spec.ts`).
 - The roster row is a container (`container-type: inline-size`):
   - above 307px of row content, the name is on the left and Present/Absent on the right, as in the prototype;
   - at 307px or below, the pair moves under the name, full width;
@@ -89,4 +117,6 @@ The registry is in `src/domain/status.ts` (`STATUS_REGISTRY`) and the styling in
 - **Selected Present pill has a visible green border (D-021).** The prototype's border matched its fill, which made it asymmetric with Absent.
 - **Unselected staff pills keep their semantic colours (D-021).** This is consistent with the roster; the prototype greyed them.
 - **Brand mark.** The prototype's placeholder check-mark tile is replaced by the real KSK emblem (D-003).
-- **No fake phone frame or status bar.** The real device supplies them.
+- **No fake phone frame or status bar.** The real device supplies them. Wider screens no longer show a phone column at all (D-045).
+- **Top navigation instead of a DS side nav on wide screens (D-046).** The DS column table allows a 2/8 or 3/12 sidebar; the brief rules out a sidebar or rail for this deliberately simple product, so the three destinations move into the header.
+- **Two columns at most on wide screens (D-045).** The DS suggests 4-up card grids on desktop; the brief forbids dense grids for instructors.

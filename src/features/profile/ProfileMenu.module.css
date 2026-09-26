@@ -1,0 +1,134 @@
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--color-surface-brand-subtle);
+  color: var(--color-text-brand-subdued);
+  font: var(--type-title-small);
+  letter-spacing: var(--ls-title-small);
+  cursor: pointer;
+  transition: box-shadow var(--motion-fast) ease;
+}
+.trigger:active,
+.trigger[aria-expanded='true'] {
+  box-shadow: 0 0 0 var(--divider-medium) var(--color-border-brand);
+}
+
+/* Phones: a bottom sheet, like every other sheet in the app. */
+.menu {
+  position: fixed;
+  inset: auto 0 0 0;
+  width: 100%;
+  max-width: 100%;
+  max-height: 90dvh;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-xl) var(--radius-xl) var(--radius-none) var(--radius-none);
+  background: var(--color-background-surface-raised);
+  box-shadow: var(--shadow-overlay);
+  color: var(--color-text-primary);
+  overflow-y: auto;
+}
+.menu[open] {
+  animation: ksk-sheet-in var(--motion-base) var(--motion-ease);
+}
+.menu::backdrop {
+  background: var(--color-scrim);
+}
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  padding: var(--space-8) var(--space-16) calc(var(--space-24) + env(safe-area-inset-bottom));
+}
+.grabber {
+  align-self: center;
+  width: 40px;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--color-border-default);
+}
+.identity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  padding: var(--space-8) 0;
+}
+.who {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.name {
+  font: var(--type-title-large);
+  letter-spacing: var(--ls-title-large);
+  overflow-wrap: break-word;
+}
+.name:focus {
+  outline: none;
+}
+.name:focus-visible {
+  outline: 2px solid var(--color-interactive-focus);
+  outline-offset: 2px;
+}
+.role {
+  font: var(--type-body-small);
+  letter-spacing: var(--ls-body-small);
+  color: var(--color-text-secondary);
+}
+.meta {
+  font: var(--type-caption);
+  letter-spacing: var(--ls-caption);
+  color: var(--color-text-secondary);
+}
+.nowrap {
+  white-space: nowrap;
+}
+.list {
+  box-shadow: none;
+  border: var(--divider-thin) solid var(--color-border-subtle);
+}
+.icon {
+  color: var(--color-icon-secondary);
+}
+.ok,
+.warn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  font: var(--type-label-small-strong);
+  letter-spacing: var(--ls-label-small);
+  white-space: nowrap;
+}
+.ok { color: var(--color-text-success); }
+.warn { color: var(--color-text-warning); }
+
+/* Tablets and desktops: a menu anchored under the avatar (right edges aligned); the page stays visible. */
+@media (min-width: 600px) {
+  .menu {
+    inset: var(--menu-top, var(--space-64)) var(--menu-right, var(--space-16)) auto auto;
+    width: 360px;
+    max-height: calc(100dvh - var(--menu-top, var(--space-64)) - var(--space-16));
+    border: var(--divider-thin) solid var(--color-border-subtle);
+    border-radius: var(--radius-lg);
+  }
+  .menu[open] {
+    animation: none;
+  }
+  .menu::backdrop {
+    background: transparent;
+  }
+  .grabber {
+    display: none;
+  }
+  .panel {
+    padding: var(--space-16);
+  }
+}

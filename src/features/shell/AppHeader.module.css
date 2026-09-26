@@ -1,0 +1,141 @@
+/*
+ * Phones (< 600px): one bar. The header is the flex row; .bar dissolves into it
+ * (display: contents) so the task context and the avatar share the bar.
+ * Tablets and desktops: a full-width bar (brand · navigation · avatar) aligned
+ * to the wide container, and on task screens a second row with back + title
+ * aligned to the screen's content column.
+ */
+.header {
+  position: relative;
+  z-index: var(--z-header);
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  min-height: var(--header-height);
+  padding: calc(var(--space-8) + env(safe-area-inset-top)) calc(var(--space-16) + var(--demo-reserve-inline)) var(--space-8) var(--space-16);
+  background: var(--color-background-surface-raised);
+  border-bottom: var(--divider-thin) solid var(--color-border-subtle);
+  color: var(--color-text-primary);
+}
+.header[data-mode='task'] {
+  gap: var(--space-8);
+  padding-left: var(--space-8);
+}
+.bar {
+  display: contents;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  flex: 1;
+  min-width: 0;
+}
+.header[data-mode='task'] .brand {
+  display: none;
+}
+.emblem {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+.brandText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.appName {
+  font: var(--type-title-large);
+  letter-spacing: var(--ls-title-large);
+  overflow-wrap: break-word;
+}
+.institute {
+  font: var(--type-caption);
+  letter-spacing: var(--ls-caption);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.profile {
+  flex: none;
+  display: flex;
+}
+.context {
+  order: -1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  flex: 1;
+  min-width: 0;
+}
+.titles {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+.title {
+  font: var(--type-title-large);
+  letter-spacing: var(--ls-title-large);
+  /* Up to two lines (larger text, narrow phones) rather than cutting the screen name off. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: break-word;
+}
+.subtitle {
+  font: var(--type-label-small);
+  letter-spacing: var(--ls-label-small);
+  color: var(--color-text-secondary);
+  /* Two lines rather than cutting the batch off ("Electrician · Shift 1 · U…" hides which unit). */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: break-word;
+}
+
+/* Narrow phones (with the demo trigger beside the avatar): the brand stays on one line. */
+@media (max-width: 359px) {
+  .appName {
+    font: var(--type-title-medium);
+    letter-spacing: var(--ls-title-medium);
+  }
+}
+
+@media (min-width: 600px) {
+  .header,
+  .header[data-mode='task'] {
+    display: block;
+    min-height: 0;
+    padding: env(safe-area-inset-top) 0 0;
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-24);
+    min-height: var(--header-height-wide);
+    padding: var(--space-8) var(--gutter-wide);
+  }
+  .brand,
+  .header[data-mode='task'] .brand {
+    display: flex;
+    flex: none;
+  }
+  .profile {
+    margin-left: auto;
+  }
+  .context {
+    min-height: var(--header-height);
+    padding: var(--space-8) var(--gutter-inline);
+    border-top: var(--divider-thin) solid var(--color-border-subtle);
+  }
+  /* The back arrow sits in the margin, so the title lines up with the content below it. */
+  .context > :first-child:not(.titles) {
+    margin-left: calc(-1 * var(--space-12));
+  }
+}

@@ -8,9 +8,8 @@ import { List, ListRow } from '@/components/ui/ListRow';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { Section } from '@/components/ui/Section';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { AppBottomNav } from '@/components/shell/AppBottomNav';
-import { HomeHeader } from '@/components/shell/Headers';
 import { ScreenLayout } from '@/components/shell/ScreenLayout';
+import { AppHeader } from '@/features/shell/AppHeader';
 import { useI18n } from '@/hooks/i18n';
 import { useSession } from '@/hooks/session';
 import { routes } from '@/lib/routes';
@@ -74,7 +73,7 @@ export function PrincipalHome() {
   const staffMissing = staff.filter((r) => !r.record);
 
   return (
-    <ScreenLayout header={<HomeHeader instituteName={ctx.institute.shortName} userName={ctx.user.name} />} nav={<AppBottomNav active="home" />}>
+    <ScreenLayout header={<AppHeader />} area="home" bottomNav>
       <Greeting name={t('principal.salutation')} subtitle={t('principal.greetingSub', { date: format.longDate(today), institute: ctx.institute.shortName })} />
       <Section id="today" title={t('home.todays')}>
         {!data ? (

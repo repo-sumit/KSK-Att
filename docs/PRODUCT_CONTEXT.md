@@ -36,7 +36,7 @@ The demo can switch to the other models the PRD defines (trade-mapped, batch-map
 
 ## Core journeys
 
-1. **Login:** institute code → "Is this your institute?" → Trainer ID → "Is this you?" (name, designation, trade, employment type). On a first login with face verification on, the app first asks the user to set up their face (simulated).
+1. **Login:** institute code → "Is this your institute?" → Trainer ID → "Is this you?" (name, designation, trade, employment type). On a first login with face verification on, the app first asks the user to set up their face (real camera, three photos; matching simulated).
 2. **Mark students:** choose the class. The configuration decides how: trade picker (open), assigned batches (batch/ES), today's timetable (timetable), or trade switcher (trade-mapped). The user verifies presence on a full-screen step (location, then face). Then they mark with one tap per student (default Present, tap Absent), review the summary, submit, and the record locks.
 3. **My attendance:** the instructor marks their own attendance with the same verification step.
 4. **Principal:** an institute overview (batches submitted, staff marked, what needs attention), batch records, same-day corrections with a mandatory reason, staff marking and institute reports.
@@ -54,13 +54,19 @@ The demo can switch to the other models the PRD defines (trade-mapped, batch-map
 - **OJT** comes only from ERP declarations. It is never chosen or corrected in this app.
 - A record that is **not yet synced cannot be corrected**.
 
+## Screens and devices
+
+The primary device is a low-end Android phone in the SwiftChat WebView, so phones (320–412px) are the reference design. The same app also opens in a normal browser on a tablet, laptop or projector. There it uses the whole screen: the same simple screens with more breathing room, the navigation in the header, and content in a readable column. It gains no extra features, buttons or analytics (D-045).
+
+Profile is not a destination. The person's initials at the top right of every screen open a small menu: identity, language, face registration, offline data, help and logout (D-046).
+
 ## What is simulated in this build
 
 This build uses **mock data and simulations only**. Nothing is sent to a server, and no real credentials exist.
 
 - **Login** looks up mock institutes and staff. There is no password or OTP (PRD open question 1: `login.second_factor` supports only `none`).
-- **Face verification and face enrolment are simulations.** The app opens no camera stream, takes no photo and performs no biometric matching. A switch decides the outcome. The UI labels it "Demo simulation · no photo is taken". **It must not be presented as secure biometric verification.**
-- **Location** is simulated by default (inside, outside, denied, or no GPS). The demo panel can switch to the device's real GPS, which is used only to compute distance from the mock institute.
+- **Face matching is simulated; the camera is real.** Face registration and the daily check open the phone's front camera and run a prototype movement check on the device (one face, in the oval, straight / turn left / turn right). Photos stay in memory for that screen and are never saved or sent. **No face is ever compared**: a demo switch decides "match" or "no match". Every face screen says so ("Prototype · photos are not saved · face matching is simulated"). **None of it may be presented as secure biometric verification or liveness detection** (D-048). On a machine without a camera the demo can simulate the camera too.
+- **Location** is simulated by default in the demo (inside, outside, denied, or no GPS). The demo panel can switch to the device's real GPS, which is used only to compute distance from the mock institute. Code records which it was (`source: 'device' | 'simulated'`).
 - **Server sync** is a simulated gateway that can be told to fail once.
 
 What "production" still needs is in [ARCHITECTURE.md § Going live](ARCHITECTURE.md#going-live-what-replaces-the-mocks).
