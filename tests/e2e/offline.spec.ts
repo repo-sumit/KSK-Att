@@ -18,8 +18,10 @@ test('offline: mark against a downloaded roster, lock locally, then sync when ba
   await expect(page.getByRole('heading', { name: 'Saved on this phone' })).toBeVisible();
 
   await page.getByRole('link', { name: 'Done' }).click();
-  await expect(page.getByText('1 attendance record waiting to sync')).toBeVisible();
+  const card = page.getByRole('region', { name: 'Sync pending' });
+  await expect(card).toContainText('1 attendance record waiting');
+  await expect(card).toContainText('It will sync when you’re back online');
   await demo(page, "setNetwork('online')");
   await expect(page.getByText('All attendance synced')).toBeVisible();
-  await expect(page.getByText('1 attendance record waiting to sync')).toHaveCount(0);
+  await expect(page.getByText('1 attendance record waiting')).toHaveCount(0);
 });

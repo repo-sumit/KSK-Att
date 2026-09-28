@@ -38,9 +38,11 @@ test('principal marks staff who have not self-verified; self-verified rows are l
   await page.waitForURL(/\/attendance\/staff/);
   const sunita = page.locator('li', { hasText: 'Sunita Jadhav' });
   await expect(sunita.getByText(/Self verified/)).toBeVisible();
+  // Locked: a saved mark is a status value, not a control.
   await expect(sunita.getByRole('button')).toHaveCount(0);
+  await expect(sunita.getByRole('combobox')).toHaveCount(0);
   const sanjay = page.locator('li', { hasText: 'Sanjay More' });
-  await sanjay.getByRole('button', { name: 'Present' }).click();
+  await sanjay.getByRole('combobox', { name: 'Attendance for Sanjay More' }).selectOption('present');
   await page.getByRole('button', { name: 'Save 1 change' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Save 1 change' }).click();
   await expect(page.getByText('Staff attendance saved')).toBeVisible();

@@ -15,6 +15,7 @@ import { useSession } from '@/hooks/session';
 import { routes } from '@/lib/routes';
 import { toLocalDate } from '@/lib/time';
 import { AnnouncementBanner } from '../announcements/AnnouncementBanner';
+import { SyncPendingCard } from '../offline/SyncPendingCard';
 import { Greeting } from './parts';
 import { usePrincipalOverview } from './usePrincipalOverview';
 import styles from './PrincipalHome.module.css';
@@ -74,8 +75,10 @@ export function PrincipalHome() {
   const staffMissing = staff.filter((r) => !r.record);
 
   return (
-    <ScreenLayout header={<AppHeader />} area="home" bottomNav>
+    // Staff marks saved offline wait here too; the card owns sync on Home (D-064).
+    <ScreenLayout header={<AppHeader />} area="home" bottomNav banner="offline">
       <Greeting name={t('principal.salutation')} subtitle={t('principal.greetingSub', { date: format.longDate(today), institute: ctx.institute.shortName })} />
+      <SyncPendingCard />
       <AnnouncementBanner />
       <Section id="today" title={t('home.todays')}>
         {!data ? (

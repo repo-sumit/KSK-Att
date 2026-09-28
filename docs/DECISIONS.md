@@ -18,7 +18,7 @@ Each entry records a choice that the PRD, prototype or brief left open, or where
 
 **D-007 · Layering with swappable repositories.** *Assumed.* UI → services → repository interfaces → mock implementation (now) or API implementation (later). ESLint enforces the boundaries. `src/repositories/api/*` are typed stubs that document their endpoints.
 
-**D-008 · The demo layer is opt-in by build flag.** *Assumed.* `NEXT_PUBLIC_DEMO_MODE=true` bundles the demo panel, presets and simulations. With `false`, the code is compiled out (checked by `npm run check:demo`). `.env.development` and `.env.production` set it to `true` because this deployment is the stakeholder demo.
+**D-008 · The demo layer is on by default and off by build flag.** *Assumed; revised by D-067.* `NEXT_PUBLIC_DEMO_MODE` bundles the demo panel, presets and simulations unless a build sets it to `false`, when the code is compiled out (checked by `npm run check:demo`). The default lives in `next.config.ts` (`env`), because this deployment is the stakeholder demo and a Vercel build from git has no `.env` file (D-067).
 
 ## Security-sensitive simulations
 
@@ -32,13 +32,23 @@ Each entry records a choice that the PRD, prototype or brief left open, or where
 
 On the grey app surface (#ECECEC), ghost buttons and links use `text-brand-subdued` #345CCC, because brand #386AF6 is 3.9:1 there. Filled destructive buttons use #C0392B, because white on the DS #EB5757 is 3.5:1. `tests/unit/design/contrast.test.ts` and the E2E axe scans guard all of this.
 
-**D-014 · No dropdowns on the roster.** *Assumed; brief requirement.* When half day or leave is enabled, the prototype's status popover is replaced by a full-width row of one-tap pills under the name. Follow-ups (which half, leave type, until date) appear inline. It is still one tap per student, the choices are visible, and there is no popover to dismiss.
+**D-014 · No dropdowns on the roster.** *Superseded by D-062 (owner).* The roster used one-tap pills: Present/Absent beside the name and, with half day or leave on, a full-width row of pills under it. The owner replaced them with one status select per student, so the row stays compact whatever a state enables. The inline follow-ups (which half, leave type, until date) are kept.
 
-**D-021 · Pill colour symmetry.** *Assumed.* The selected Present pill gets a visible green border, because the prototype's border equalled its fill and looked unlike Absent. Unselected staff pills keep their semantic text colours, matching the roster; the prototype greyed them, which was inconsistent.
+**D-062 · One status control per person: the phone's own picker.** *Owner (UX update brief, round 2); the presentation was chosen by the owner.*
+- `AttendanceStatusSelect` (`src/components/ui/AttendanceStatusSelect.tsx`) replaces the pill group on every roster row that marks attendance: students (`StudentRow`) and staff (`StaffScreen`, principal marking). `StatusPill` is deleted.
+- **What it is:** a native `<select>` drawn as a status pill: status icon, label, chevron, and the status colour in its text and border. It is a fixed width (9.5em, so it grows with the phone's text size), right-aligned, so every row's control reads down one column. On a phone it opens the phone's own list; on a desktop, the browser's menu under the control. *Why native:* the owner picked it over a custom sheet or menu, because it is familiar, large, accessible (name "Attendance for {name}") and behaves the same in every WebView.
+- **Options come only from configuration** (`journey.marking.selectable`): Present + Absent in Maharashtra; with every status on, Present, Absent, Half day and Leave. OJT is never a hand-picked option (`instructorSelectable: false`).
+- **Locked values** (`LockedStatus`): OJT declared in the ERP, and staff marks already saved (self-verified or by the principal). They are the same pill, filled with the tone and with a lock instead of the chevron, and they are not a control. The reason ("set by the ERP, can't be changed here") is spoken, and the row says it visibly.
+- **States:** the roster's starting status is drawn calm (grey border) so the changes stand out; others carry their tone border, on a row tinted as before. Blank start: a "Choose" placeholder. After Review is pressed with gaps, a warning edge appears, `aria-invalid` is set, and focus moves to the first unmarked control.
+- **Follow-ups stay under the row:** which half (when `halfDayHalves`), leave type and until date. The correction screen keeps its single-question radio cards: it is one question on its own screen, not a row list.
+- *PRD §9.1:* one-tap marking. This is now two taps for a change from the default (open, pick). The owner accepted that for a compact row that scales to any status set.
+
+
+**D-021 · Pill colour symmetry.** *Superseded by D-062.* *Assumed.* The selected Present pill gets a visible green border, because the prototype's border equalled its fill and looked unlike Absent. Unselected staff pills keep their semantic text colours, matching the roster; the prototype greyed them, which was inconsistent.
 
 **D-037 · Every button label is 600.** *Prototype.* The DS markdown lists Label styles (500) for secondary and ghost buttons. The prototype, and the DS component bundle it was built from, render all variants at 600, so the app follows the prototype.
 
-**D-038 · Present/Absent is one paired control.** *Prototype.* The two pills sit 4px apart and have no letter-spacing, as in the prototype. DS governance normally keeps 4px for optical nudges; here the pair reads as a single control and the name column gets its width back.
+**D-038 · Present/Absent is one paired control.** *Superseded by D-062.* *Prototype.* The two pills sit 4px apart and have no letter-spacing, as in the prototype. DS governance normally keeps 4px for optical nudges; here the pair reads as a single control and the name column gets its width back.
 
 **D-031 · Roster rows follow the prototype's density.** *Assumed.* The father's name is one line with an ellipsis, so rows stay about 68px and a 30-student batch scans quickly. The full name appears on the review, record and correction screens.
 
@@ -150,6 +160,8 @@ On the grey app surface (#ECECEC), ghost buttons and links use `text-brand-subdu
 - *Why:* the old list of report types and ranges made instructors choose before they saw anything. One page answers "how are my students and I doing?" at a glance. Ranges and print stay where the principal needs a document.
 - *PRD §19:* the sections are §19.2's blocks. The daily register is one of them, "switchable per state": Maharashtra switches it off, and the code no longer carries it, so a state that wants it needs it rebuilt. §19.1 gives an open-mapping instructor the batches they actually marked; the default `both` adds their home batches. §19.3–19.4's date ranges and PDF now apply only to the detail reports. The PRD has no at-risk list or threshold: that is an extension.
 
+**D-063 · At-risk students have no batch filter.** *Owner (UX update brief, round 2).* The list is already grouped by batch (each group expands to its students), so the dropdown added a step without adding information. `ReportService.atRisk` keeps its `batchId` option for the API.
+
 **D-054 · Announcements on Home.** *Owner (UX update brief). Extension: the PRD has no notices.*
 - **Domain** (`src/domain/announcement.ts`):
   - fields: category (info / important / holiday / ojt), priority (high / normal), source (state / institute / principal), audience (institute / trade / batch / staff), `showFrom`–`showUntil` (inclusive), optional `eventFrom`–`eventTo`, and bilingual `LocalizedText` (English is required and is the fallback);
@@ -173,15 +185,36 @@ On the grey app surface (#ECECEC), ghost buttons and links use `text-brand-subdu
 **D-056 · Offline data lives under Reports.** *Owner (UX update brief).*
 - **Routes:** `/reports/offline` and `/reports/offline/download` (`src/features/offline/*`). `next.config.ts` redirects `/profile/offline` and `/profile/offline/download` to them. The profile-menu row is gone.
 - Reports has an "Offline data" section (instructors, while offline is on): how many batches are on the phone, the sync state, and how many need a refresh. With reports off but offline on, the Reports tab stays for it (D-052).
-- **The screen:**
-  - a banner with the sync state only (Sync now while records wait), and an amber "N batches need a refresh" line (with Refresh) when any pack is stale;
+- **The screen** (revised in D-065):
+  - sync first: the Sync pending card (D-064) while records wait, otherwise "All attendance synced", and the end-of-day rule under it;
   - the records waiting to sync;
-  - each downloaded batch with when it was updated, a status (Ready offline / Refresh needed / N waiting to sync) and its own refresh; batches that need the instructor come first (waiting to sync, then refresh needed). A refresh-all is announced once (its toast), not by every row;
-  - "Refresh all downloaded data", with a busy state ("Refreshing downloaded data…");
-  - Download more batches.
+  - each downloaded batch with when it was updated, a status (Ready offline / Refresh needed / N waiting to sync) and its own refresh; batches that need the instructor come first (waiting to sync, then refresh needed), and a stale row carries the warning edge. A refresh-all is announced once (its toast), not by every row;
+  - the list's action group: "Refresh all data" (busy: "Refreshing all data…") and "Download more batches".
 - A user without offline (the principal) who opens an old link is sent to Reports or Home, and the service refuses changes for them too.
 - *Why:* "is my data on this phone, and has it been sent?" is a status question that belongs beside the reports, not in profile settings. The profile menu also stays short.
 - *PRD §20:* speaks of "the offline section" without placing it.
+
+**D-064 · Sync pending on Home.** *Owner (UX update brief, round 2).*
+- `SyncPendingCard` (`src/features/offline/SyncPendingCard.tsx`) shows only while attendance waits on this phone (students' or staff marks), and for a moment after it syncs, to say so. It is never shown on a phone that is all synced. It is on both Homes, first after the greeting (work before notices), and on Offline data.
+- **States:** waiting ("Sync pending · N attendance records waiting", with why: offline, "Auto-sync failed at 10:42 AM", or "Saved safely on this phone") · syncing (the button shows "Syncing…") · couldn't sync after a Sync now ("Couldn't sync · Tried at … · check your internet", Try again) · "All attendance synced" (success, then it goes away). The soft warning surface, and Sync now is the one primary action. Offline it is inactive, and a press says "Connect to the internet to sync".
+- **Service:** `SyncStatus.lastFailure {at, trigger: 'auto' | 'manual'}` is kept until an attempt succeeds. `syncNow('auto')` is used by the automatic triggers (reconnect, app start, record queued, opening a batch) and `syncNow()` by a tap. The clock is injected.
+- **One sync message per screen:** Home and Offline data pass `banner="offline"` to `ScreenLayout`, so the bar under the header only says "offline" there. Other screens keep the full connectivity bar.
+- **Demo:** Network → Pending sync now stages the brief's story: a record waiting after a failed automatic attempt; Sync now then works (unless Next sync: Fails).
+- *PRD §20.5:* sync states and Sync now; the card is where Home shows them.
+
+**D-065 · Offline data: one action group under the list.** *Owner (UX update brief, round 2).* The downloaded batches are one divided card, and its last part is the action group, the same width as the list: "Refresh all data" (outlined) and "Download more batches" (text), stacked on phones and side by side from about 520px of card. The stale banner and its second Refresh button are gone: a stale row says "Refresh needed", carries the warning edge and has its own refresh, and Reports' Offline entry still counts them. With nothing downloaded, the empty state offers "Download batches".
+
+**D-068 · Shared pieces from the round-2 consistency pass.** *Assumed.*
+- **`StatusLine`** (`src/components/ui/StatusLine.tsx`): one icon + coloured text style for short states (Ready offline, Refresh needed, N waiting to sync, N students at risk, At risk, Registered, Not marked). One size: label-small-strong, a 16px icon, 4px apart. It replaced seven hand-made copies with three fonts and icon sizes 14, 16 and 20.
+- **`Card divided`**: the list card (rows edge to edge, one divider between) used by the Reports batch and at-risk lists and the Offline batches. It replaced three copies of the same CSS.
+- **The header avatar** is the shared `Avatar` inside a plain button.
+- **"Submitted today"** on Home uses `Section variant="label"`, like every other group label, and its rows have the card shadow.
+- **At-risk:**
+  - the rows drop the extra tile (the "My batches" rows above have none), and "N students at risk" is a warning `StatusLine`;
+  - "no one at risk" is a success `Banner`, like "All attendance synced".
+- **Profile menu:** Help no longer shows a navigation chevron (it opens a message, not a screen).
+- **Duplicate CSS rules removed:** `.rowTitle`, `.chevron`, `.recent`.
+- **Kept deliberately:** the principal Home's "View student attendance" and "Mark staff attendance" buttons (they are in the approved prototype), and Review's footer "Go back" (the confirm pattern).
 
 ## Demo
 
@@ -197,24 +230,32 @@ On the grey app surface (#ECECEC), ghost buttons and links use `text-brand-subdu
 
 **D-047 · Demo controls stay collapsed on every size; presenters pick a demo account at login.** *Owner (UX update brief).*
 - A collapsed **Demo** trigger on every screen: in the app header's tool slot (D-057), floating only on screens without the header (top right on phones, bottom right from 600px; reserves in D-036).
-- Phones open a modal bottom sheet (≤ 90% height). From 600px it is a 380px **non-modal** drawer on the **left**, below the app header, on the trigger's side. The avatar and navigation stay usable, and it overlays the app without reflowing it, so the presenter can keep using the app.
+- Phones open a modal bottom sheet (≤ 90% height). From 600px it is a 380px **non-modal** drawer on the **right**, below the app header, on the trigger's side (D-066). The avatar and navigation stay usable, and it overlays the app without reflowing it, so the presenter can keep using the app.
 - Esc closes it (unless a sheet or menu is open on top), and every way of closing returns focus to the trigger. The panel's content mounts only while open, so nothing of it is in the page (or read by a screen reader) while collapsed. The permanent desktop sidebar is gone.
 - In Advanced, location is two controls: **Location source** (Simulated / This device), and the simulated outcome only while simulating. Segmented controls can never overflow their row.
 - Order: **Quick presets** (most prominent), **Quick login** (every persona), then **Advanced** (collapsed: all configuration and simulation controls, plus "Skip login screens").
 - **Autofill:** the product defines a `LoginAssistSource` seam; only the demo supplies one. The login steps show **Use demo account** (D-058). A field is filled only when the presenter picks an account. It never submits and never skips a confirmation. *Alternatives:* prefilled query strings (`?code=`, `?tid=` still work) or a credentials card on the login page (rejected by the brief).
 - Presets keep the presenter's **camera choice**, face-detection mode and speed: those describe the machine, not the story.
 
-**D-057 · The demo trigger sits in the app header.** *Owner (UX update brief).*
+**D-057 · The demo trigger sits in the app header.** *Owner (UX update brief); its place was moved by D-066.*
 - `AppHeader` always renders an empty tool slot (`HeaderToolSlot`, `src/components/shell/ToolSlot.tsx`): a `display: contents` span, so the header lays out as if it weren't there. `DemoRoot` portals the trigger into it.
-- **Where it sits** (the avatar always stays the right-most control):
-  - tab roots: `[Demo] brand … [avatar]`;
-  - phone task screens: `[← title] … [Demo] [avatar]`, icon-only;
-  - Home on 360–399px keeps the labelled pill, slightly tighter, so "KSK Attendance" stays on one line; below 360px icon-only;
-  - from 600px, at the start of the brand row; icon-only up to 900px, where the principal's three destinations need the room.
+- **Where it sits:** immediately left of the avatar on every screen and width (D-066).
 - Screens without the app header (login, camera, results, permission cards) have no slot. There the trigger floats (top right on phones, bottom right from 600px) and sets `html[data-demo-float]` (D-036).
-- The wide drawer opens on the left, below the whole header: `DemoRoot` measures it, so on task screens it starts under the back + title row. Phones keep the bottom sheet.
+- The wide drawer opens on the right, below the whole header: `DemoRoot` measures it, so on task screens it starts under the back + title row. Phones keep the bottom sheet.
 - *Why:* a pill floating over the header had to reserve space on every screen, and at some widths it still crowded the avatar or a title. In the slot it is a normal header item. The product never puts anything in the slot and never depends on it.
 - *PRD:* not applicable (presenter tooling).
+
+**D-066 · Demo sits immediately left of the avatar.** *Owner (UX update brief, round 2).*
+- `AppHeader`'s trailing group is `[tool slot][avatar]` (`.end`), so the trigger sits right beside the avatar everywhere:
+  - tab roots `brand … [Demo][avatar]`;
+  - phone task screens `[← title] … [Demo][avatar]`;
+  - from 600px `brand · navigation … [Demo][avatar]`.
+- The avatar stays the right-most control.
+- The trigger stays the collapsed yellow "Demo" pill, visibly temporary tooling. It is icon-only where the room is needed: phone task screens, below 360px, and 600–899px (the principal's three destinations). On 360–399px tab roots it is labelled, slightly tighter.
+- The wide drawer moved to the right, on the trigger's side.
+- *Why:* the owner wanted one consistent place for the tooling, next to the other personal control, rather than at the far left of the brand.
+
+**D-067 · The deployed build keeps the demo.** *Owner (UX update brief, round 2).* The repository's `.gitignore` excludes `.env.production`, so a Vercel build from git had no `NEXT_PUBLIC_DEMO_MODE` and compiled the demo out: no Demo button and no "Use demo account" on the deployed site. `next.config.ts` now defaults the flag to `true` (`env`), and only an explicit `false` strips it. That is the Vercel project setting for a real rollout, and what `npm run check:demo` uses to prove the strip. This was verified by building a copy of the project with no `.env` files: the Demo trigger and "Use demo account" are present.
 
 **D-058 · "Use demo account" on the login screens.** *Owner (UX update brief).*
 - `LoginAssistPicker` sits under the field on the Institute code and Trainer ID steps. It expands to five accounts: Open, Batch-mapped, Timetable, Employability Skills and Principal (`DEMO_ACCOUNTS`, `src/demo/adapters.ts`).

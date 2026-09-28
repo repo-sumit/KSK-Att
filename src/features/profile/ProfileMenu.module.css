@@ -1,16 +1,11 @@
+/* The header avatar: the shared Avatar (44px, the touch minimum) inside a plain round button. */
 .trigger {
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
   flex: none;
-  width: var(--touch-target-min);
-  height: var(--touch-target-min);
+  padding: 0;
   border: none;
   border-radius: var(--radius-full);
-  background: var(--color-surface-brand-subtle);
-  color: var(--color-text-brand-subdued);
-  font: var(--type-title-small);
-  letter-spacing: var(--ls-title-small);
+  background: transparent;
   cursor: pointer;
   transition: box-shadow var(--motion-fast) ease;
 }
@@ -98,17 +93,6 @@
 .icon {
   color: var(--color-icon-secondary);
 }
-.ok,
-.warn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-4);
-  font: var(--type-label-small-strong);
-  letter-spacing: var(--ls-label-small);
-  white-space: nowrap;
-}
-.ok { color: var(--color-text-success); }
-.warn { color: var(--color-text-warning); }
 
 /* Tablets and desktops: a menu anchored under the avatar (right edges aligned); the page stays visible. */
 @media (min-width: 600px) {

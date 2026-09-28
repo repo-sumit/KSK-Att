@@ -34,9 +34,9 @@ interface AppHeaderProps {
  * the left, the profile avatar at the top right, the primary destinations in
  * between on tablets and desktops. Phones keep the prototype's single 60px bar:
  * the brand on tab roots, back + screen title on task screens. The avatar is
- * always the right-most control; tooling outside the product (HeaderToolSlot,
- * empty in the product) sits at the start of the bar: left of the brand, or
- * just before the avatar on phone task screens.
+ * always the right-most control. Tooling outside the product (HeaderToolSlot,
+ * empty in the product; the demo trigger in a demo build) sits in the trailing
+ * group immediately left of the avatar, on every screen and width (D-066).
  */
 export function AppHeader({ title, subtitle, back = false, backHref = routes.home, onBack, trailing, plain = false }: AppHeaderProps) {
   const t = useT();
@@ -50,7 +50,6 @@ export function AppHeader({ title, subtitle, back = false, backHref = routes.hom
   return (
     <header className={styles.header} data-mode={task ? 'task' : 'root'}>
       <div className={styles.bar}>
-        <HeaderToolSlot />
         <div className={styles.brand}>
           <Image src="/branding/ksk-emblem.png" alt="" width={36} height={36} className={styles.emblem} loading="eager" />
           <span className={styles.brandText}>
@@ -61,7 +60,8 @@ export function AppHeader({ title, subtitle, back = false, backHref = routes.hom
           </span>
         </div>
         <HeaderNav active={area} />
-        <div className={styles.profile}>
+        <div className={styles.end}>
+          <HeaderToolSlot />
           <ProfileMenu />
         </div>
       </div>

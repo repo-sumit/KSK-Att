@@ -45,9 +45,8 @@ test('reports: my attendance, my batches as a sortable leaderboard, at-risk stud
     await groups.first().click();
     for (const pct of await pcts(page, risk.locator('ul > li'))) expect(pct).toBeLessThan(75);
   }
-  // One batch at a time.
-  await risk.getByLabel('Batch').selectOption({ label: 'Electrician · Shift 2 · Unit 2' });
-  await expect(risk.getByText(/No students at risk in this batch|students? at risk/).first()).toBeVisible();
+  // Already grouped by batch: there is no batch filter (D-063).
+  await expect(risk.getByRole('combobox')).toHaveCount(0);
 
   // Offline data is part of Reports.
   await page.locator('main').getByRole('link', { name: /on this phone/ }).click();
@@ -65,7 +64,7 @@ test('offline data: refresh one batch, then everything', async ({ page, consoleE
   await expect(stale).toContainText('Ready offline');
   const fresh = page.locator('main li').filter({ hasText: 'COPA · Shift 1 · Unit 1' });
   await expect(fresh).toContainText('Updated today · 7:45 AM');
-  await page.getByRole('button', { name: 'Refresh all downloaded data' }).click();
+  await page.getByRole('button', { name: 'Refresh all data' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Downloaded data refreshed' })).toBeVisible();
   await expect(fresh).toContainText('Updated just now');
   await page.getByRole('link', { name: 'Download more batches' }).click();

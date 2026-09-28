@@ -40,17 +40,6 @@
 }
 .subSuccess { color: var(--color-text-success); }
 .subWarning { color: var(--color-text-warning); }
-.chevron { color: var(--color-icon-secondary); }
-.recent {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-12);
-}
-.recentTitle {
-  font: var(--type-title-small);
-  letter-spacing: var(--ls-title-small);
-  color: var(--color-text-secondary);
-}
 .empty {
   font: var(--type-body-medium);
   letter-spacing: var(--ls-body-medium);
@@ -68,6 +57,7 @@
   padding: var(--space-12) var(--space-16);
   border-radius: var(--radius-lg);
   background: var(--color-background-surface-raised);
+  box-shadow: var(--shadow-card);
   color: var(--color-text-primary);
 }
 .recentName {

@@ -59,3 +59,44 @@ test('the principal keeps the Attendance tab and sees every notice for the insti
   await page.waitForURL(/\/attendance$/);
   await expect(page.getByRole('radiogroup', { name: 'Attendance view' })).toBeVisible();
 });
+
+test('Sync pending on Home: only while records wait; Sync now shows syncing, then success (or failure)', async ({ page, consoleErrors }) => {
+  void consoleErrors;
+  await preset(page, 'open');
+  const card = page.getByRole('region', { name: /Sync pending|Syncing attendance…|Couldn’t sync|All attendance synced/ });
+  // Everything synced: no card at all.
+  await expect(card).toHaveCount(0);
+
+  // A record is waiting because an automatic attempt failed (the demo's "Pending sync" network).
+  await demo(page, "setNetwork('pending')");
+  await expect(card).toContainText('Sync pending');
+  await expect(card).toContainText('1 attendance record waiting');
+  await expect(card).toContainText('Auto-sync failed at 10:15 AM');
+  // One sync message per screen: the bar under the header leaves sync to the card.
+  await expect(page.getByText(/couldn’t sync\. Saved safely/)).toHaveCount(0);
+
+  // Sync now fails: the card says so and offers Try again.
+  await demo(page, 'setSimulation({ nextSyncFails: true })');
+  await card.getByRole('button', { name: 'Sync now' }).click();
+  await expect(card).toContainText('Couldn’t sync');
+  await expect(card).toContainText('Tried at 10:15 AM');
+  await demo(page, 'setSimulation({ nextSyncFails: false, speed: 0.4 })');
+  await card.getByRole('button', { name: 'Try again' }).click();
+  await expect(card.getByRole('button', { name: 'Syncing…' })).toBeVisible();
+  await expect(card).toContainText('All attendance synced');
+  // Then it goes away: nothing is waiting any more.
+  await expect(card).toHaveCount(0, { timeout: 5_000 });
+});
+
+test('Sync now offline explains instead of doing nothing', async ({ page, consoleErrors }) => {
+  void consoleErrors;
+  await preset(page, 'open');
+  await demo(page, "setNetwork('pending')");
+  await demo(page, 'setSimulation({ online: false })');
+  const card = page.getByRole('region', { name: 'Sync pending' });
+  await expect(card).toContainText('It will sync when you’re back online');
+  // Inactive (aria-disabled) offline: a press explains instead of doing nothing.
+  await card.getByRole('button', { name: 'Sync now' }).click({ force: true });
+  await expect(page.getByRole('status').filter({ hasText: 'Connect to the internet to sync' })).toBeVisible();
+  await expect(card).toContainText('1 attendance record waiting');
+});

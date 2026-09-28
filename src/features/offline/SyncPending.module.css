@@ -1,0 +1,91 @@
+/*
+ * Sync pending (D-064): a compact card in the soft warning tone, one obvious
+ * action. Phones: icon + text, the button full width underneath. Wider cards:
+ * the button sits on the right, beside the text.
+ */
+.card {
+  container-type: inline-size;
+  padding: var(--space-16);
+  border-radius: var(--radius-lg);
+  animation: ksk-fade-in var(--motion-base) var(--motion-ease);
+}
+/* The grid sits inside the card, so it can follow the card's own width (a container can't query itself). */
+.inner {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-12);
+}
+.warning {
+  background: var(--color-surface-warning-subtle);
+}
+.success {
+  background: var(--color-surface-success-subtle);
+}
+.lead {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  background: var(--color-background-surface-raised);
+}
+.warning .lead {
+  color: var(--color-text-warning);
+}
+.success .lead {
+  color: var(--color-text-success);
+}
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  align-self: center;
+}
+.title {
+  font: var(--type-title-small);
+  letter-spacing: var(--ls-title-small);
+  color: var(--color-text-primary);
+}
+.success .title {
+  color: var(--color-text-success);
+}
+.body {
+  font: var(--type-body-small);
+  letter-spacing: var(--ls-body-small);
+  color: var(--color-text-primary);
+}
+.meta {
+  font: var(--type-label-small-strong);
+  letter-spacing: var(--ls-label-small);
+  color: var(--color-text-warning);
+}
+/* Its own full-width row on phones (only when there is an action: "all synced" has none, so no empty gap). */
+.action {
+  grid-column: 1 / -1;
+}
+/* A wide card (tablets, desktops, or a roomy phone column): the button beside the text. */
+@container (min-width: 520px) {
+  .inner {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+  }
+  .action {
+    grid-column: auto;
+    min-width: 200px;
+  }
+}
+
+/* Keyframes live in the module that uses them (CSS Modules scope their names, D-060). */
+@keyframes ksk-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

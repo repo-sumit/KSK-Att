@@ -13,9 +13,9 @@ npm run build && npm start
 
 It works on a phone, a tablet and a laptop or projector. The app is mobile-first but uses the whole screen on wider devices: a full-width header with the navigation, and content in a readable column (D-045).
 
-The demo controls are **collapsed by default on every screen size**: a small yellow **Demo** trigger in the app header (D-057). The avatar always stays the right-most control.
-- **Phones:** left of the KSK brand on Home and Reports; just before the avatar, icon-only, on task screens. On screens without the header (login, camera, results) it floats top right. It opens a bottom sheet (up to 90% of the screen, scrolling inside).
-- **Tablets and laptops:** at the start of the header row (bottom right on screens without the header). It opens a drawer on the left, below the header, that floats over the app. The app stays visible and usable, so you can change a setting and watch the screen react. **Esc** or **×** closes it.
+The demo controls are **collapsed by default on every screen size**: a small yellow **Demo** trigger in the app header, **immediately left of the avatar** on every signed-in screen (D-066). The avatar always stays the right-most control. The deployed build has it too (D-067).
+- **Phones:** labelled on Home and Reports; icon-only on task screens and below 360px. On screens without the header (login, camera, results) it floats top right. It opens a bottom sheet (up to 90% of the screen, scrolling inside).
+- **Tablets and laptops:** beside the avatar at the end of the header row (icon-only up to 900px; bottom right on screens without the header). It opens a drawer on the right, below the header, that floats over the app. The app stays visible and usable, so you can change a setting and watch the screen react. **Esc** or **×** closes it.
 
 **Jump straight to a story:** `/?preset=open`, `batch`, `timetable`, `es`, `principal`, `first_time` or `offline`.
 
@@ -71,7 +71,7 @@ Everything below the presets and quick login is under **Advanced**, collapsed by
 | Marking | Frequency: Once / Twice / Periods. Default: Present / Absent / Blank. Half day (+ Ask which half), Leave, OJT (from ERP) |
 | Time | Time fencing On/Off. Demo clock |
 | Staff attendance | Staff attendance, Self attendance, Principal marks staff |
-| Network & language | Network: Online / Offline / Pending sync. Next sync: Works / Fails. Language: English / मराठी |
+| Network & language | Network: Online / Offline / Pending sync (a record waiting after a failed automatic attempt, D-064). Next sync: Works / Fails. Language: English / मराठी |
 
 Any configuration change starts a new session: verification passes are cleared and every screen re-renders from the new journey. **Disabled features disappear** from the flow; they are never greyed out.
 
@@ -109,15 +109,17 @@ Any configuration change starts a new session: verification passes are cleared a
 2. Open a downloaded batch (Electrician Shift 1 · Unit 2) → mark → submit → *Saved on this phone*.
 3. Open **Fitter · Shift 1 · Unit 2**: *Student list downloaded on … New admissions may be missing.*
 4. Open a batch that wasn't downloaded (Mechanic Diesel) → *This batch isn't downloaded*.
-5. Panel → Network **Online** → *Syncing 1 attendance record…* → *All attendance synced*. For the failure path, set *Next sync* → **Fails** first; the banner offers **Try again**.
-6. **Reports → Offline data** (D-056). You see the sync state and the records waiting to sync (*Sync now*). Each downloaded batch shows when it was updated, its status (*Ready offline*, *Refresh needed*, or *n waiting to sync* while a record is unsent) and its own refresh. Below them are **Refresh all downloaded data** and *Download more batches*. Refreshing needs a connection: offline it says *Connect to the internet to refresh*.
+5. **Done** → Home shows **Sync pending** · *1 attendance record waiting* · *It will sync when you're back online* (D-064). Panel → Network **Online** → *Syncing attendance…* → *All attendance synced*, and the card goes away. For the failure path, set *Next sync* → **Fails** first: the card says *Couldn't sync* and offers **Try again**.
+6. **Home's Sync pending card on its own:** any preset → Panel → Network **Pending sync** → *Sync pending · 1 attendance record waiting · Auto-sync failed at 10:15 AM* with **Sync now** → tap it → *Syncing…* → *All attendance synced*.
+7. **Reports → Offline data** (D-056, D-065). Sync comes first (the same card, or *All attendance synced*). Each downloaded batch shows when it was updated, its status (*Ready offline*, *Refresh needed* with a warning edge, or *n waiting to sync* while a record is unsent) and its own refresh. The list ends with its action group: **Refresh all data** and *Download more batches*. Refreshing needs a connection: offline it says *Connect to the internet to refresh*.
 
 ### 6. Configuration changes, live
-1. *Default* → **Blank**: nobody is pre-marked; Review & Submit stays inactive and says how many students remain.
-2. *Half day* **On** + *Ask which half* **On**, *Leave* **On**: rows show a full-width pill row; Half day asks *First half / Second half*; Leave asks *Sick / Casual / Medical*.
-3. *OJT* **On**: in Electrician Shift 1 · Unit 2, rolls 6 and 13 show a locked **OJT** chip ("On-the-job training · declared in the ERP").
-4. *Frequency* → **Twice**: two cards per batch (Morning / After lunch), each locked separately.
-5. *Staff attendance* **Off**: *My attendance* (Home and Reports) and the staff report disappear.
+1. Each student has **one status select** on the right (D-062). Tap it: the phone's own list opens with only the statuses the configuration enables (Present and Absent in Maharashtra).
+2. *Default* → **Blank**: every row says *Choose*; Review & Submit stays inactive, says how many students remain, and a tap takes you to the first one.
+3. *Half day* **On** + *Ask which half* **On**, *Leave* **On**: the same select now lists Present, Absent, Half day, Leave; the row stays the same size. Half day asks *First half / Second half* underneath; Leave asks *Sick / Casual / Medical*.
+4. *OJT* **On**: in Electrician Shift 1 · Unit 2, rolls 6 and 13 show a locked **OJT** value with a lock ("On-the-job training · declared in the ERP"). It can't be changed.
+5. *Frequency* → **Twice**: two cards per batch (Morning / After lunch), each locked separately.
+6. *Staff attendance* **Off**: *My attendance* (Home and Reports) and the staff report disappear.
 
 ### 7. Marathi
 Tap the avatar (top right) → Language **मराठी** (or Advanced → Language in the panel). Every screen switches to Marathi in Mukta, with Latin digits (D-012). Names stay in Latin script. Switch back to English the same way.
@@ -128,9 +130,9 @@ Preset **First-time user** → **Use demo account** → **Open instructor** (or 
 On-device face detection guides each step: *Face not visible*, *Move closer*, *Keep your face in the oval*, *Only you in the frame*, *More light needed*, *Face detected*, *Hold still*, *Turn your head left*, *Turn back a little*, *Now turn the other way*, *Good*. If detection can't start on a device, after two failed attempts, or when you choose *Face detection: Guided only*, each photo is taken on a 3-2-1 countdown instead.
 
 ### 9. The same app on a laptop or projector
-1. Open any preset at full window width. The header spans the screen: the **Demo** trigger, the KSK brand, the navigation (**Home · Reports** for instructors, **Home · Attendance · Reports** for the principal) and the avatar top right. There is no side column and no phone frame.
+1. Open any preset at full window width. The header spans the screen: the KSK brand, the navigation (**Home · Reports** for instructors, **Home · Attendance · Reports** for the principal), then the **Demo** trigger and the avatar top right. There is no side column and no phone frame.
 2. Home's trade list and class cards use two columns. Reports stays one readable column.
-3. Open a batch: the roster is the same row list (name, father's name, Present/Absent) in a readable centred column, with **Review & Submit** centred below. It is never a table.
+3. Open a batch: the roster is the same row list (name, father's name, the status select) in a readable centred column, with **Review & Submit** centred below. It is never a table.
 4. Login and single-question steps appear as a centred card.
 5. Open the Demo drawer, switch *Network → Offline*, and watch the banner appear with the drawer still open.
 
@@ -140,7 +142,7 @@ On-device face detection guides each step: *Face not visible*, *Move closer*, *K
 3. **Reports** (this month, D-053):
    - *My attendance*: the %, present and absent days, and *Last 3 months*.
    - *My batches*: tap a batch to see its students ranked 1…n. Switch *Highest first* / *Lowest first*; anyone under 75% is flagged *At risk*.
-   - *At-risk students*: only the students below 75%, by batch. Use the *Batch* filter to see one batch.
+   - *At-risk students*: only the students below 75%, grouped by batch (no filter needed, D-063). Tap a batch to see who.
    - *Offline data* is at the bottom.
 4. Preset **Employability Skills** → Reports: Meera's figures come from her own ES sessions in each batch (D-061).
 5. Preset **Principal** → Reports: *Institute attendance* (417 students · 17 batches), *Batch attendance* for all 17 batches grouped by trade, and at-risk students across the institute. Under *More reports* are Staff attendance and the Correction log, each with a date range and **Print / Save as PDF**.

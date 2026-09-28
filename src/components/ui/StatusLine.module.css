@@ -1,0 +1,19 @@
+.line {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  max-width: 100%;
+  font: var(--type-label-small-strong);
+  letter-spacing: var(--ls-label-small);
+}
+.line > svg {
+  flex: none;
+}
+.nowrap {
+  white-space: nowrap;
+}
+.success { color: var(--color-text-success); }
+.warning { color: var(--color-text-warning); }
+.error { color: var(--color-text-error); }
+.info { color: var(--color-text-info); }
+.neutral { color: var(--color-text-secondary); }

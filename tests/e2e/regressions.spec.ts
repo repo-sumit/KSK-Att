@@ -14,8 +14,8 @@ test('long lists scroll to their last row: review absentees and report tables (m
   await page.setViewportSize({ width: 320, height: 568 });
   await page.locator('main').getByRole('link', { name: /Shift 1 · Unit 2/ }).click();
   await page.waitForURL(/\/attendance\/mark/, { timeout: 20_000 });
-  const absent = page.getByRole('button', { name: 'Absent', exact: true });
-  for (let i = 0; i < 8; i++) await absent.nth(i).click();
+  const status = page.getByRole('combobox', { name: /^Attendance for / });
+  for (let i = 0; i < 8; i++) await status.nth(i).selectOption('absent');
   await page.getByRole('button', { name: 'Review & Submit' }).click();
   await page.waitForURL(/\/attendance\/review/);
   await expect(page.getByText(/Absent students \(8\)|8 absent/i).first()).toBeVisible();
@@ -36,8 +36,11 @@ test('long lists scroll to their last row: review absentees and report tables (m
     await expect(last).toBeInViewport();
     await last.click();
     const lastStudent = page.getByRole('region', { name: 'Batch attendance' }).locator('ol > li').last();
-    await lastStudent.scrollIntoViewIfNeeded();
-    await expect(lastStudent).toBeInViewport();
+    // The list is still opening (a short height animation) when it first exists: scroll again until it has settled.
+    await expect(async () => {
+      await lastStudent.scrollIntoViewIfNeeded();
+      await expect(lastStudent).toBeInViewport({ timeout: 1_000 });
+    }).toPass({ timeout: 10_000 });
   }
 });
 

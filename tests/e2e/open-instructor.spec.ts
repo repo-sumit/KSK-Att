@@ -12,10 +12,14 @@ test('open instructor: trade → batch → verify → mark → review → submit
   await page.waitForURL(/\/attendance\/mark/);
 
   await expect(page.getByText('Everyone starts as Present')).toBeVisible();
-  const absent = page.getByRole('button', { name: 'Absent', exact: true });
-  await absent.nth(0).click();
-  await absent.nth(3).click();
-  await expect(absent.nth(0)).toHaveAttribute('aria-pressed', 'true');
+  // One status control per student (D-062): the phone's own picker, Present to start with.
+  const status = page.getByRole('combobox', { name: /^Attendance for / });
+  await expect(status.first()).toHaveValue('present');
+  await status.nth(0).selectOption('absent');
+  await status.nth(3).selectOption('absent');
+  await expect(status.nth(0)).toHaveValue('absent');
+  // Only what configuration enables: Present and Absent in Maharashtra.
+  await expect(status.first().locator('option')).toHaveText(['Present', 'Absent']);
 
   await page.getByRole('button', { name: 'Review & Submit' }).click();
   await page.waitForURL(/\/attendance\/review/);
@@ -33,7 +37,7 @@ test('open instructor: trade → batch → verify → mark → review → submit
   await page.goto(recordUrl);
   await page.waitForURL(/\/attendance\/record/);
   await expect(page.getByText(/can only be corrected by the principal/)).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Absent', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('combobox', { name: /^Attendance for / })).toHaveCount(0);
 
   await page.goto('/home');
   await expect(page.getByText('Submitted today')).toBeVisible();

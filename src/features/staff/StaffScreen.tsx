@@ -1,16 +1,16 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { AttendanceStatusSelect, LockedStatus } from '@/components/ui/AttendanceStatusSelect';
 import { Avatar } from '@/components/ui/Avatar';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 import { DetailRows } from '@/components/ui/DetailRows';
-import { Icon } from '@/components/ui/icons/Icon';
 import { Latin } from '@/components/ui/Latin';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StatTiles } from '@/components/ui/StatTiles';
-import { StatusPill } from '@/components/ui/StatusPill';
 import { useToast } from '@/components/ui/Toast';
+import { StatusLine } from '@/components/ui/StatusLine';
 import { ScreenLayout } from '@/components/shell/ScreenLayout';
 import { AppHeader } from '@/features/shell/AppHeader';
 import type { StatusCode } from '@/domain/status';
@@ -18,7 +18,6 @@ import { useI18n } from '@/hooks/i18n';
 import { useServices } from '@/hooks/services';
 import { useSession } from '@/hooks/session';
 import { useQuery } from '@/hooks/useQuery';
-import { cx } from '@/lib/cx';
 import { routes } from '@/lib/routes';
 import type { StaffDayRow } from '@/services/staff-attendance';
 import { ViewSwitch } from '../attendance/AttendanceTabScreen';
@@ -55,6 +54,8 @@ export function StaffScreen() {
   const changes = Object.keys(draft).length;
   const canMark = ctx.journey.staff.principalCanMark;
   const statuses = ctx.journey.staff.statusSet;
+  const options = statuses.map((status) => ({ status, label: t(`status.${status}`) }));
+  const how = (rec: NonNullable<StaffDayRow['record']>) => (rec.source === 'self' ? t('staff.selfVerified', { time: format.time(rec.deviceTimestamp) }) : t('staff.byPrincipal'));
 
   const save = async () => {
     setBusy(true);
@@ -112,7 +113,6 @@ export function StaffScreen() {
           {list.map((row) => {
             const rec = row.record;
             const choice = draft[row.member.id];
-            const shown = rec?.status ?? choice;
             return (
               <li key={row.member.id} className={styles.row}>
                 <div className={styles.main}>
@@ -124,24 +124,24 @@ export function StaffScreen() {
                     <span className={styles.role}><Latin>{roleOf(row)}</Latin></span>
                   </span>
                   <span className={styles.status}>
-                    <span className={cx(styles.statusLine, shown === 'present' ? styles.ok : shown === 'absent' ? styles.bad : styles.warn)}>
-                      <Icon name={shown === 'present' ? 'check' : shown === 'absent' ? 'x' : 'circle'} size={14} strokeWidth={2.5} />
-                      {shown ? t(`status.${shown}`) : t('status.not_marked')}
-                    </span>
                     {rec ? (
-                      <span className={styles.how}>{rec.source === 'self' ? t('staff.selfVerified', { time: format.time(rec.deviceTimestamp) }) : t('staff.byPrincipal')}</span>
+                      <LockedStatus status={rec.status} label={t(`status.${rec.status}`)} reason={t('staff.locked')} />
+                    ) : canMark ? (
+                      <AttendanceStatusSelect
+                        label={t('roster.statusFor', { name: row.member.name })}
+                        options={options}
+                        value={choice ?? null}
+                        placeholder={t('roster.choose')}
+                        onChange={(s) => setDraft((d) => ({ ...d, [row.member.id]: s }))}
+                      />
                     ) : (
-                      choice && <span className={styles.how}>{t('staff.notSaved')}</span>
+                      <StatusLine tone="warning" icon="circle">
+                        {t('status.not_marked')}
+                      </StatusLine>
                     )}
+                    {rec ? <span className={styles.how}>{how(rec)}</span> : choice && <span className={styles.how}>{t('staff.notSaved')}</span>}
                   </span>
                 </div>
-                {!rec && canMark && (
-                  <div className={styles.pills} role="group" aria-label={row.member.name}>
-                    {statuses.map((s) => (
-                      <StatusPill key={s} status={s} label={t(`status.${s}`)} pressed={choice === s} stretch onPress={() => setDraft((d) => ({ ...d, [row.member.id]: s }))} />
-                    ))}
-                  </div>
-                )}
               </li>
             );
           })}

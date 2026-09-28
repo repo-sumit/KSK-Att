@@ -2,7 +2,7 @@
 
 ```bash
 npm test            # Vitest: unit + integration (~2 s, 425+ tests)
-npm run e2e         # Playwright: builds, serves on :3200, runs every spec (39 tests)
+npm run e2e         # Playwright: builds, serves on :3200, runs every spec (44 tests)
 npm run check       # lint + typecheck + test + build
 npm run check:demo  # proves a demo-off build contains no demo code
 ```
@@ -32,12 +32,13 @@ npm run check:demo  # proves a demo-off build contains no demo code
 | 6 | Employability Skills: several trades, selected batches, separate ES record | `mapping.spec.ts` |
 | 7 | Principal correction with a reason, recorded in the audit log | `principal.spec.ts` |
 | 8 | Principal staff marking; self-verified rows locked | `principal.spec.ts` |
-| 9 | Offline: downloaded roster → lock locally → sync when back online | `offline.spec.ts` |
+| 9 | Offline: downloaded roster → lock locally → Home's Sync pending card → sync when back online | `offline.spec.ts` |
 | 10 | Marathi everywhere, Latin digits, no overflow at 320px; Reset Demo restores the story | `language-reset.spec.ts` |
-| + | No horizontal overflow at 320/360/375/390/412/768/1024/1280/1440/1920; status pills fit with five statuses; axe WCAG 2 A/AA scans of instructor, principal, report, correction and offline screens, the open profile menu and the open demo panel | `responsive.spec.ts` |
-| + | Home is today's work: notices strip and sheet (targeted per reader), trades on Home, no Attendance tab or "View reports" for instructors, `/attendance` → Home; refresh one batch from its card; the principal keeps Attendance and sees every notice | `home.spec.ts` |
-| + | Reports: my attendance with trend, a batch's leaderboard sorted both ways with at-risk flags, at-risk students and the batch filter, Offline data reached from Reports; Offline data refreshes one batch, then all; the principal's institute, all batches by trade, detail reports | `reports.spec.ts` |
-| + | Wide screens: full-width header, content neither phone-width nor stretched, one navigation in the header, no Profile link; the avatar is the right-most control and the demo trigger sits in the header (floating only on headerless screens); demo controls collapsed on every size, a drawer on the left that overlays without reflow (Esc returns focus); profile menu anchored on desktop, bottom sheet on phones; roster is a row list in an 800px column with a centred 280px action | `desktop.spec.ts` |
+| + | No horizontal overflow at 320/360/375/390/412/768/1024/1280/1440/1920; with five statuses each row still has one status select, all in one column; axe WCAG 2 A/AA scans of instructor, principal, report, correction and offline screens, the open profile menu and the open demo panel | `responsive.spec.ts` |
+| + | Home is today's work: notices strip and sheet (targeted per reader), trades on Home, no Attendance tab or "View reports" for instructors, `/attendance` → Home; refresh one batch from its card; the principal keeps Attendance and sees every notice; **Sync pending** only while records wait: auto-sync failed at a time, Sync now → couldn't sync → Try again → syncing → all synced → gone, and offline a press explains | `home.spec.ts` |
+| + | Reports: my attendance with trend, a batch's leaderboard sorted both ways with at-risk flags, at-risk students grouped by batch with no filter, Offline data reached from Reports; Offline data refreshes one batch, then all ("Refresh all data"); the principal's institute, all batches by trade, detail reports | `reports.spec.ts` |
+| + | Wide screens: full-width header, content neither phone-width nor stretched, one navigation in the header, no Profile link; the avatar is the right-most control and the demo trigger sits immediately left of it at every width and on task screens (floating only on headerless screens); demo controls collapsed on every size, a drawer on the right that overlays without reflow (Esc returns focus); profile menu anchored on desktop, bottom sheet on phones; roster is a row list in an 800px column with a centred 280px action | `desktop.spec.ts` |
+| + | Status select (D-062): options follow configuration (Present + Absent; all statuses with halves), Half day and Leave ask their detail, no button group; OJT from the ERP is a locked value with no control; a blank start says "Choose", and Review moves focus to the first unmarked control (`aria-invalid`) | `status-select.spec.ts` |
 | + | "Use demo account": nothing filled until a pick, the panel's persona only highlighted, the Institute code filled and focused, the Trainer ID prefilled, "Change", typing forgets the pick, every confirmation still shown; quick login and "Skip login screens" | `login-assist.spec.ts` |
 | + | Real camera (fake device): registration takes three photos from the live video and stores or sends none of them (storage, IndexedDB, network); the daily check starts on-device face detection; a blocked camera explains itself and recovers | `camera.spec.ts` |
 | + | Review findings, kept fixed: long absent lists and the principal's 17-batch report list (with the last batch's leaderboard) scroll to their last row; the demo panel never scrolls sideways with Advanced open; "Use demo account" sits above the Continue bar at 320×568 and its list scrolls into view; every verification problem keeps the app header; motion really runs (CSS Modules keyframes resolve: the refresh icon spins, a report row's panel names a real keyframes rule) | `regressions.spec.ts` |
@@ -76,4 +77,4 @@ It also led to lowering the turn threshold from 0.22 to 0.18 (D-048). Re-check o
 
 - Test a rule in `src/domain` with a unit test, and test a service flow through `createMockContainer` in the integration suite. Build the setup with `setup()` / `signIn()` in `services.test.ts`.
 - Use `FixedClock(instantAt('2026-09-25', 'HH:MM'))` for time-dependent behaviour; never depend on the real clock.
-- E2E: prefer role and name locators (`getByRole('button', { name: 'Absent', exact: true })`). Copy is the contract, so if you change an English string, update the spec.
+- E2E: prefer role and name locators (`getByRole('combobox', { name: 'Attendance for Aarav Pawar' })`, then `selectOption('absent')`). An inactive (`aria-disabled`) button such as Review & Submit with gaps, or Sync now offline, needs `click({ force: true })`: it still explains itself. Copy is the contract, so if you change an English string, update the spec.

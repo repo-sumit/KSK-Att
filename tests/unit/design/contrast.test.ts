@@ -60,6 +60,13 @@ const TEXT_PAIRS: ReadonlyArray<[string, string]> = [
   // Home notice banner ("2 more announcements") and the at-risk "all clear" line.
   ['color-text-brand-subdued', 'color-background-surface-raised'],
   ['color-text-success', 'color-background-surface'],
+  // Attendance status control (D-062): tone text on the white pill, and the locked value's tinted fill.
+  ['color-text-error', 'color-background-surface-raised'],
+  ['color-text-info', 'color-background-surface-raised'],
+  ['color-text-secondary', 'color-surface-brand-subtle'],
+  // Sync pending card (D-064): title and body on the soft warning surface.
+  ['color-text-primary', 'color-surface-warning-subtle'],
+  ['color-text-primary', 'color-surface-success-subtle'],
 ];
 
 describe('text contrast meets WCAG AA (4.5:1)', () => {

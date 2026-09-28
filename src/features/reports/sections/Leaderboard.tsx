@@ -1,10 +1,10 @@
 'use client';
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import { Icon } from '@/components/ui/icons/Icon';
 import { Latin } from '@/components/ui/Latin';
 import { Segmented } from '@/components/ui/Segmented';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { StatusLine } from '@/components/ui/StatusLine';
 import { useI18n } from '@/hooks/i18n';
 import { useServices } from '@/hooks/services';
 import { useJourney, useSession } from '@/hooks/session';
@@ -76,10 +76,9 @@ export function Leaderboard({ batchId, expected, onHide }: { readonly batchId: s
                   <span className={styles.rowSub}>
                     <span>{t('reports.studentDays', { present: format.number(standing.daysPresent), days: standing.daysMarked })}</span>
                     {standing.atRisk && (
-                      <span className={styles.riskNote}>
-                        <Icon name="alert" size={14} />
+                      <StatusLine tone="warning" icon="alert">
                         {t('reports.atRiskTag')}
-                      </span>
+                      </StatusLine>
                     )}
                   </span>
                 </span>

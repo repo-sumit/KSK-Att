@@ -14,11 +14,12 @@ export function useSyncStatus(): SyncStatus {
   );
 }
 
-const SERVER_STATUS: SyncStatus = { phase: 'idle', online: true, pending: 0 };
+const SERVER_STATUS: SyncStatus = { phase: 'idle', online: true, pending: 0, lastFailure: null };
 let last: SyncStatus = SERVER_STATUS;
 /** useSyncExternalStore needs a stable snapshot identity while nothing changed. */
 function cachedStatus(next: SyncStatus): SyncStatus {
-  if (last.phase === next.phase && last.online === next.online && last.pending === next.pending) return last;
+  const sameFailure = last.lastFailure?.at === next.lastFailure?.at && last.lastFailure?.trigger === next.lastFailure?.trigger;
+  if (last.phase === next.phase && last.online === next.online && last.pending === next.pending && sameFailure) return last;
   last = next;
   return next;
 }

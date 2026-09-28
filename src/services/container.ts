@@ -138,6 +138,7 @@ export function createMockContainer(opts: MockContainerOptions): AppContainer {
     gateway: repositories.syncGateway,
     connectivity,
     bus,
+    clock: opts.clock,
     autoSync: () => configuration.base().offline.autoSync,
     confirmationMs: () => 3500 * Math.max(opts.simulation.get().speed, 0.05),
   });

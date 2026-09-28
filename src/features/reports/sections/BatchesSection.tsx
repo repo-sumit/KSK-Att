@@ -1,5 +1,6 @@
 'use client';
 import { useId, useRef, useState } from 'react';
+import { Card } from '@/components/ui/Card';
 import { Disclosure } from '@/components/ui/Disclosure';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Latin } from '@/components/ui/Latin';
@@ -49,11 +50,11 @@ function TradeGroup({ name, items, threshold }: { readonly name: string; readonl
       <h3 id={headingId} className={styles.groupLabel}>
         <Latin>{name}</Latin>
       </h3>
-      <div role="group" aria-labelledby={headingId} className={styles.listCard}>
+      <Card divided role="group" aria-labelledby={headingId}>
         {items.map((item) => (
           <BatchRow key={item.batch.id} item={item} threshold={threshold} />
         ))}
-      </div>
+      </Card>
     </div>
   );
 }

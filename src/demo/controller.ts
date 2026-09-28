@@ -108,14 +108,19 @@ export class DemoController {
 
   async setNetwork(mode: NetworkMode): Promise<void> {
     if (mode === 'pending') {
+      // The Home "Sync pending" story (D-064): a record is waiting because an automatic attempt
+      // failed; "Sync now" then works (unless the presenter chose Next sync: Fails).
+      const fails = this.demo.repo.get().simulation.nextSyncFails;
       this.setConfig({ offline: { autoSync: false } });
-      this.setSimulation({ online: true });
+      this.setSimulation({ online: true, nextSyncFails: true });
       if ((await this.app.repositories.offlineQueue.list()).length === 0) await this.seedPendingRecord();
+      await this.app.services.sync.syncNow('auto');
+      this.setSimulation({ nextSyncFails: fails });
       return;
     }
     this.setConfig({ offline: { autoSync: true } });
     this.setSimulation({ online: mode === 'online' });
-    if (mode === 'online') void this.app.services.sync.syncNow();
+    if (mode === 'online') void this.app.services.sync.syncNow('auto'); // coming back online: what auto-sync does
   }
 
   /** Puts one locally locked, unsynced submission on the phone (for "Pending sync"). */

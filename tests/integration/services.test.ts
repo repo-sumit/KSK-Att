@@ -166,6 +166,25 @@ describe('offline marking and sync (PRD §20)', () => {
     expect(env.app.services.sync.status()).toMatchObject({ phase: 'synced', pending: 0 });
   });
 
+  it('remembers when the last attempt failed and who started it, until one succeeds (Home: "Auto-sync failed at…")', async () => {
+    const env = setup();
+    const ctx = await signIn(env.app, 'TR-10432');
+    const key = 'ele-s1u2.2026-09-25.daily';
+    await verify(env.app, ctx, key);
+    expect(env.app.services.sync.status().lastFailure).toBeNull();
+    env.simulation.update({ nextSyncFails: true });
+    const roster = await env.app.services.attendance.openRoster(ctx, key);
+    if (!roster.ok) throw new Error();
+    await env.app.services.attendance.submit(ctx, key, roster.value.marks);
+    await env.app.services.sync.syncNow('auto');
+    expect(env.app.services.sync.status()).toMatchObject({ phase: 'failed', pending: 1, lastFailure: { trigger: 'auto', at: instantAt(TODAY, '10:15').toISOString() } });
+    await env.app.services.sync.syncNow();
+    expect(env.app.services.sync.status().lastFailure).toMatchObject({ trigger: 'manual' });
+    env.simulation.update({ nextSyncFails: false });
+    await env.app.services.sync.syncNow();
+    expect(env.app.services.sync.status()).toMatchObject({ phase: 'synced', pending: 0, lastFailure: null });
+  });
+
   it('refuses a batch that was never downloaded while offline', async () => {
     const env = setup();
     const ctx = await signIn(env.app, 'TR-10432');

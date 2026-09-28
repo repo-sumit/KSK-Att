@@ -36,7 +36,7 @@ export function OpenSessionScreen() {
     `open:${key}`,
     async () => {
       const status = sync.status();
-      if (ctx.config.offline.syncOnOpen && status.online && status.pending > 0) void sync.syncNow();
+      if (ctx.config.offline.syncOnOpen && status.online && status.pending > 0) void sync.syncNow('auto');
       const opened = await attendance.openRoster(ctx, key);
       const card = await attendance.findCard(ctx, key);
       return opened.ok ? { kind: 'ready', card } : { kind: opened.error, card };

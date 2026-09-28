@@ -1,7 +1,7 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { useContext, useEffect, useId, useRef, useState } from 'react';
-import { Avatar, initials } from '@/components/ui/Avatar';
+import { Avatar } from '@/components/ui/Avatar';
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/icons/Icon';
@@ -9,6 +9,7 @@ import { Latin } from '@/components/ui/Latin';
 import { List, ListRow } from '@/components/ui/ListRow';
 import { Segmented } from '@/components/ui/Segmented';
 import { useToast } from '@/components/ui/Toast';
+import { StatusLine } from '@/components/ui/StatusLine';
 import { NavigationGuardContext } from '@/components/shell/AppNav';
 import type { Language } from '@/config/types';
 import { useI18n } from '@/hooks/i18n';
@@ -66,7 +67,7 @@ export function ProfileMenu() {
         aria-expanded={open}
         onClick={show}
       >
-        <span lang="en">{initials(ctx.user.name)}</span>
+        <Avatar name={ctx.user.name} size={44} />
       </button>
       <dialog
         ref={dialog}
@@ -163,10 +164,9 @@ function MenuContent({ onClose, onLogout, guarded }: MenuContentProps) {
             onClick={after(() => (enrolled ? toast.show(t('profile.faceRegisteredToast')) : guarded(() => router.push(routes.face(window.location.pathname + window.location.search)))))}
             trailing={
               enrolled === undefined ? null : (
-                <span className={enrolled ? styles.ok : styles.warn}>
-                  <Icon name={enrolled ? 'circle-check' : 'alert'} size={16} />
+                <StatusLine tone={enrolled ? 'success' : 'warning'} icon={enrolled ? 'circle-check' : 'alert'} nowrap>
                   {enrolled ? t('profile.registered') : t('profile.notSetUp')}
-                </span>
+                </StatusLine>
               )
             }
             minHeight={56}
@@ -177,7 +177,6 @@ function MenuContent({ onClose, onLogout, guarded }: MenuContentProps) {
           titleStyle="label"
           title={t('profile.help')}
           onClick={after(() => toast.show(t(j.homeVariant === 'institute' ? 'common.helpToastPrincipal' : 'common.helpToast')))}
-          trailing="chevron"
           minHeight={56}
         />
         <ListRow leading={<Icon name="logout" size={20} />} tone="danger" title={t('profile.logout')} onClick={onLogout} minHeight={56} />

@@ -1,17 +1,5 @@
 /* The Reports page (D-053): stacked sections in a reading column, row lists, never a table. */
 
-/* A card of expandable rows, one divider between rows. */
-.listCard {
-  display: flex;
-  flex-direction: column;
-  border-radius: var(--radius-lg);
-  background: var(--color-background-surface-raised);
-  box-shadow: var(--shadow-card);
-  overflow: hidden;
-}
-.listCard > * + * {
-  border-top: var(--divider-thin) solid var(--color-border-subtle);
-}
 .groupLabel {
   font: var(--type-title-small);
   letter-spacing: var(--ls-title-small);
@@ -33,6 +21,7 @@
   font: var(--type-title-small);
   letter-spacing: var(--ls-title-small);
   color: var(--color-text-primary);
+  text-wrap: balance;
 }
 .rowSub {
   display: flex;
@@ -43,29 +32,6 @@
   letter-spacing: var(--ls-body-small);
   color: var(--color-text-secondary);
 }
-.riskNote {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-4);
-  font: var(--type-label-small-strong);
-  letter-spacing: var(--ls-label-small);
-  color: var(--color-text-warning);
-}
-.riskNote > svg {
-  flex: none;
-}
-.riskTile {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-md);
-  background: var(--color-surface-warning-subtle);
-  color: var(--color-text-warning);
-}
-
 /* ---- My attendance / institute summary ---- */
 .summaryRow {
   display: flex;
@@ -240,78 +206,11 @@
   color: var(--color-text-secondary);
 }
 
-/* ---- At-risk: the batch filter and the "all clear" lines ---- */
-.filter {
-  display: flex;
-  align-items: center;
-  gap: var(--space-12);
-}
-.filterLabel {
-  flex: none;
-  font: var(--type-label-medium);
-  letter-spacing: var(--ls-label-medium);
-  color: var(--color-text-secondary);
-}
-.selectWrap {
-  position: relative;
-  flex: 1;
-  min-width: 0;
-  display: flex;
-}
-.select {
-  flex: 1;
-  min-width: 0;
-  min-height: var(--touch-target-min);
-  padding: 0 var(--space-40) 0 var(--space-16);
-  border: var(--border-selected) solid var(--color-border-default);
-  border-radius: var(--radius-full);
-  background: var(--color-background-surface-raised);
-  color: var(--color-text-primary);
-  font: var(--type-label-medium);
-  letter-spacing: var(--ls-label-medium);
-  text-overflow: ellipsis;
-  appearance: none;
-  cursor: pointer;
-}
-.select:focus-visible {
-  outline: 2px solid var(--color-interactive-focus);
-  outline-offset: 2px;
-}
-.selectIcon {
-  position: absolute;
-  top: 50%;
-  right: var(--space-12);
-  transform: translateY(-50%);
-  color: var(--color-icon-secondary);
-  pointer-events: none;
-}
-.allClear {
-  display: flex;
-  align-items: center;
-  gap: var(--space-8);
-  font: var(--type-label-medium);
-  letter-spacing: var(--ls-label-medium);
-  color: var(--color-text-success);
-}
-.allClear > svg {
-  flex: none;
-}
-.allClearCard {
-  padding: var(--space-16);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface-success-subtle);
-}
 /* The chevron points up: this closes the list above it. */
 .hide svg {
   transform: rotate(180deg);
 }
-.rowTitle {
-  text-wrap: balance;
-}
 @media (min-width: 600px) {
-  .filter {
-    max-width: 480px;
-  }
   .sort {
     max-width: 360px;
   }

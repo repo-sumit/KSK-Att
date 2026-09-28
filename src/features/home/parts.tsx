@@ -1,18 +1,17 @@
 'use client';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/Badge';
-import { Banner } from '@/components/ui/Banner';
 import { Button } from '@/components/ui/Button';
 import { Card, PressableCard } from '@/components/ui/Card';
 import { Icon } from '@/components/ui/icons/Icon';
 import { IconTile } from '@/components/ui/IconWell';
 import { ProgressBar } from '@/components/ui/ProgressBar';
+import { Section } from '@/components/ui/Section';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useI18n } from '@/hooks/i18n';
 import { useServices } from '@/hooks/services';
 import { useSession } from '@/hooks/session';
 import { useQuery } from '@/hooks/useQuery';
-import { useSyncStatus } from '@/hooks/useSync';
 import { routes } from '@/lib/routes';
 import { BatchLabel } from '../common/BatchLabel';
 import { firstName, greetingKey, markLabel } from '../common/labels';
@@ -26,18 +25,6 @@ export function Greeting({ subtitle, name }: { readonly subtitle: string; readon
       <h2 className={styles.hello}>{t(greetingKey(ctx.clock.now()), { name: name ?? firstName(ctx.user) })}</h2>
       <p className={styles.sub}>{subtitle}</p>
     </div>
-  );
-}
-
-export function PendingSyncCard() {
-  const { t } = useI18n();
-  const { sync } = useServices();
-  const status = useSyncStatus();
-  if (!status.pending || status.phase === 'syncing' || status.phase === 'synced') return null;
-  return (
-    <Banner tone="warning" icon="cloud-upload" strong action={status.online ? { label: t('common.syncNow'), onPress: () => void sync.syncNow() } : undefined}>
-      {t('home.pendingSync', { count: status.pending })}
-    </Banner>
   );
 }
 
@@ -109,10 +96,7 @@ export function SubmittedToday() {
   const { attendance } = useServices();
   const { data, loading } = useQuery(`submitted-today:${ctx.user.id}`, () => attendance.submittedTodayBy(ctx, ctx.user.id), ['attendance', 'offline']);
   return (
-    <section className={styles.recent} aria-labelledby="recent-title">
-      <h2 id="recent-title" className={styles.recentTitle}>
-        {t('home.submittedToday')}
-      </h2>
+    <Section id="recent" variant="label" title={t('home.submittedToday')} className={styles.recent}>
       {!data && loading ? (
         <Skeleton count={1} height={64} label={t('common.loading')} />
       ) : !data?.length ? (
@@ -143,6 +127,6 @@ export function SubmittedToday() {
           })}
         </ul>
       )}
-    </section>
+    </Section>
   );
 }

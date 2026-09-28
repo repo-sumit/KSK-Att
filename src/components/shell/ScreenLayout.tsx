@@ -14,8 +14,8 @@ export const useScreenArea = () => useContext(AreaContext);
 
 interface ScreenLayoutProps {
   readonly header?: ReactNode;
-  /** Show the offline / sync banner under the header. */
-  readonly banner?: boolean;
+  /** Show the offline / sync banner under the header. 'offline': only the offline notice (the screen shows sync itself, D-064). */
+  readonly banner?: boolean | 'offline';
   /** Fixed region above the scroller (roster summary, segmented switch). */
   readonly top?: ReactNode;
   /** Fixed region below the scroller (primary action). */
@@ -58,7 +58,7 @@ export function ScreenLayout({ header, banner = true, top, footer, area, bottomN
             {banner && (
               // Always in the DOM, so screen readers announce going offline (a live region that arrives with its text is often missed).
               <div className={cx(styles.banner, !header && styles.bannerFirst)} role="status" aria-live="polite">
-                <ConnectivityBanner />
+                <ConnectivityBanner offlineOnly={banner === 'offline'} />
               </div>
             )}
             {top && <div className={styles.top}>{top}</div>}

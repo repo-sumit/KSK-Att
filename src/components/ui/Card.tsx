@@ -9,13 +9,21 @@ interface CardProps {
   readonly padded?: boolean;
   readonly flat?: boolean;
   readonly bordered?: boolean;
+  /** A list card: rows edge to edge, one divider between children, no padding (batch lists, at-risk groups, offline batches). */
+  readonly divided?: boolean;
   readonly className?: string;
   readonly as?: 'div' | 'section' | 'li';
+  readonly role?: 'group';
+  readonly 'aria-labelledby'?: string;
 }
 
 /** DS content card: surfaceRaised, radius lg, card shadow. */
-export function Card({ children, padded = true, flat = false, bordered = false, className, as: Tag = 'div' }: CardProps) {
-  return <Tag className={cx(styles.card, padded && styles.padded, flat && styles.flat, bordered && styles.bordered, className)}>{children}</Tag>;
+export function Card({ children, padded = true, flat = false, bordered = false, divided = false, className, as: Tag = 'div', ...aria }: CardProps) {
+  return (
+    <Tag className={cx(styles.card, padded && !divided && styles.padded, flat && styles.flat, bordered && styles.bordered, divided && styles.divided, className)} {...aria}>
+      {children}
+    </Tag>
+  );
 }
 
 interface PressableCardProps {

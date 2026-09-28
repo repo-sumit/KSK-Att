@@ -2,6 +2,13 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  env: {
+    // This deployment is the stakeholder demo (D-008, D-067): the demo layer is on unless a build
+    // sets NEXT_PUBLIC_DEMO_MODE=false (a real rollout, or `npm run check:demo`). The default lives
+    // here, not only in .env.production, so a Vercel build from git (where no .env file is committed)
+    // still ships the demo. Inlined at build time, so a `false` build still tree-shakes src/demo.
+    NEXT_PUBLIC_DEMO_MODE: process.env.NEXT_PUBLIC_DEMO_MODE ?? 'true',
+  },
   poweredByHeader: false,
   // Lets scripts/check-demo-stripped.mjs build a second variant without touching .next.
   distDir: process.env.KSK_DIST_DIR || '.next',

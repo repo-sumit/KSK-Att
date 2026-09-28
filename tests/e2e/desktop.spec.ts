@@ -44,18 +44,30 @@ test('wider screens use the viewport: full-width chrome, a readable column, navi
   }
 });
 
-test('the avatar is the right-most header control; the demo trigger sits in the header, left of the brand (phone task screens: just before the avatar)', async ({ page, consoleErrors }) => {
+/** The demo trigger sits immediately left of the avatar: nothing between them, and it never floats while a header exists (D-066). */
+async function expectTriggerBesideAvatar(page: Page, where: string) {
+  const header = page.locator('header');
+  const t = (await header.getByRole('button', { name: 'Open demo controls' }).boundingBox())!;
+  const a = (await header.getByRole('button', { name: 'Profile' }).boundingBox())!;
+  expect(t.x + t.width, `${where}: trigger left of the avatar`).toBeLessThanOrEqual(a.x);
+  expect(a.x - (t.x + t.width), `${where}: trigger right next to the avatar`).toBeLessThanOrEqual(12);
+  // Same row as the avatar.
+  expect(Math.abs(t.y + t.height / 2 - (a.y + a.height / 2)), `${where}: same row`).toBeLessThanOrEqual(2);
+}
+
+test('the avatar is the right-most header control; the demo trigger sits immediately left of it on every screen and width', async ({ page, consoleErrors }) => {
   void consoleErrors;
   await preset(page, 'open');
   const header = page.locator('header');
   const trigger = header.getByRole('button', { name: 'Open demo controls' });
-  for (const width of [320, 360, 412, ...WIDE.map((s) => s.width)]) {
+  for (const width of [320, 360, 390, 412, ...WIDE.map((s) => s.width)]) {
     await page.setViewportSize({ width, height: 800 });
     await expect(trigger).toBeVisible();
-    const t = (await trigger.boundingBox())!;
-    const brand = (await header.locator('img').first().boundingBox())!;
-    expect(t.x + t.width, `trigger left of the brand at ${width}`).toBeLessThanOrEqual(brand.x);
+    await expectTriggerBesideAvatar(page, `home at ${width}`);
     await expectAvatarRightMost(page, `home at ${width}`);
+    // Right of the brand (and of the navigation from 600px): never at the far left any more.
+    const brand = (await header.locator('img').first().boundingBox())!;
+    expect((await trigger.boundingBox())!.x, `trigger right of the brand at ${width}`).toBeGreaterThan(brand.x + brand.width);
     await expectNoOverflow(page);
   }
   // In the header nothing floats, so no screen reserves room for it.
@@ -64,19 +76,16 @@ test('the avatar is the right-most header control; the demo trigger sits in the 
   await page.goto('/reports/offline');
   await page.waitForURL(/\/reports\/offline$/);
   await expect(header.getByRole('button', { name: 'Back' })).toBeVisible();
-  for (const width of [320, 360, 1280]) {
+  for (const width of [320, 360, 768, 1280]) {
     await page.setViewportSize({ width, height: 800 });
     await expectAvatarRightMost(page, `task screen at ${width}`);
-    const t = (await trigger.boundingBox())!;
+    await expectTriggerBesideAvatar(page, `task screen at ${width}`);
     if (width < 600) {
       // [← title] … [Demo] [avatar]: icon only, after the back arrow and the title.
-      const back = (await header.getByRole('button', { name: 'Back' }).boundingBox())!;
+      const t = (await trigger.boundingBox())!;
       const title = (await header.getByRole('heading', { name: 'Offline data' }).boundingBox())!;
       expect(t.width).toBeLessThanOrEqual(40);
-      expect(t.x).toBeGreaterThanOrEqual(back.x + back.width);
       expect(t.x).toBeGreaterThanOrEqual(title.x + title.width);
-    } else {
-      expect(t.x + t.width).toBeLessThanOrEqual((await header.locator('img').first().boundingBox())!.x);
     }
     await expectNoOverflow(page);
   }
@@ -99,7 +108,7 @@ test('screens without the app header: the demo trigger floats (top right on phon
   expect(t.y + t.height).toBeGreaterThan(720 - 40);
 });
 
-test('demo controls start collapsed on every size and overlay the app without reflowing it (a drawer on the left from 600px)', async ({ page, consoleErrors }) => {
+test('demo controls start collapsed on every size and overlay the app without reflowing it (a drawer on the right from 600px)', async ({ page, consoleErrors }) => {
   void consoleErrors;
   await preset(page, 'open');
   for (const size of [{ width: 360, height: 800 }, ...WIDE]) {
@@ -114,9 +123,9 @@ test('demo controls start collapsed on every size and overlay the app without re
     await expect(panel.getByText('Quick presets')).toBeVisible();
     const box = (await panel.boundingBox())!;
     if (size.width >= 600) {
-      // On the trigger's side, below the header.
+      // On the trigger's side (right), below the header.
       expect(box.width).toBeLessThanOrEqual(420);
-      expect(box.x).toBeLessThan(40);
+      expect(box.x + box.width).toBeGreaterThan(size.width - 40);
       const header = (await page.locator('header').boundingBox())!;
       expect(box.y).toBeGreaterThanOrEqual(header.y + header.height);
     } else {

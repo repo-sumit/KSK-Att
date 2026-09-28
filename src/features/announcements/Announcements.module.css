@@ -5,7 +5,7 @@
   gap: var(--space-12);
   width: 100%;
   padding: var(--space-12) var(--space-12) var(--space-12) var(--space-16);
-  border: var(--divider-thin) solid var(--color-border-subtle);
+  border: none;
   border-radius: var(--radius-lg);
   background: var(--color-background-surface-raised);
   box-shadow: var(--shadow-card);

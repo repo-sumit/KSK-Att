@@ -74,7 +74,7 @@ export function useRoster(key: string) {
       const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       row?.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' });
       // Keyboard, switch and screen-reader users land on the control that still needs a choice.
-      requestAnimationFrame(() => row?.querySelector<HTMLElement>('[data-needs] button, [role="group"] button')?.focus({ preventScroll: true }));
+      requestAnimationFrame(() => row?.querySelector<HTMLElement>('[data-needs] button, select')?.focus({ preventScroll: true }));
       return;
     }
     clearTimeout(saveTimer.current);

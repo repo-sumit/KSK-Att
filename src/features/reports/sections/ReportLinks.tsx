@@ -1,9 +1,9 @@
 'use client';
-import { Icon } from '@/components/ui/icons/Icon';
 import { IconTile } from '@/components/ui/IconWell';
 import { List, ListRow } from '@/components/ui/ListRow';
 import { Section } from '@/components/ui/Section';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { StatusLine } from '@/components/ui/StatusLine';
 import { useI18n } from '@/hooks/i18n';
 import { useServices } from '@/hooks/services';
 import { useJourney, useSession } from '@/hooks/session';
@@ -26,18 +26,16 @@ export function OfflineEntry() {
   const subtitle = (
     <span className={styles.rowSub}>
       {status.pending ? (
-        <span className={styles.riskNote}>
-          <Icon name="cloud-upload" size={14} />
+        <StatusLine tone="warning" icon="cloud-upload">
           {t('offline.pending', { count: status.pending })}
-        </span>
+        </StatusLine>
       ) : (
         <span>{t('offline.allSynced')}</span>
       )}
       {stale > 0 && (
-        <span className={styles.riskNote}>
-          <Icon name="alert" size={14} />
+        <StatusLine tone="warning" icon="alert">
           {t('offline.needsRefresh', { count: stale })}
-        </span>
+        </StatusLine>
       )}
     </span>
   );

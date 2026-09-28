@@ -4,44 +4,36 @@
   letter-spacing: var(--ls-body-small);
   color: var(--color-text-secondary);
 }
-.ok,
-.warn,
-.packStatus {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-4);
-  font: var(--type-label-small-strong);
-  letter-spacing: var(--ls-label-small);
-}
-.ok { color: var(--color-text-success); }
-.warn { color: var(--color-text-warning); }
+.warn { color: var(--color-icon-warning); }
 
-.actions {
+/* Sync state first: the card (or "all synced"), then the end-of-day rule it relates to. */
+.syncBlock {
   display: flex;
   flex-direction: column;
   gap: var(--space-8);
 }
-/* DS: standalone buttons are 280px and centred on tablets and desktops; they grow to fit a longer label on one line. */
-@media (min-width: 600px) {
-  .actions {
-    align-items: center;
-  }
-  .actions > a,
-  .actions > button {
-    width: auto;
-    min-width: var(--container-footer);
-    max-width: 100%;
-  }
-}
 
-/* ---- Downloaded batches: one row each, with its own refresh (D-055) ---- */
+/* ---- Downloaded batches: one row each, with its own refresh (D-055), and the list's actions (D-065) ---- */
+/* The shared divided Card; it measures its width for the action group below. */
+.packCard {
+  container-type: inline-size;
+}
 .packs {
   display: flex;
   flex-direction: column;
-  border-radius: var(--radius-lg);
-  background: var(--color-background-surface-raised);
-  box-shadow: var(--shadow-card);
-  overflow: hidden;
+}
+/* The action group belongs to the list: same width, one divider above. Outlined first, text second. */
+.actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  padding: var(--space-12) var(--space-16) var(--space-16);
+}
+@container (min-width: 520px) {
+  .actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-12);
+  }
 }
 .pack {
   display: flex;
@@ -52,6 +44,10 @@
 }
 .pack + .pack {
   border-top: var(--divider-thin) solid var(--color-border-subtle);
+}
+/* Refresh needed: the warning edge the roster uses for "needs you", beside the status line. */
+.packStale {
+  box-shadow: inset 4px 0 0 var(--color-status-warning);
 }
 .packText {
   display: flex;
@@ -72,9 +68,6 @@
 .settle {
   display: inline-block;
   animation: ksk-fade-in var(--motion-base) var(--motion-ease);
-}
-.packStatus > svg {
-  flex: none;
 }
 .packRefresh {
   flex: none;

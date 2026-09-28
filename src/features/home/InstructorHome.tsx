@@ -8,13 +8,15 @@ import { cx } from '@/lib/cx';
 import { toLocalDate } from '@/lib/time';
 import { AnnouncementBanner } from '../announcements/AnnouncementBanner';
 import { AttendanceBoard } from '../attendance/AttendanceBoard';
-import { Greeting, MyAttendanceCard, PendingSyncCard, SubmittedToday, TradeOverviewCard } from './parts';
+import { SyncPendingCard } from '../offline/SyncPendingCard';
+import { Greeting, MyAttendanceCard, SubmittedToday, TradeOverviewCard } from './parts';
 import { roleLine } from './roleLine';
 import styles from './Home.module.css';
 
 /**
- * Instructor home = "what do I need to do today?" (D-052): notices, today's
- * classes (shape set by the mapping model), my attendance, submitted today.
+ * Instructor home = "what do I need to do today?" (D-052): anything waiting
+ * to sync, notices, today's classes (shape set by the mapping model), my
+ * attendance, submitted today.
  * Past attendance lives in Reports.
  */
 export function InstructorHome() {
@@ -53,10 +55,12 @@ export function InstructorHome() {
   })();
 
   return (
-    <ScreenLayout header={<AppHeader />} area="home" bottomNav>
+    // The Sync pending card owns sync on Home; the bar under the header only says "offline" (D-064).
+    <ScreenLayout header={<AppHeader />} area="home" bottomNav banner="offline">
       <Greeting subtitle={t('common.dateRole', { date: format.longDate(today), role: roleLine(t, ctx) })} />
+      {/* Work waiting on this phone comes before notices. */}
+      <SyncPendingCard />
       <AnnouncementBanner />
-      <PendingSyncCard />
       {access}
       {/* Wide screens: two things side by side (one column on phones), never a lone half-width card. */}
       {j.tradeWideView && j.staff.selfCard ? (

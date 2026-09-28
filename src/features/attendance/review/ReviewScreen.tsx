@@ -52,7 +52,7 @@ export function ReviewScreen() {
     if (redirect && !busy) router.replace(redirect);
   }, [redirect, busy, router]);
 
-  if (!data) return <ScreenLayout area={root.area} width="reading" header={<AppHeader back="back" title={t('review.title')} />}><Skeleton variant="rows" count={3} label={t('common.loading')} /></ScreenLayout>;
+  if (!data) return <ScreenLayout area={root.area} width="reading" header={<AppHeader back="back" title={t('review.title')} backHref={routes.mark(key)} />}><Skeleton variant="rows" count={3} label={t('common.loading')} /></ScreenLayout>;
   if (!data.ok) return null;
 
   const { card, students, marks } = data.value;

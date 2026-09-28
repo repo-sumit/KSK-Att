@@ -40,14 +40,14 @@ Apply a full DS text style like this:
 
 Status is always **icon + text + colour**, never colour alone:
 
-| Status | Icon | Tone | Selected pill | Row tint |
+| Status | Icon | Tone | Status select (D-062) | Row tint |
 |---|---|---|---|---|
-| Present | check | success | success-subtle fill, green border | none (it is the default) |
-| Absent | x | error | error-subtle fill, error border | error-subtle |
-| Half day | half | warning | warning-subtle fill | warning-subtle |
-| Leave | calendar | info | info-subtle fill | info-subtle |
-| OJT | briefcase | brand | shown only as a chip; never selectable | hero-banner |
-| Not marked | circle | warning | n/a | left warning bar when the user tries to submit |
+| Present | check | success | green text and icon; grey border while it is the starting status, green otherwise | none (it is the default) |
+| Absent | x | error | red text, icon and border | error-subtle |
+| Half day | half | warning | amber text, icon and border | warning-subtle |
+| Leave | calendar | info | blue text, icon and border | info-subtle |
+| OJT | briefcase | brand | a locked value (brand fill, lock icon); never selectable | hero-banner |
+| Not marked | circle | warning | "Choose" placeholder; warning border when the user tries to submit | left warning bar when the user tries to submit |
 
 The registry is in `src/domain/status.ts` (`STATUS_REGISTRY`) and the styling in `src/components/ui/status-style.ts`.
 
@@ -59,13 +59,15 @@ The registry is in `src/domain/status.ts` (`STATUS_REGISTRY`) and the styling in
 | `IconButton` | 44px circle; always carries a `label` |
 | `Input` | 52px pill with a linked `<label>`; the error has `role="alert"` and is tied to the field with `aria-describedby` |
 | `Segmented` | `radiogroup` with arrow-key support; the small size keeps its look but its tap area reaches 44px |
-| `StatusPill` | One-tap status buttons (`aria-pressed`). The icon appears only when pressed. `stretch` shares the row width |
+| `AttendanceStatusSelect`, `LockedStatus` | One status control per person on every marking roster (students, staff; D-062). A native `<select>` drawn as a 44px status pill: icon, label, chevron and tone, 9.5em wide so each row's control lines up in one column. Its name is "Attendance for {name}", its options come only from configuration, "Choose" is the blank placeholder, and `quiet` marks the starting status. `LockedStatus` is the same pill filled with the tone and a lock (OJT from the ERP, a saved staff mark), not a control |
 | `StatusChip`, `Badge` | Read-only status or labels |
+| `StatusLine` | A short state beside or under a row title: icon + coloured text (success, warning, error, info, neutral), label-small-strong, 16px icon, 4px gap. Ready offline, Refresh needed, N waiting to sync, N students at risk, Registered (D-068) |
 | `ChoicePill`, `SelectionCard` | Follow-up choices (half, leave type) and correction choices |
 | `StatTiles` | Three-up totals with tabular numerals. Surfaces: `hero` (tinted on white), `raised` (tinted on grey), `plain` (white tiles, tone in the text only: the staff view) |
-| `Card`, `PressableCard`, `ListRow`/`List`, `DetailRows`, `Section` | Content structure |
+| `Card`, `PressableCard`, `ListRow`/`List`, `DetailRows`, `Section` | Content structure. `Card divided` is the list card: rows edge to edge with one divider between them (report batches, at-risk groups, offline batches with their action group) |
 | `Disclosure` | An expandable row: the whole row is a button (`aria-expanded`) with a turning chevron; the panel mounts only while open, so it can load its own data (report batches → leaderboard, at-risk groups) |
-| `Banner` | `bar` (sync/offline strip, no tracking so it fits on one line), `card` (stale roster, pending sync, audit notes) and `strip` (the compact record status line); optional action button |
+| `Banner` | `bar` (sync/offline strip, no tracking so it fits on one line), `card` (stale roster, "All attendance synced", "No students at risk", audit notes) and `strip` (the compact record status line); optional action button |
+| `SyncPendingCard` (feature) | Home and Offline data, only while records wait (D-064): soft warning surface, a white icon disc, title · count · why ("Auto-sync failed at 10:42 AM"), and one primary **Sync now** (md). Full width under the text on phones, beside it from 520px of card. States: waiting, syncing, couldn't sync (Try again), all synced |
 | `BottomSheet` | A native `<dialog>` (focus trap and Esc for free). It opens with focus on its title, never on an action, because confirmation sheets confirm something irreversible. `closeLabel` makes a reading sheet (the announcements list): the title row with a ✕ stays pinned while the list scrolls, and there is no grabber (no swipe). Anchored to the bottom edge at every size (DS), 560px wide and centred from 600px (6/8, 6/12 columns) |
 | `Toast` | Polite live region above the dock |
 | `BottomNav` | The journey's tabs: Home · Reports for instructors, Home · Attendance · Reports for the principal (D-052). Phones only; hidden from 600px, where the same destinations sit in the header. Profile is never a tab |
@@ -80,7 +82,7 @@ The registry is in `src/domain/status.ts` (`STATUS_REGISTRY`) and the styling in
 
 | Component | Phones (< 600px) | 600px and up |
 |---|---|---|
-| `AppHeader` | One 60px bar. Tab roots: KSK emblem, "KSK Attendance", institute; task screens: back/close + screen title. Avatar top right, always the right-most control. Demo builds: the trigger sits left of the brand on tab roots and just before the avatar, icon-only, on task screens (D-057) | 64px full-width bar aligned to the wide column: brand · the journey's tabs · avatar (the demo trigger at the start of the row). Task screens add a context row (back + title) aligned to the screen's column |
+| `AppHeader` | One 60px bar. Tab roots: KSK emblem, "KSK Attendance", institute; task screens: back/close + screen title. Avatar top right, always the right-most control. Demo builds: the trigger sits immediately left of the avatar (icon-only on task screens and below 360px, D-066) | 64px full-width bar aligned to the wide column: brand · the journey's tabs · [Demo] avatar. Task screens add a context row (back + title) aligned to the screen's column |
 | `HeaderNav` | Hidden | Pills with icon + label (labels only below 768px); current page: brand-subtle fill, brand-subdued text, semibold; hover tint for mouse users only |
 | `ProfileMenu` | Bottom sheet (DS sheet: radius xl top, grabber) | 340px menu anchored under the avatar, right edges aligned, radius lg, no scrim |
 | Camera view | Portrait frame 288px (registration) / 248px (daily check), capped by screen height | Up to 480px (registration) / 320px (daily), never full-screen; instructions stay next to the frame |
@@ -105,21 +107,16 @@ Tokens: `--grid-*-margin` and `--page-margin` (the current breakpoint's margin);
 - **Card screens:** login steps, face intro, permission primers, result screens and stand-alone problem screens become a centred 480px card on the muted page, with the action right under the content. Problem screens inside a signed-in flow keep the app header and use `inlineFooter`, so their action also sits under the message.
 - **Primary actions:** full width on phones (DS 4/4); 280px and centred from 600px (DS "standalone button", never stretched).
 - **Two columns at most**, with the DS column gutter (`--page-gutter`: 20 / 36 / 36px), only where both halves stay easy to read (the brief overrides the DS 4-up card grid): home's trade overview + *My attendance*, class cards, the trade list, the principal's status cards. Reports stays one column, with each batch as a row.
-- **The roster stays a row list** (name, father's name, Present/Absent) in the 800px column. Staff pills keep a 160px width instead of stretching.
-- **Demo controls** take no layout space (D-047). The trigger sits in the header's tool slot, and floats only on headerless screens, the only time reserves apply (D-036, D-057).
-- The target widths are 320, 360, 375, 390 and 412 for phones, and 768, 1024, 1280, 1440 and 1920 beyond. E2E checks that no width scrolls horizontally, that the pills fit the row at every phone width, and that wide screens aren't stuck at phone width or stretched (`desktop.spec.ts`).
-- The roster row is a container (`container-type: inline-size`):
-  - above 307px of row content, the name is on the left and Present/Absent on the right, as in the prototype;
-  - at 307px or below, the pair moves under the name, full width;
-  - with four or more statuses (half day, leave), the pills take a full row under the name, and at 320px or less of row content they become a 2 × 2 grid.
+- **The roster stays a row list** (name, father's name, one status select on the right) in the 800px column. The control keeps its 9.5em width at every size instead of stretching.
+- **Demo controls** take no layout space (D-047). The trigger sits in the header's tool slot, immediately left of the avatar (D-066), and floats only on headerless screens, the only time reserves apply (D-036).
+- The target widths are 320, 360, 375, 390 and 412 for phones, and 768, 1024, 1280, 1440 and 1920 beyond. E2E checks that no width scrolls horizontally, that every row's status control lines up in one column at every phone width, and that wide screens aren't stuck at phone width or stretched (`desktop.spec.ts`).
+- **Roster row:** roll · name and father's name · the status control. The name keeps at least 7em: with enlarged text the control drops under it, still right-aligned. Half day and leave ask their detail on a line underneath (which half, leave type, until date), whatever the status set.
 
 ## Deviations from the DS and prototype (all recorded in DECISIONS.md)
 
 - **AA contrast overrides (D-010).** `text-secondary` #5A6684, `text-tertiary` #5F6673 and `text-warning` #8A5A00 replace the DS values, which fall below 4.5:1 on white, the grey page or warning-subtle. Selection-card text uses the success text colour. On the grey page, ghost buttons use brand-subdued; filled destructive buttons use #C0392B.
-- **No dropdowns on the roster (D-014).** With extra statuses the prototype used a popover. We use a full-width row of one-tap pills.
-- **Every button label is 600 (D-037), and Present/Absent sit 4px apart (D-038)**, as in the prototype.
-- **Selected Present pill has a visible green border (D-021).** The prototype's border matched its fill, which made it asymmetric with Absent.
-- **Unselected staff pills keep their semantic colours (D-021).** This is consistent with the roster; the prototype greyed them.
+- **One status select per student instead of the prototype's Present/Absent pills (D-062, owner).** The prototype's pair (and its popover for extra statuses) became one native select per row, so rows stay compact however many statuses a state enables. It supersedes D-014, D-021 and D-038.
+- **Every button label is 600 (D-037)**, as in the prototype.
 - **Brand mark.** The prototype's placeholder check-mark tile is replaced by the real KSK emblem (D-003).
 - **No fake phone frame or status bar.** The real device supplies them. Wider screens no longer show a phone column at all (D-045).
 - **Top navigation instead of a DS side nav on wide screens (D-046).** The DS column table allows a 2/8 or 3/12 sidebar; the brief rules out a sidebar or rail for this deliberately simple product, so the primary destinations move into the header.

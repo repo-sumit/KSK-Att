@@ -1,9 +1,9 @@
 /*
- * DEMO ONLY. A collapsed trigger on every screen size (D-036, D-047).
- * Screens with the app header: in the header's tool slot, left of the brand
- * (just before the avatar on phone task screens), so the avatar stays the
- * right-most control and nothing needs reserving. Screens without the app
- * header: it floats (top right on phones, bottom right from 600px) and marks
+ * DEMO ONLY. A collapsed trigger on every screen size (D-036, D-047, D-066).
+ * Screens with the app header: in the header's tool slot, immediately left of
+ * the avatar on every screen and width, so the avatar stays the right-most
+ * control and nothing needs reserving. Screens without the app header: it
+ * floats (top right on phones, bottom right from 600px) and marks
  * <html data-demo-float>, which turns on the reserves below.
  */
 .trigger {
@@ -49,7 +49,7 @@
     display: none;
   }
 }
-/* Home on 360–399px phones keeps the labelled "Demo" pill, a little tighter, so "KSK Attendance" stays on one line… */
+/* Tab roots on 360–399px phones keep the labelled "Demo" pill, a little tighter, so "KSK Attendance" stays on one line… */
 @media (min-width: 360px) and (max-width: 399px) {
   header[data-mode='root'] .inHeader {
     gap: var(--space-2);
@@ -155,7 +155,7 @@
   }
 }
 
-/* Tablets and desktops: a floating trigger sits bottom right; the panel is a drawer on the left that overlays the app. */
+/* Tablets and desktops: a floating trigger sits bottom right; the panel is a drawer on the right (the trigger's side) that overlays the app. */
 @media (min-width: 600px) {
   .floating {
     top: auto;
@@ -169,7 +169,7 @@
   }
   .panel {
     /* Below the whole app header (DemoRoot measures it: task screens add a back + title row), on the trigger's side, so back, title, navigation and avatar stay usable. */
-    inset: var(--demo-drawer-top, calc(env(safe-area-inset-top) + var(--header-height-wide) + var(--space-8))) auto var(--space-16) var(--space-16);
+    inset: var(--demo-drawer-top, calc(env(safe-area-inset-top) + var(--header-height-wide) + var(--space-8))) var(--space-16) var(--space-16) auto;
     width: 380px;
     max-height: none;
     height: auto;

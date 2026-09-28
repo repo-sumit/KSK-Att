@@ -2,10 +2,10 @@
 import { memo } from 'react';
 import type { Student } from '@/domain/entities';
 import type { LeaveType, Mark, StatusCode } from '@/domain/status';
+import { AttendanceStatusSelect, LockedStatus } from '@/components/ui/AttendanceStatusSelect';
 import { ChoicePill } from '@/components/ui/ChoicePill';
 import { Latin } from '@/components/ui/Latin';
 import { StatusChip } from '@/components/ui/StatusChip';
-import { StatusPill } from '@/components/ui/StatusPill';
 import { cx } from '@/lib/cx';
 import styles from './StudentRow.module.css';
 
@@ -22,7 +22,12 @@ export interface RowLabels {
   readonly notMarked: string;
   readonly needsHalf: string;
   readonly needsLeaveType: string;
-  readonly groupLabel: (name: string) => string;
+  /** The status control's accessible name: "Attendance for {name}". */
+  readonly statusFor: (name: string) => string;
+  /** Placeholder while a student has no status yet (blank default). */
+  readonly choose: string;
+  /** Why an OJT row can't be changed (screen readers; the row's note says it visibly). */
+  readonly lockedReason: string;
 }
 
 interface StudentRowProps {
@@ -47,24 +52,17 @@ function tintOf(mark: Mark, defaultStatus: StatusCode | null): string | undefine
 }
 
 /**
- * One student: name, father's name beneath (PRD §4.3), one-tap status buttons
- * on the right (PRD §9.1). With more than two statuses the buttons take a full
- * row under the name — still one tap each, never a dropdown.
+ * One student: name, father's name beneath (PRD §4.3) and one status control
+ * on the right (D-062): the same compact row whether the state enables two
+ * statuses or five. Half day and leave ask their detail underneath; OJT from
+ * the ERP is a locked value.
  */
 export const StudentRow = memo(function StudentRow(p: StudentRowProps) {
   const { student, mark, labels } = p;
-  const extended = p.selectable.length > 2;
   const locked = mark.status === 'ojt';
   const unmarked = mark.status === null;
   const needs = mark.status === 'half_day' && p.halfDayHalves && !mark.half ? 'half' : mark.status === 'leave' && !mark.leaveType ? 'leave' : null;
-
-  const pills = (
-    <div className={cx(styles.pills, extended && styles.pillsRow)} data-count={p.selectable.length} role="group" aria-label={labels.groupLabel(student.name)}>
-      {p.selectable.map((status) => (
-        <StatusPill key={status} status={status} label={labels.status[status]} pressed={mark.status === status} stretch={extended} onPress={() => p.onStatus(student.id, status)} />
-      ))}
-    </div>
-  );
+  const options = p.selectable.map((status) => ({ status, label: labels.status[status] }));
 
   return (
     <li
@@ -84,10 +82,23 @@ export const StudentRow = memo(function StudentRow(p: StudentRowProps) {
           {p.attention && unmarked && <StatusChip status="not_marked" label={labels.notMarked} />}
           {p.attention && needs && <StatusChip status="not_marked" label={needs === 'half' ? labels.needsHalf : labels.needsLeaveType} />}
         </div>
-        {locked ? <StatusChip status="ojt" label={labels.status.ojt} /> : !extended && pills}
+        <span className={styles.status}>
+          {locked ? (
+            <LockedStatus status="ojt" label={labels.status.ojt} reason={labels.lockedReason} />
+          ) : (
+            <AttendanceStatusSelect
+              label={labels.statusFor(student.name)}
+              options={options}
+              value={mark.status}
+              placeholder={labels.choose}
+              quiet={mark.status !== null && mark.status === p.defaultStatus}
+              invalid={p.attention && unmarked}
+              onChange={(status) => p.onStatus(student.id, status)}
+            />
+          )}
+        </span>
       </div>
       {locked && <p className={styles.note}>{labels.ojtNote}</p>}
-      {!locked && extended && pills}
       {mark.status === 'half_day' && p.halfDayHalves && (
         <div className={styles.follow} role="radiogroup" aria-label={labels.presentFor} data-needs={needs === 'half' || undefined} aria-invalid={(p.attention && needs === 'half') || undefined}>
           <span className={styles.followLabel}>{labels.presentFor}</span>

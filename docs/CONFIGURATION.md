@@ -58,7 +58,7 @@ If both `geoMode` is `off` and `face` is `false`, there is no verification scree
 | `frequency` (mark.frequency) | `'once'` | `once`: one card per batch per day. `twice`: two cards per batch, Morning/After lunch (or Sign in/Sign out), each with its own window and lock. `period`: one card per timetable period ("Period 3 · Theory") |
 | `twiceShape` (mark.twice_shape) | `'halves'` | Labels for twice-daily: `halves` → Morning / After lunch; `signin_signout` → Sign in / Sign out |
 | `defaultStatus` (mark.default_status) | `'present'` | `present`: everyone starts Present, and the hint reads "Tap Absent for students who are not here". `absent`: everyone starts Absent and Present rows are tinted green. `blank`: nobody is marked; Review & Submit stays inactive until every row is marked, and the footer says how many remain |
-| `statusSet` (mark.status_set) | Present, Absent | Adding `half_day` or `leave` switches rows to a full-width pill row (no dropdowns). Adding `ojt` shows OJT rows as locked chips ("On-the-job training · declared in the ERP"), taken from ERP declarations and never selectable |
+| `statusSet` (mark.status_set) | Present, Absent | The options of each row's status select (D-062): two statuses show two, and adding `half_day` or `leave` adds them (the row stays the same size). Half day and leave ask their detail under the row. Adding `ojt` shows OJT rows as a locked value ("On-the-job training · declared in the ERP"), taken from ERP declarations and never selectable |
 | `halfDayHalves` (mark.half_day_halves) | `false` | `true`: choosing Half day asks "Present for: First half / Second half" before submit |
 | `leaveDateRange` (mark.leave_date_range) | `true` | With Leave on: after the leave type (Sick / Casual / Medical), an optional "until" date |
 
@@ -82,7 +82,7 @@ The fence is hard, with no grace period (D-016). Backdating is impossible whatev
 | `enabled` (staff.attendance) | `true` | `true`: a "My attendance" card on the instructor home; a Students / Staff switch and a Staff card for the principal; the My attendance report section and the Staff attendance report. `false`: all absent |
 | `selfMarking` (staff.self_marking) | `true` | `true`: "Mark attendance" on the card → the same verification step → marked. `false`: the card only shows status ("Marked Present by principal" / "Not marked") |
 | `captureTrigger` (staff.capture_trigger) | `'explicit_tap'` | Only an explicit tap is implemented |
-| `principalMarking` (staff.principal_marking) | `true` | `true`: the principal's staff list has Present/Absent pills and "Save n changes". `false`: read-only list |
+| `principalMarking` (staff.principal_marking) | `true` | `true`: the principal's staff list has a status select (Present/Absent) on each unmarked row and "Save n changes"; saved marks are locked values. `false`: read-only list |
 | `statusSet` (staff.status_set) | Present, Absent | Statuses offered for staff |
 
 ## Reports: `reports` (PRD §19)
@@ -104,12 +104,12 @@ The fence is hard, with no grace period (D-016). Backdating is impossible whatev
 
 | Option | MH | Values → what the user sees |
 |---|---|---|
-| `enabled` (offline.enabled) | `true` | `true`: Reports → **Offline data** (`/reports/offline`, D-056): each downloaded batch with its updated time and status (Ready offline / Refresh needed / N waiting to sync), pending records, "Sync now". Each downloaded batch's card on Home and trade screens ends with "Updated 7:45 AM · Refresh data" (D-055). A batch that wasn't downloaded shows "This batch isn't downloaded" when opened offline. `false`: no Offline data screen and no card strip; opening any batch offline shows "You're offline · Connect to the internet to mark attendance" |
+| `enabled` (offline.enabled) | `true` | `true`: Reports → **Offline data** (`/reports/offline`, D-056): each downloaded batch with its updated time and status (Ready offline / Refresh needed / N waiting to sync), pending records, and the Sync pending card (D-064). Each downloaded batch's card on Home and trade screens ends with "Updated 7:45 AM · Refresh data" (D-055). A batch that wasn't downloaded shows "This batch isn't downloaded" when opened offline. `false`: no Offline data screen and no card strip; opening any batch offline shows "You're offline · Connect to the internet to mark attendance" |
 | `refreshDays` (offline.refresh_days) | `7` | A pack older than this shows "Student list downloaded on 22 Sep. New admissions may be missing…" on the roster, "Refresh needed" on Offline data and "Updated 22 Sep · refresh needed" on its card |
-| `manualRefresh` (offline.manual_refresh) | `true` | "Refresh all downloaded data", each row's refresh on Offline data, and the "Refresh data" button in a batch card's strip. Off: the strip still says when the student list was downloaded, with no button. |
+| `manualRefresh` (offline.manual_refresh) | `true` | "Refresh all data" in the Offline data action group (D-065), each row's refresh on Offline data, and the "Refresh data" button in a batch card's strip. Off: the strip still says when the student list was downloaded, with no button. |
 | `multiSelect` (offline.multi_select) | `true` | Download several batches at once |
 | `maxBatches` (offline.max_batches) | `null` | Caps how many batches can be kept on the phone |
-| `autoSync` (offline.auto_sync) | `true` | Records are sent automatically on reconnect and when the app opens online. `false`: they wait for "Sync now" |
+| `autoSync` (offline.auto_sync) | `true` | Records are sent automatically on reconnect, when the app opens online, after a record is saved and before opening another batch. If an automatic attempt fails, Home's Sync pending card says "Auto-sync failed at {time}" (D-064). `false`: they wait for "Sync now" on the card |
 | `syncOnOpen` (offline.sync_on_open) | `true` | Sync is attempted before opening another batch |
 | `eodTriggerTime` (offline.eod_trigger_time) | `21:00` | Informational (a server-side end-of-day job) |
 

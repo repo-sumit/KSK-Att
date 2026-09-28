@@ -37,15 +37,15 @@ const FLOAT_MARKER = 'data-demo-float';
 
 /**
  * DEMO ONLY. The presenter controls start collapsed: a small "Demo" trigger.
- * On screens with the app header it sits in the header's tool slot (left of
- * the brand; just before the avatar on phone task screens), so the avatar
- * stays the right-most control. Screens without the app header (login,
- * camera, result and permission cards) have no slot: there it floats (top
- * right on phones, bottom right from 600px) and marks <html> so the layout
- * keeps room for it. Phones open a modal bottom sheet; tablets and desktops
- * open a drawer on the left, below the header, that overlays the app without
- * taking layout space, so the presenter can keep using the app while changing
- * settings. The product never imports this.
+ * On screens with the app header it sits in the header's tool slot,
+ * immediately left of the avatar (D-066), so the avatar stays the right-most
+ * control. Screens without the app header (login, camera, result and
+ * permission cards) have no slot: there it floats (top right on phones,
+ * bottom right from 600px) and marks <html> so the layout keeps room for it.
+ * Phones open a modal bottom sheet; tablets and desktops open a drawer on the
+ * right, below the header, that overlays the app without taking layout space,
+ * so the presenter can keep using the app while changing settings. The
+ * product never imports this.
  */
 export function DemoRoot({ demo, children }: { readonly demo: DemoAdapters; readonly children: ReactNode }) {
   const app = useContainer();

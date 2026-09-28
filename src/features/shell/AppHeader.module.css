@@ -1,9 +1,9 @@
 /*
  * Phones (< 600px): one bar. The header is the flex row; .bar dissolves into it
- * (display: contents) so the task context and the avatar share the bar. The
- * tool slot (first in .bar) lands left of the brand on tab roots and, because
- * the task context moves to the front (order: -1), just before the avatar on
- * task screens.
+ * (display: contents) so the task context and the trailing group share the bar.
+ * The trailing group (.end) is the tool slot then the avatar, so tooling always
+ * sits immediately left of the avatar (D-066); the task context moves to the
+ * front (order: -1).
  * Tablets and desktops: a full-width bar (brand · navigation · avatar) aligned
  * to the wide container, and on task screens a second row with back + title
  * aligned to the screen's content column.
@@ -62,9 +62,11 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.profile {
+.end {
   flex: none;
   display: flex;
+  align-items: center;
+  gap: var(--space-8);
 }
 .context {
   order: -1;
@@ -146,7 +148,7 @@
     display: flex;
     flex: none;
   }
-  .profile {
+  .end {
     margin-left: auto;
   }
   .context {

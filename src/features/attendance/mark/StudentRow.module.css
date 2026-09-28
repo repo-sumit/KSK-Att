@@ -33,7 +33,7 @@
   color: var(--color-text-tertiary);
   font-variant-numeric: tabular-nums;
 }
-/* The name keeps at least ~7em: with enlarged text the pills drop below it instead of squeezing it letter by letter. */
+/* The name keeps at least ~7em: with enlarged text the status control drops below it instead of squeezing it letter by letter. */
 .who {
   display: flex;
   flex-direction: column;
@@ -57,15 +57,11 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* Present/Absent read as one paired control: 4px apart, as in the prototype (D-038). */
-.pills {
-  display: flex;
-  gap: var(--space-4);
+/* The status control: right-aligned, and still on the right if large text wraps it under the name. */
+.status {
   flex: none;
-}
-.pillsRow {
-  width: 100%;
-  gap: var(--space-8);
+  display: flex;
+  margin-left: auto;
 }
 .note,
 .followLabel {
@@ -97,27 +93,4 @@
   background: var(--color-background-surface-raised);
   font: var(--type-label-small);
   letter-spacing: var(--ls-label-small);
-}
-
-/* Narrow phones (≈320px viewport → 288px row content) move the pair under the name, full width. */
-@container (max-width: 307px) {
-  .main {
-    flex-wrap: wrap;
-  }
-  .main > .pills {
-    width: 100%;
-    padding-left: var(--space-32);
-  }
-  .main > .pills > * {
-    flex: 1;
-  }
-}
-
-/* Four or more statuses on a narrow row: a 2 × 2 grid, so every pill keeps its full label. */
-@container (max-width: 320px) {
-  .pillsRow[data-count='4'],
-  .pillsRow[data-count='5'] {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }

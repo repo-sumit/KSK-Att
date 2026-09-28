@@ -17,6 +17,13 @@
   border: var(--divider-thin) solid var(--color-border-default);
   box-shadow: none;
 }
+.divided {
+  gap: 0;
+  overflow: hidden;
+}
+.divided > * + * {
+  border-top: var(--divider-thin) solid var(--color-border-subtle);
+}
 .pressable {
   width: 100%;
   border: var(--border-selected) solid transparent;

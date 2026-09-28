@@ -42,7 +42,9 @@ export function MarkScreen() {
       notMarked: t('status.not_marked'),
       needsHalf: t('roster.needsHalf'),
       needsLeaveType: t('roster.needsLeaveType'),
-      groupLabel: (name) => t('roster.statusFor', { name }),
+      statusFor: (name) => t('roster.statusFor', { name }),
+      choose: t('roster.choose'),
+      lockedReason: t('roster.lockedErp'),
     }),
     [t],
   );

@@ -1,5 +1,6 @@
 'use client';
 import { Icon } from '@/components/ui/icons/Icon';
+import { StatusLine } from '@/components/ui/StatusLine';
 import { useI18n } from '@/hooks/i18n';
 import { useSession } from '@/hooks/session';
 import { cx } from '@/lib/cx';
@@ -12,7 +13,7 @@ import styles from './Offline.module.css';
 
 interface OfflineBatchRowProps {
   readonly row: PackRow;
-  /** "Refresh all downloaded data" in progress or just done: every row says so. */
+  /** "Refresh all data" in progress or just done: every row says so. */
   readonly all: RefreshState;
   readonly canRefresh: boolean;
 }
@@ -39,13 +40,13 @@ export function OfflineBatchRow({ row, all, canRefresh }: OfflineBatchRowProps) 
           : t('offline.updatedOn', { date: format.dayMonth(day), time: format.time(row.pack.downloadedAt) });
   const stale = row.stale && state === 'idle';
   const status = row.pendingSync
-    ? { tone: styles.warn, icon: 'cloud-upload' as const, text: t('offline.waitingRow', { count: row.pendingSync }) }
+    ? { tone: 'warning' as const, icon: 'cloud-upload' as const, text: t('offline.waitingRow', { count: row.pendingSync }) }
     : stale
-      ? { tone: styles.warn, icon: 'alert' as const, text: t('offline.refreshNeeded') }
-      : { tone: styles.ok, icon: 'circle-check' as const, text: t('offline.ready') };
+      ? { tone: 'warning' as const, icon: 'alert' as const, text: t('offline.refreshNeeded') }
+      : { tone: 'success' as const, icon: 'circle-check' as const, text: t('offline.ready') };
 
   return (
-    <li className={styles.pack}>
+    <li className={cx(styles.pack, stale && styles.packStale)}>
       <span className={styles.packText}>
         <span className={styles.packTitle}>
           <BatchLabel trade={row.trade} batch={row.batch} />
@@ -56,14 +57,13 @@ export function OfflineBatchRow({ row, all, canRefresh }: OfflineBatchRowProps) 
             {updated}
           </span>
         </span>
-        <span className={cx(styles.packStatus, status.tone)}>
-          <Icon name={status.icon} size={16} />
+        <StatusLine tone={status.tone} icon={status.icon}>
           {status.text}
-        </span>
+        </StatusLine>
       </span>
       {canRefresh && (
         <button type="button" className={styles.packRefresh} onClick={() => void refresh()} aria-disabled={state === 'refreshing' || undefined} aria-label={t('batchData.refreshFor', { batch: label })}>
-          <Icon name="refresh" size={22} className={state === 'refreshing' ? styles.spin : undefined} />
+          <Icon name="refresh" size={20} className={state === 'refreshing' ? styles.spin : undefined} />
         </button>
       )}
     </li>

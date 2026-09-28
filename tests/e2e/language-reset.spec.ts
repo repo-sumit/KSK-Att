@@ -25,7 +25,9 @@ test('Marathi: the whole interface switches, digits stay Latin, nothing overflow
   await expectNoOverflow(page);
   await page.getByRole('link', { name: /शिफ्ट 1 · युनिट 2/ }).click();
   await page.waitForURL(/\/attendance\/mark/, { timeout: 20_000 });
-  await expect(page.getByRole('button', { name: 'अनुपस्थित', exact: true }).first()).toBeVisible();
+  const status = page.getByRole('combobox', { name: /ची हजेरी$/ }).first();
+  await expect(status).toBeVisible();
+  await expect(status.locator('option')).toHaveText(['उपस्थित', 'अनुपस्थित']);
   await expectNoOverflow(page);
 });
 

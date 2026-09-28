@@ -1,0 +1,87 @@
+/*
+ * One status control per person (D-062): a native <select> drawn as a status
+ * pill (DS input fields are pills). Icon + label + colour, never colour alone.
+ * The width is fixed in em, so every row's control lines up in one column and
+ * still grows with the phone's text size. The pill is white on every row tint;
+ * its border and text carry the status tone.
+ */
+.field {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  width: 9.5em;
+  font: var(--type-label-medium);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0;
+  --tone-border: var(--color-border-default);
+}
+.pill {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  min-height: var(--touch-target-min);
+  margin: 0;
+  /* Room for the status icon on the left and the chevron / lock on the right. */
+  padding: 0 calc(var(--space-12) + 16px) 0 calc(var(--space-12) + 16px + var(--space-4));
+  border: var(--border-selected) solid var(--tone-border);
+  border-radius: var(--radius-full);
+  background: var(--color-background-surface-raised);
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  appearance: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    border-color var(--motion-fast) ease,
+    color var(--motion-fast) ease;
+}
+.pill:focus-visible {
+  outline: 2px solid var(--color-interactive-focus);
+  outline-offset: 2px;
+}
+/* The open list (desktop browsers draw it from the select): plain text on white, whatever the status. */
+.pill option {
+  color: var(--color-text-primary);
+  background: var(--color-background-surface-raised);
+}
+.lead,
+.end {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.lead {
+  left: var(--space-12);
+}
+.end {
+  right: var(--space-12);
+  color: var(--color-icon-secondary);
+}
+
+/* Status tones: text + border (the control stays white so it reads on any row tint); the fill is for locked values. */
+.success { color: var(--color-text-success); --tone-border: var(--color-status-success); --tone-fill: var(--color-surface-success-subtle); }
+.error { color: var(--color-text-error); --tone-border: var(--color-border-error); --tone-fill: var(--color-surface-error-subtle); }
+.warning { color: var(--color-text-warning); --tone-border: var(--color-status-warning); --tone-fill: var(--color-surface-warning-subtle); }
+.info { color: var(--color-text-info); --tone-border: var(--color-status-info); --tone-fill: var(--color-surface-info-subtle); }
+.brand { color: var(--color-text-brand-subdued); --tone-border: var(--color-border-brand); --tone-fill: var(--color-surface-brand-subtle); }
+.neutral { color: var(--color-text-secondary); --tone-border: var(--color-border-default); --tone-fill: var(--color-background-surface); }
+/* The roster's starting status keeps its colour but loses the coloured border: the exceptions stand out. */
+.quiet { --tone-border: var(--color-border-default); }
+/* Still needs a choice (Review was pressed): the warning edge the row carries too. */
+.invalid { --tone-border: var(--color-status-warning); }
+
+/* Locked (OJT from the ERP, a saved staff mark): a filled status value with a lock, not a white control. */
+.locked .pill {
+  border-color: transparent;
+  background: var(--tone-fill);
+  cursor: default;
+}
+.locked .end {
+  color: inherit;
+}
