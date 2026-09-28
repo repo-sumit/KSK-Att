@@ -1,16 +1,18 @@
 /**
  * DEMO ONLY — the single entry point the app imports (behind
  * NEXT_PUBLIC_DEMO_MODE). Turns DemoState into the interfaces the core already
- * accepts: a Clock, a SimulationSource and a ConfigOverridesSource.
+ * accepts: a Clock, a SimulationSource, a ConfigOverridesSource and a
+ * LoginAssistSource.
  */
 import type { ConfigLayer } from '@/config/types';
 import type { ConfigOverridesSource } from '@/services/configuration';
-import type { LoginAssist, LoginAssistSource } from '@/services/login-assist';
+import type { LoginAssist, LoginAssistOption, LoginAssistSource, LoginCredentials } from '@/services/login-assist';
 import type { SimulationSource, SimulationState } from '@/services/simulation';
 import { createDefaultStore } from '@/lib/kv-store';
 import { instantAt, toLocalDate, type Clock } from '@/lib/time';
 import { DemoStateRepository } from './store';
-import { personaById, personaForStaff } from './personas';
+import { personaById, personaForStaff, type PersonaId } from './personas';
+import { PRESETS } from './presets';
 import { mergeConfigLayer } from '@/config/resolve';
 
 /** Sentinel checked by scripts/check-demo-stripped.mjs: must not appear in a non-demo build. */
@@ -47,19 +49,68 @@ class DemoConfigOverrides implements ConfigOverridesSource {
   }
 }
 
-/** "Use demo login" on the login screens: the credentials of the persona the presenter picked last. */
-class DemoLoginAssist implements LoginAssistSource {
-  private cache: { id: string; value: LoginAssist } | null = null;
+/**
+ * "Use demo account" on the login screens, in this order. Each account's id is
+ * both its persona and the preset that tells its story (same ids).
+ */
+export const DEMO_ACCOUNTS: readonly PersonaId[] = ['open', 'batch', 'timetable', 'es', 'principal'];
+
+const OPTIONS: readonly LoginAssistOption[] = DEMO_ACCOUNTS.map((id) => {
+  const p = personaById(id);
+  return { id, label: p.title, who: p.name };
+});
+const CREDENTIALS: ReadonlyMap<string, LoginCredentials> = new Map(
+  DEMO_ACCOUNTS.map((id) => {
+    const p = personaById(id);
+    return [id, { instituteCode: p.instituteCode, trainerId: p.trainerId, who: `${p.name} · ${p.title}` }] as const;
+  }),
+);
+
+/** Gets a demo account's story ready (persona, configuration, simulation, clock, face enrolment) without signing in. */
+export type PrepareDemoAccount = (presetId: string) => unknown;
+
+/**
+ * The login screens' demo account chooser. It is built before the app
+ * container exists, so the step that prepares an account's story is connected
+ * afterwards (boot.ts). The persona picked last in the demo panel is only
+ * highlighted: nothing reaches a field until the user picks an account.
+ */
+export class DemoLoginAssist implements LoginAssistSource {
+  private prepare: PrepareDemoAccount | null = null;
+  private cache: { persona: PersonaId; value: LoginAssist } | null = null;
   constructor(private readonly repo: DemoStateRepository) {}
+
+  connect(prepare: PrepareDemoAccount): void {
+    this.prepare = prepare;
+  }
+
   get(): LoginAssist {
-    const persona = personaById(this.repo.get().persona);
+    const persona = this.repo.get().persona;
     // Stable identity per persona, so React's external-store reads don't loop.
-    if (this.cache?.id !== persona.id)
-      this.cache = { id: persona.id, value: { label: 'Use demo login', who: `${persona.name} · ${persona.title}`, instituteCode: persona.instituteCode, trainerId: persona.trainerId } };
+    if (this.cache?.persona !== persona)
+      this.cache = {
+        persona,
+        value: { label: 'Use demo account', chosenLabel: 'Demo account', changeLabel: 'Change', options: OPTIONS, suggested: DEMO_ACCOUNTS.includes(persona) ? persona : null },
+      };
     return this.cache.value;
   }
+
   subscribe(listener: () => void) {
     return this.repo.subscribe(listener);
+  }
+
+  credentials(id: string): LoginCredentials | null {
+    return CREDENTIALS.get(id) ?? null;
+  }
+
+  async choose(id: string): Promise<LoginCredentials | null> {
+    const credentials = this.credentials(id);
+    if (!credentials) return null;
+    // A story that starts at login (First-time user) is already about this account: keep it
+    // (face not registered, permissions not asked) instead of swapping in the everyday preset.
+    const story = PRESETS.find((p) => p.id === this.repo.get().presetId);
+    if (!(story?.start === 'login' && story.persona === id)) await this.prepare?.(id);
+    return credentials;
   }
 }
 
@@ -68,7 +119,7 @@ export interface DemoAdapters {
   readonly clock: Clock;
   readonly simulation: SimulationSource;
   readonly configOverrides: ConfigOverridesSource;
-  readonly loginAssist: LoginAssistSource;
+  readonly loginAssist: DemoLoginAssist;
   readonly sentinel: string;
 }
 

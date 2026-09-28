@@ -22,7 +22,6 @@ export const MAHARASHTRA: StateConfiguration = {
         'my_attendance',
         'my_batches',
         'student_percentage',
-        'daily_register',
         'institute_summary',
         'trade_batch',
         'staff_summary',
@@ -31,6 +30,7 @@ export const MAHARASHTRA: StateConfiguration = {
       dateRanges: ['day', 'week', 'month', 'custom'],
     },
     offline: { ...PRODUCT_DEFAULTS.offline, enabled: true },
+    announcements: { enabled: true },
     // Latin digits in Marathi: decided with the product owner (docs/DECISIONS.md D-012).
     i18n: { languages: ['en', 'mr'], defaultLanguage: 'en', userSwitch: true, fallback: 'en', numerals: 'latin' },
   },

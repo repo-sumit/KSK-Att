@@ -14,6 +14,7 @@ import { useI18n } from '@/hooks/i18n';
 import { useSession } from '@/hooks/session';
 import { routes } from '@/lib/routes';
 import { toLocalDate } from '@/lib/time';
+import { AnnouncementBanner } from '../announcements/AnnouncementBanner';
 import { Greeting } from './parts';
 import { usePrincipalOverview } from './usePrincipalOverview';
 import styles from './PrincipalHome.module.css';
@@ -75,6 +76,7 @@ export function PrincipalHome() {
   return (
     <ScreenLayout header={<AppHeader />} area="home" bottomNav>
       <Greeting name={t('principal.salutation')} subtitle={t('principal.greetingSub', { date: format.longDate(today), institute: ctx.institute.shortName })} />
+      <AnnouncementBanner />
       <Section id="today" title={t('home.todays')}>
         {!data ? (
           <Skeleton count={2} height={140} label={t('common.loading')} />

@@ -15,6 +15,7 @@ import styles from './Login.module.css';
 export function ConfirmInstituteScreen() {
   const t = useT();
   const router = useRouter();
+  useEffect(() => router.prefetch(routes.loginTrainer), [router]);
   const flow = useLoginFlow();
   const institute = flow.institute;
 

@@ -49,6 +49,8 @@ export function SelfAttendanceScreen() {
         sub={t('self.resultSub', { status: t('status.present'), time: format.time(done.deviceTimestamp) })}
         meta={offline ? t('self.resultOffline') : j.verification.required ? t('self.verified') : t('self.resultOnline')}
         primary={{ label: t('common.done'), href: routes.home }}
+        header={<AppHeader plain />}
+        area="home"
       />
     );
   }

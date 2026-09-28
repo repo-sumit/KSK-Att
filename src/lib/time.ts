@@ -77,6 +77,18 @@ export function startOfMonth(date: LocalDate): LocalDate {
   return `${date.slice(0, 7)}-01`;
 }
 
+/** First day of the month `months` away from date's month (negative = earlier). */
+export function shiftMonth(date: LocalDate, months: number): LocalDate {
+  const [y, mo] = date.split('-').map(Number);
+  const index = y * 12 + (mo - 1) + months;
+  return `${Math.floor(index / 12)}-${pad((index % 12) + 1)}-01`;
+}
+
+/** Last day of date's month. */
+export function endOfMonth(date: LocalDate): LocalDate {
+  return addDays(shiftMonth(date, 1), -1);
+}
+
 /** Monday of the ISO week containing date. */
 export function startOfWeek(date: LocalDate): LocalDate {
   const dow = dayOfWeek(date);

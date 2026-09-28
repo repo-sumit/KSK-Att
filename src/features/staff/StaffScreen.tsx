@@ -106,7 +106,7 @@ export function StaffScreen() {
       width="reading"
     >
       {!rows ? (
-        <Skeleton label={t('common.loading')} />
+        <Skeleton variant="rows" count={6} label={t('common.loading')} />
       ) : (
         <ul>
           {list.map((row) => {

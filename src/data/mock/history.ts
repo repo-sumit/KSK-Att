@@ -42,25 +42,39 @@ function pinnedStatus(studentId: string, date: LocalDate, today: LocalDate): 'pr
   return PINNED_MARKS.find((p) => p.studentId === studentId && addDays(today, -p.daysAgo) === date)?.status;
 }
 
-export function historicalSubmission(batchId: string, date: LocalDate, today: LocalDate): AttendanceSubmission | undefined {
+/**
+ * Subject sessions taught across trades (Employability Skills): the subject
+ * instructor's own daily record per batch, so their reports have history too.
+ */
+export const SUBJECT_HISTORY: ReadonlyArray<{ readonly subjectId: string; readonly staffId: string; readonly batchIds: readonly string[] }> = STAFF.filter(
+  (s) => s.subjectId && s.role !== 'office_staff',
+).map((s) => ({ subjectId: s.subjectId!, staffId: s.id, batchIds: s.batchIds }));
+
+export const subjectsWithHistory = (batchId: string) => SUBJECT_HISTORY.filter((h) => h.batchIds.includes(batchId));
+
+/** The daily record of a batch on a past working day; with `subjectId`, that subject's session instead. */
+export function historicalSubmission(batchId: string, date: LocalDate, today: LocalDate, subjectId?: string): AttendanceSubmission | undefined {
   if (!isWorkingDay(date) || date >= today) return undefined;
   const students = STUDENTS.filter((s) => s.batchId === batchId);
   if (!students.length) return undefined;
+  const subject = subjectId ? SUBJECT_HISTORY.find((h) => h.subjectId === subjectId && h.batchIds.includes(batchId)) : undefined;
+  if (subjectId && !subject) return undefined;
   const marks: Record<string, Mark> = {};
   for (const s of students) {
-    const pinned = pinnedStatus(s.id, date, today);
-    const present = pinned ? pinned === 'present' : randomFor(`att:${s.id}:${date}`) < propensity(s.id);
+    // Same student, same habits: a subject session draws on the student's own propensity.
+    const pinned = subjectId ? undefined : pinnedStatus(s.id, date, today);
+    const present = pinned ? pinned === 'present' : randomFor(`att:${subjectId ?? ''}${s.id}:${date}`) < propensity(s.id);
     marks[s.id] = { status: present ? 'present' : 'absent' };
   }
-  const address = { batchId, date, slot: { kind: 'daily' as const } };
-  const minute = 9 * 60 + 25 + Math.floor(randomFor(`time:${batchId}:${date}`) * 35);
+  const address = { batchId, date, slot: { kind: 'daily' as const }, ...(subjectId ? { subjectId } : {}) };
+  const minute = (subjectId ? 11 * 60 + 5 : 9 * 60 + 25) + Math.floor(randomFor(`time:${subjectId ?? ''}${batchId}:${date}`) * 35);
   const at = instantAt(date, formatMinutes(minute)).toISOString();
   return {
-    id: `hist-${batchId}-${date}`,
+    id: subjectId ? `hist-${subjectId}~${batchId}-${date}` : `hist-${batchId}-${date}`,
     sessionKey: toSessionKey(address),
     address,
     marks,
-    markedBy: HOME_INSTRUCTOR[batchId],
+    markedBy: subject ? subject.staffId : HOME_INSTRUCTOR[batchId],
     deviceTimestamp: at,
     serverTimestamp: at,
     syncState: 'synced',

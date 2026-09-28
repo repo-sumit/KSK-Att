@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { OfflineScreen } from '@/features/profile/OfflineScreen';
+import { OfflineScreen } from '@/features/offline/OfflineScreen';
 
 export const metadata: Metadata = { title: 'Offline data' };
 

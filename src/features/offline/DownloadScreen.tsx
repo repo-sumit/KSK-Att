@@ -1,6 +1,6 @@
 'use client';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/icons/Icon';
@@ -27,9 +27,15 @@ export function DownloadScreen() {
   const { packs } = useServices();
   const { data: held } = useQuery(`packs:${ctx.user.id}`, () => packs.list(ctx), ['packs']);
   const [chosen, setChosen] = useState<ReadonlySet<string>>(new Set());
+  const [busy, setBusy] = useState(false);
   const have = new Set((held ?? []).map((r) => r.batch.id));
   const batches = packs.downloadable(ctx);
   const multi = ctx.journey.offline.multiSelect;
+  const enabled = ctx.journey.offline.enabled;
+  const fallback = ctx.journey.navTabs.includes('reports') ? routes.reports : routes.home;
+  useEffect(() => {
+    if (!enabled) router.replace(fallback);
+  }, [enabled, fallback, router]);
   const max = ctx.journey.offline.maxBatches;
 
   const toggle = (id: string) =>
@@ -42,16 +48,27 @@ export function DownloadScreen() {
     });
 
   const download = async () => {
+    if (busy) return;
+    setBusy(true);
     const result = await packs.download(ctx, [...chosen]);
+    setBusy(false);
     toast.show(result.ok ? t('offline.downloadedToast', { count: result.value }) : result.error === 'offline' ? t('offline.connectFirst') : t('offline.maxReached', { max: max ?? 0 }));
     if (result.ok) router.replace(routes.offline);
   };
 
+  if (!enabled) return null;
   return (
     <ScreenLayout
       width="reading"
+      area="reports"
       header={<AppHeader back="back" title={t('offline.downloadTitle')} backHref={routes.offline} />}
-      footer={chosen.size > 0 ? <Button fullWidth leadingIcon="download" onClick={() => void download()}>{t('offline.downloadCta', { count: chosen.size })}</Button> : undefined}
+      footer={
+        chosen.size > 0 ? (
+          <Button fullWidth leadingIcon="download" loading={busy} onClick={() => void download()}>
+            {busy ? t('offline.downloading') : t('offline.downloadCta', { count: chosen.size })}
+          </Button>
+        ) : undefined
+      }
     >
       {ctx.access.tradeIds.map((tradeId) => {
         const trade = ctx.data.trades.find((x) => x.id === tradeId);

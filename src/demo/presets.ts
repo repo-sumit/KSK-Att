@@ -15,7 +15,7 @@ export interface DemoPreset {
   readonly simulation?: Partial<SimulationState>;
   /** First-time user: face not enrolled, permissions not yet asked, starts at login. */
   readonly firstTime?: boolean;
-  readonly start: 'home' | 'login' | 'attendance';
+  readonly start: 'home' | 'login';
 }
 
 const STRICT: ConfigLayer = { verification: { geoMode: 'fencing', face: true }, marking: { defaultStatus: 'present' } };

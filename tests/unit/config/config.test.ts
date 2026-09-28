@@ -31,6 +31,13 @@ describe('validation (PRD §14.6)', () => {
     const issues = validateConfiguration(configWith({ marking: { halfDayHalves: true } }), ctx);
     expect(issues.map((i) => i.code)).toContain('half_day_halves_without_half_day');
   });
+  it('rejects an at-risk threshold outside 1–100 and a trend longer than a year', () => {
+    expect(validateConfiguration(configWith({ reports: { eligibilityThresholdPct: 0 } }), ctx).map((i) => i.code)).toContain('threshold_range');
+    expect(validateConfiguration(configWith({ reports: { trendMonths: 13 } }), ctx).map((i) => i.code)).toContain('trend_months');
+    expect(validateConfiguration(configWith({ reports: { trendMonths: 2.5 } }), ctx).map((i) => i.code)).toContain('trend_months');
+    expect(validateConfiguration(configWith({ reports: { windowDays: 3 } }), ctx).map((i) => i.code)).toContain('report_window');
+    expect(validateConfiguration(configWith({ reports: { windowDays: 30, atRiskMinDays: 31 } }), ctx).map((i) => i.code)).toContain('at_risk_min_days');
+  });
   it('rejects face verification with nobody enrolled', () => {
     expect(validateConfiguration(configWith(), { data, enrolledFaceCount: 0 }).map((i) => i.code)).toContain('face_without_enrolment');
   });
@@ -57,8 +64,30 @@ describe('journey derivation — disabled means absent (PRD §1.2)', () => {
     expect(j.staff.principalStaffView).toBe(false);
     expect(j.reports.blocks).not.toContain('staff_summary');
   });
-  it('reports off removes the Reports tab', () => expect(journeyFor('st-rajesh', { reports: { enabled: false } }).navTabs).toEqual(['home', 'attendance']));
+  it('reports off keeps the Reports tab only for Offline data; with offline off too it is gone', () => {
+    expect(journeyFor('st-rajesh', { reports: { enabled: false } }).navTabs).toEqual(['home', 'reports']);
+    expect(journeyFor('st-rajesh', { reports: { enabled: false }, offline: { enabled: false } }).navTabs).toEqual(['home']);
+  });
+  it('Home owns today: instructors get Home · Reports; only the institute board adds Attendance (D-052)', () => {
+    expect(journeyFor('st-rajesh').navTabs).toEqual(['home', 'reports']);
+    expect(journeyFor('st-sunita', { mapping: { model: 'batch' } }).navTabs).toEqual(['home', 'reports']);
+    expect(journeyFor('st-anil').navTabs).toEqual(['home', 'attendance', 'reports']);
+  });
   it('Profile is never a navigation tab (it lives in the header avatar menu)', () => {
-    for (const staff of ['st-rajesh', 'st-anil']) expect(journeyFor(staff).navTabs).toEqual(['home', 'attendance', 'reports']);
+    for (const staff of ['st-rajesh', 'st-anil']) expect(journeyFor(staff).navTabs).not.toContain('profile');
+  });
+  it('report sections follow report.blocks: at-risk for both roles, no daily register (D-053)', () => {
+    expect(journeyFor('st-rajesh').reports.blocks).toEqual(['my_attendance', 'my_batches', 'student_percentage']);
+    expect(journeyFor('st-anil').reports.blocks).toEqual(['institute_summary', 'trade_batch', 'student_percentage', 'staff_summary', 'correction_log']);
+    expect(journeyFor('st-rajesh', { reports: { blocks: ['my_batches'] } }).reports.blocks).toEqual(['my_batches']);
+  });
+  it('the at-risk threshold, leaderboard order and trend are configuration (D-053)', () => {
+    const j = journeyFor('st-rajesh', { reports: { eligibilityThresholdPct: 80, leaderboardSort: 'low_first', trendMonths: 0 } });
+    expect(j.reports).toMatchObject({ eligibilityThresholdPct: 80, leaderboardSort: 'low_first', trendMonths: 0 });
+    expect(journeyFor('st-rajesh').reports).toMatchObject({ eligibilityThresholdPct: 75, leaderboardSort: 'high_first', trendMonths: 3 });
+  });
+  it('announcements are on in Maharashtra and can be switched off (D-054)', () => {
+    expect(journeyFor('st-rajesh').announcements.enabled).toBe(true);
+    expect(journeyFor('st-rajesh', { announcements: { enabled: false } }).announcements.enabled).toBe(false);
   });
 });

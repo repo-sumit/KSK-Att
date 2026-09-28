@@ -39,7 +39,11 @@ export function ToastViewport() {
   return (
     <div className={styles.anchor}>
       <div className={styles.region} role="status" aria-live="polite">
-        {message && <div className={styles.toast}>{message}</div>}
+        {message && (
+          <div key={message} className={styles.toast}>
+            {message}
+          </div>
+        )}
       </div>
     </div>
   );

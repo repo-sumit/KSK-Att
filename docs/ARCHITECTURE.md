@@ -11,8 +11,8 @@ flowchart TD
     FEAT --> KIT["src/components<br/>ui kit + shell"]
     FEAT --> HOOKS["src/hooks<br/>useServices · useQuery · useJourney · useSync · i18n"]
   end
-  HOOKS --> SVC["src/services<br/>Auth · Session · Attendance · Verification · Corrections<br/>StaffAttendance · Sync · Packs · Reports · Connectivity<br/>FaceCapture · Liveness · FaceMatch · LoginAssist"]
-  SVC --> DOM["src/domain (pure)<br/>entities · rules · marking · schedule · access · geo"]
+  HOOKS --> SVC["src/services<br/>Auth · Session · Attendance · Verification · Corrections<br/>StaffAttendance · Sync · Packs · Reports · Announcements<br/>Connectivity · FaceCapture · Liveness · FaceMatch · LoginAssist"]
+  SVC --> DOM["src/domain (pure)<br/>entities · rules · marking · schedule · access · geo · announcement"]
   SVC --> CFG["src/config (pure)<br/>types · defaults · states · resolve · validate · journey"]
   SVC --> RI["src/repositories/interfaces"]
   RI --> MOCK["src/repositories/mock<br/>MockDatabase over KeyValueStore (localStorage ksk:v1)"]
@@ -22,7 +22,7 @@ flowchart TD
   SVC --> SIM["SimulationSource<br/>location · face match · camera choice · permissions · network · sync"]
   DEMO["src/demo (demo builds only)<br/>clock · simulation · config overrides · panel"] -.-> SIM
   DEMO -.-> CFG
-  DEMO -.-> LA["LoginAssistSource<br/>(demo credentials)"]
+  DEMO -.-> LA["LoginAssistSource<br/>(Use demo account)"]
 ```
 
 Dependency rules are enforced in `eslint.config.mjs`:
@@ -45,12 +45,13 @@ sequenceDiagram
   L->>P: render; BootSplash until ready
   P->>B: useEffect → bootApp()
   alt NEXT_PUBLIC_DEMO_MODE === 'true'
-    B->>B: import('@/demo/adapters') → DemoClock, DemoSimulationSource, DemoConfigOverrides
+    B->>B: import('@/demo/adapters') + import('@/demo/controller') → DemoClock, DemoSimulationSource, DemoConfigOverrides, DemoLoginAssist
   else demo off
     B->>B: systemClock, StaticSimulationSource, real connectivity + Geolocation
   end
-  B->>C: store(ksk:v1), prefs(ksk-prefs), clock, simulation, overrides
+  B->>C: store(ksk:v1), prefs(ksk-prefs), clock, simulation, overrides, loginAssist
   C-->>B: { repositories, services, bus, clock, simulation }
+  B->>B: demo only: loginAssist.connect(prepareScenario)
   B->>B: sync.start() (listens to connectivity; sends leftover queue if online)
   P->>S: ServicesProvider → I18nProvider → SessionProvider → ToastProvider
   S->>S: session.load() → SessionContext { user, institute, config, access, journey, data, clock }
@@ -74,17 +75,18 @@ All routes are static. IDs travel in the query string, so every page can be prer
 | `/` | Entry redirect (session → `/home`, else `/login`); `?preset=` applies a demo preset |
 | `/login`, `/login/institute`, `/login/trainer`, `/login/identity` | Institute code → confirm → Trainer ID → confirm |
 | `/face?next=` | Face registration (real camera, prototype movement check, simulated matching), then continue to `next` (validated by `safeNext`) |
-| `/home` | Instructor home, or institute overview for the principal |
-| `/attendance` | Class selection (trade picker, assigned batches, timetable, or institute view) |
-| `/attendance/trade?id=` | One trade's batches |
+| `/home` | Instructor home (notices, today's classes in the mapping model's shape, my attendance, submitted today), or the institute overview for the principal |
+| `/attendance` | The principal's institute board (Students / Staff switch). Without the Attendance tab it redirects to `/home` (D-052) |
+| `/attendance/trade?trade=` | One trade's batches |
 | `/attendance/open?s=` | Gateway: permission primer → verification → roster, or a problem screen |
 | `/attendance/mark?s=` → `/review?s=` → `/submitted?s=` | Roster, review and confirm, result |
 | `/attendance/record?s=` | Read-only record (principal: correction entry points) |
 | `/attendance/correct?s=&student=` | Principal correction with reason |
 | `/attendance/staff` | Principal staff marking |
 | `/me/attendance` | Self attendance |
-| `/reports`, `/reports/view?r=&range=` | Report list and report detail (print view) |
-| `/profile/offline`, `/profile/offline/download` | Offline data and download batches, opened from the profile menu. `/profile` itself redirects to `/home` (`next.config.ts`): profile is a menu, not a page (D-046) |
+| `/reports` | This month's report sections (D-053) |
+| `/reports/view?r=&range=` | Detail report with range switch and print view: `staff_summary` or `correction_log` |
+| `/reports/offline`, `/reports/offline/download` | Offline data and download batches, opened from Reports (D-056). `next.config.ts` redirects `/profile/offline*` here, and `/profile` to `/home`: profile is a menu, not a page (D-046) |
 
 `s` is a **session key**: `batchId.date.slot[.subjectId]`, for example `ele-s1u2.2026-09-25.daily`, `ele-s1u2.2026-09-25.p3` or `ele-s1u1.2026-09-25.daily.es`.
 
@@ -95,15 +97,16 @@ All routes are static. IDs travel in the query string, so every page can be prer
 - `ScreenLayout` (`src/components/shell`) is every screen's frame: header → connectivity banner → optional fixed `top` → `main` (the only scroller) → dock (toast, footer, bottom nav). Props that matter for layout:
   - `width`: the content measure from 600px up — `form` 480px, `reading` 800px (roster, review, records, reports, staff), `wide` 1008px (home, class lists). Phones always use the full width.
   - `card`: from 600px up the whole screen becomes a centred form-width card on the muted page (login steps, face intro, permission primers, result and stand-alone problem screens), with the action directly under the content.
-  - `area` + `bottomNav`: which destination the screen belongs to (marked current in both navigations) and whether it is a tab root (bottom nav on phones).
+  - `area` + `bottomNav`: which destination the screen belongs to (marked current in both navigations) and whether it is a tab root (bottom nav on phones). Class-marking task screens get their `area` and back target from `useAttendanceRoot()`: Attendance where that tab exists, otherwise Home (D-052).
   - `guardNavigation`: lets a screen with unsaved work intercept header / bottom navigation (the principal's unsaved staff marks).
 - Gutters are CSS custom properties on the frame (`--gutter-inline`, `--gutter-flush`, `--gutter-footer`, `--gutter-wide`), computed as `max(page margin, (100% − column) / 2)`. The `100%` resolves where each is used, so full-bleed bars (header, banner, footer, summary strips) keep their backgrounds while their content lines up with the column. Use them only on the frame's full-width children: inside `main` (which already applies the gutter), content uses its own 16px. Page margins follow the DS grid (16 / 36 / 64px), and two-column grids use `--page-gutter` (20 / 36 / 36px).
 - `main` is the only scroller, and none of its direct children may shrink (`.main > * { flex-shrink: 0 }`), or lists with `overflow: hidden` clip their own rows.
 - `inlineFooter`: from 600px, the footer follows the content instead of docking at the bottom edge. It is used for problem and confirmation screens inside the app, so their one action isn't a monitor-height away.
 - **One header: `AppHeader`** (`src/features/shell/AppHeader.tsx`) on every signed-in screen with chrome. Phones: a single 60px bar — the KSK brand on tab roots, back + screen title on task screens — with the avatar at the top right. 600px and up: a full-width bar (brand · primary navigation · avatar) aligned to the wide column, plus a context row (back + title) aligned to the screen's column. Immersive single-task steps (camera capture, permission primers, result screens) have no chrome, as in the prototype.
-- **Navigation** (`src/components/shell/AppNav.tsx`) renders the journey's `navTabs` (Home, Attendance, Reports) twice: the DS bottom navigation on phones (tab roots only), and a compact row in the header from 600px up. Never a sidebar. Profile is not a destination.
-- **Profile menu** (`src/features/profile/ProfileMenu.tsx`): the avatar opens a native `<dialog>` — a bottom sheet on phones, a menu anchored under the avatar on wider screens. Identity (name, role, institute, Trainer ID), language, face registration status, offline data (instructors), help, logout. It is the single profile entry point.
-- Grids go to two columns only where each card still reads at a glance (class cards, trade and report pickers, the principal's two status cards, home's "today" pair), via container or media queries. Never more than two.
+- **Header tool slot** (`src/components/shell/ToolSlot.tsx`): `AppHeader` always renders an empty `display: contents` span at the start of its bar, for tooling outside the product. The demo trigger portals into it (D-057). The product never puts anything there, and the avatar stays the right-most control.
+- **Navigation** (`src/components/shell/AppNav.tsx`) renders the journey's `navTabs` twice: the DS bottom navigation on phones (tab roots only), and a compact row in the header from 600px up. `deriveJourney` decides the tabs: Home always; Attendance only for the institute board (`access.selection === 'institute'`, the principal); Reports when a report block is enabled or offline data is on. Instructors see Home · Reports, the principal Home · Attendance · Reports (D-052). Never a sidebar. Profile is not a destination.
+- **Profile menu** (`src/features/profile/ProfileMenu.tsx`): the avatar opens a native `<dialog>` — a bottom sheet on phones, a menu anchored under the avatar on wider screens. Identity (name, role, institute, Trainer ID), language, face registration status, help, logout. It is the single profile entry point.
+- Grids go to two columns only where each card still reads at a glance (class cards, the trade list, the principal's two status cards, home's trade overview + My attendance pair), via container or media queries. Never more than two.
 
 ## Where the rules live
 
@@ -137,8 +140,8 @@ stateDiagram-v2
   synced --> pending: new record while flashing
 ```
 
-- `SyncService` (`src/services/sync.ts`) owns the state machine. It is exposed through `ConnectivityBanner` (offline / syncing / failed + Try again / synced), the home "waiting to sync" card, and Profile → Offline data.
-- Offline marking needs a **downloaded batch pack** (`BatchPackService`). A pack older than `offline.refreshDays` shows a "may be missing new admissions" warning on the roster.
+- `SyncService` (`src/services/sync.ts`) owns the state machine. It is exposed through `ConnectivityBanner` (offline / syncing / failed + Try again / synced), the home "waiting to sync" card, and Reports → Offline data (`/reports/offline`).
+- Offline marking needs a **downloaded batch pack** (`BatchPackService`). A pack older than `offline.refreshDays` shows a "may be missing new admissions" warning on the roster. Packs refresh all at once (`refreshAll`, PRD §20.3) or one batch at a time (`refreshBatch`, from its card or its Offline data row, D-055). Both only re-stamp the roster: drafts and records waiting to sync are never touched.
 - The principal's view shows only what has reached the server. An unsynced record cannot be corrected (`not_synced`).
 - Real offline navigation in a WebView would need a service worker for the static shells. That work belongs to production hardening, not this build.
 
@@ -195,11 +198,13 @@ See [CONFIGURATION.md](CONFIGURATION.md) for every option.
 
 ## Demo isolation
 
-- All demo code is in `src/demo`. Two places load it, each through an inline `process.env.NEXT_PUBLIC_DEMO_MODE === 'true'` comparison so the bundler can drop the branch: `bootApp()` (adapters) and `AppProviders` (the `DemoRoot` panel).
-- `npm run check:demo` builds with the flag off and fails if any demo marker string reaches the static output.
+- All demo code is in `src/demo`. Two places load it, each through an inline `process.env.NEXT_PUBLIC_DEMO_MODE === 'true'` comparison so the bundler can drop the branch: `bootApp()` (adapters and `prepareScenario`) and `AppProviders` (the `DemoRoot` panel).
+- `npm run check:demo` builds with the flag off and fails if a demo marker reaches the output. The markers are strings in JS and HTML ("Use demo account", "Quick login", "Skip login screens", and others) and demo CSS (`html[data-demo-float]`, the reserve values).
 - Demo state lives in its own namespace (`ksk-demo:v1`). Reset Demo clears `ksk:v1`, `ksk-demo:v1` and `ksk-prefs`, then reloads.
-- **Login autofill seam.** The product defines `LoginAssistSource` (`src/services/login-assist.ts`); the container exposes `services.loginAssist` (null in production). The demo adapter supplies the selected persona's institute code and Trainer ID from `src/demo/personas.ts`. The login screens render `LoginAssistButton` only when a source exists, and it only fills the field on a tap: no demo copy or credentials live in product code.
-- **Floating panel.** `DemoRoot` renders the app plus a collapsed "Demo" trigger (top right on phones, in space the header reserves; bottom right from 600px) and a native `<dialog>`: a modal bottom sheet on phones, a non-modal drawer on the right from 600px so the app stays usable while settings change. It never takes layout space. The panel's content mounts only while open.
+- **Login assist seam.** The product defines `LoginAssistSource` (`src/services/login-assist.ts`): `get()` (label, options, a highlighted suggestion), `choose(id)` and `credentials(id)`. The container exposes `services.loginAssist` (null in production). The demo's `DemoLoginAssist` (`src/demo/adapters.ts`) offers five demo accounts. `choose` prepares that account's preset through `prepareScenario`, which `boot.ts` connects once the container exists. The login screens render `LoginAssistPicker` only when a source exists, and a field is filled only after a pick. No demo copy or credentials live in product code (D-058).
+- **Demo trigger and panel.** `DemoRoot` renders the app plus a collapsed "Demo" trigger and a native `<dialog>`.
+  - Where there is an app header, the trigger is portaled into the header tool slot. On headerless screens it floats (top right on phones, bottom right from 600px) and sets `html[data-demo-float]`, the only time layout reserves apply (D-036, D-057).
+  - The dialog is a modal bottom sheet on phones, and a non-modal drawer on the left, below the header, from 600px, so the app stays usable while settings change. It never takes layout space, and the panel's content mounts only while open.
 
 ## Storage namespaces
 

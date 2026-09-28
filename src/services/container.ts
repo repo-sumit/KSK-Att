@@ -23,6 +23,8 @@ import {
   MockStaffAttendanceRepository,
   MockVerificationRepository,
 } from '@/repositories/mock/repositories';
+import { MockAnnouncementRepository } from '@/repositories/mock/announcements';
+import { AnnouncementService } from './announcements';
 import { AttendanceService } from './attendance';
 import { MockAuthService, type AuthService } from './auth';
 import { ConfigurationService, type ConfigOverridesSource } from './configuration';
@@ -63,6 +65,8 @@ export interface Services {
   readonly reports: ReportService;
   readonly sync: SyncService;
   readonly packs: BatchPackService;
+  /** Institute / state notices for Home (D-054). */
+  readonly announcements: AnnouncementService;
   readonly connectivity: ConnectivityService;
   /** Demo-only prefill for the login inputs; null in production (nothing renders). */
   readonly loginAssist: LoginAssistSource | null;
@@ -107,6 +111,7 @@ export function createMockContainer(opts: MockContainerOptions): AppContainer {
     verification: new MockVerificationRepository(db),
     offlineQueue: new MockOfflineQueueRepository(db),
     packs: new MockBatchPackRepository(db),
+    announcements: new MockAnnouncementRepository(db),
     session: new MockSessionRepository(db),
     preferences: new DevicePreferencesRepository(opts.preferencesStore, bus),
     syncGateway: new SimulatedSyncGateway(opts.simulation, opts.clock),
@@ -159,10 +164,12 @@ export function createMockContainer(opts: MockContainerOptions): AppContainer {
       isOnline: () => connectivity.isOnline(),
       isPackStale: (downloadedAt) => isPackStale({ batchId: '', downloadedAt }, opts.clock.now(), configuration.base().offline.refreshDays),
       onRecordQueued,
+      delay,
     }),
     staffAttendance: new StaffAttendanceService(repositories.staffAttendance, repositories.verification, repositories.offlineQueue, onRecordQueued),
-    reports: new ReportService(repositories.attendance, repositories.corrections, repositories.staffAttendance, corrections),
-    packs: new BatchPackService(repositories.packs, connectivity),
+    reports: new ReportService(repositories.attendance, repositories.corrections, repositories.staffAttendance, corrections, delay),
+    packs: new BatchPackService(repositories.packs, connectivity, repositories.offlineQueue, delay, masterData),
+    announcements: new AnnouncementService(repositories.announcements),
     loginAssist: opts.loginAssist ?? null,
   };
 

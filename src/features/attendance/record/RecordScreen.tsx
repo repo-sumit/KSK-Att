@@ -20,10 +20,11 @@ import { useQuery } from '@/hooks/useQuery';
 import { cx } from '@/lib/cx';
 import { routes } from '@/lib/routes';
 import { addDays, toLocalDate } from '@/lib/time';
-import { batchTitle, markLabel, statusOf } from '../../common/labels';
+import { batchTitle, batchWithTrade, markLabel, statusOf } from '../../common/labels';
 import { RosterSummary } from '../mark/RosterSummary';
 import { useSessionLabel } from '../useSessionLabel';
 import styles from './Record.module.css';
+import { useAttendanceRoot } from '../useAttendanceRoot';
 
 /**
  * Read-only record of a submitted session. Instructors see the lock; the
@@ -32,6 +33,7 @@ import styles from './Record.module.css';
  */
 export function RecordScreen() {
   const { t, format } = useI18n();
+  const root = useAttendanceRoot();
   const router = useRouter();
   const ctx = useSession();
   const { attendance } = useServices();
@@ -49,7 +51,7 @@ export function RecordScreen() {
   const batch = ctx.data.batches.find((b) => b.id === address?.batchId);
   const trade = ctx.data.trades.find((x) => x.id === batch?.tradeId);
 
-  const header = <AppHeader back="back" title={trade?.name ?? t('common.loading')} subtitle={batch ? batchTitle(t, batch) : undefined} backHref={routes.attendance} />;
+  const header = <AppHeader back="back" title={trade?.name ?? t('common.loading')} subtitle={batch ? batchTitle(t, batch) : undefined} backHref={root.href} />;
   const daySwitch =
     ctx.journey.corrections && dailySlot ? (
       <Segmented
@@ -65,13 +67,14 @@ export function RecordScreen() {
       />
     ) : null;
 
-  if (loading && !detail) return <ScreenLayout area="attendance" width="reading" header={header}><Skeleton label={t('common.loading')} /></ScreenLayout>;
+  if (loading && !detail) return <ScreenLayout area={root.area} width="reading" header={header}><Skeleton variant="rows" count={6} label={t('common.loading')} /></ScreenLayout>;
 
   const submission = detail?.submission;
   if (!detail || !submission) {
-    const session = card ? [label(card).title, label(card).meta].filter(Boolean).join(' · ') : '';
+    // A past day with nothing submitted has no card: name the batch itself.
+    const session = card ? [label(card).title, label(card).meta].filter(Boolean).join(' · ') : batch && trade ? batchWithTrade(t, trade, batch) : '';
     return (
-      <ScreenLayout area="attendance" width="reading" header={header} top={daySwitch ? <div className={styles.top}>{daySwitch}</div> : undefined}>
+      <ScreenLayout area={root.area} width="reading" header={header} top={daySwitch ? <div className={styles.top}>{daySwitch}</div> : undefined}>
         <EmptyState
           icon="clipboard-check"
           title={t('record.notSubmittedTitle')}
@@ -97,7 +100,7 @@ export function RecordScreen() {
 
   return (
     <ScreenLayout
-      area="attendance"
+      area={root.area}
       width="reading"
       surface="raised"
       padding="none"

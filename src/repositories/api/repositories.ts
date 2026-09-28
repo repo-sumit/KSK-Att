@@ -5,11 +5,12 @@
  * verification passes, session, preferences) stay on the device in every mode;
  * only these server-owned repositories change.
  */
+import type { Announcement } from '@/domain/announcement';
 import type { AttendanceSubmission, Correction, StaffAttendanceRecord } from '@/domain/attendance';
-import type { Institute, InstituteId, MasterData, StaffMember } from '@/domain/entities';
+import type { BatchId, Institute, InstituteId, MasterData, StaffMember, Student } from '@/domain/entities';
 import type { Result } from '@/lib/result';
 import type { LocalDate } from '@/lib/time';
-import type { CorrectionRepository, MasterDataRepository, StaffAttendanceRepository, SubmissionQuery, SyncGateway } from '../interfaces';
+import type { AnnouncementRepository, CorrectionRepository, MasterDataRepository, StaffAttendanceRepository, SubmissionQuery, SyncGateway } from '../interfaces';
 import { type ApiClient, NotImplementedError } from './client';
 
 export class ApiMasterDataRepository implements MasterDataRepository {
@@ -26,6 +27,10 @@ export class ApiMasterDataRepository implements MasterDataRepository {
   /** GET /institutes/{id}/bundle — trades, batches, rosters, timetable, OJT (cacheable, also the offline pack source). */
   getInstituteData(instituteId: InstituteId): Promise<MasterData> {
     throw new NotImplementedError(`getInstituteData(${instituteId})`);
+  }
+  /** GET /institutes/{id}/batches/{batchId}/roster — name, father's name, student ID (the offline pack's roster). */
+  getBatchRoster(instituteId: InstituteId, batchId: BatchId): Promise<readonly Student[]> {
+    throw new NotImplementedError(`getBatchRoster(${instituteId}, ${batchId})`);
   }
 }
 
@@ -90,5 +95,14 @@ export class ApiSyncGateway implements SyncGateway {
   /** POST /staff-attendance */
   pushStaffRecord(record: StaffAttendanceRecord): Promise<Result<{ serverTimestamp: string }, 'network' | 'rejected'>> {
     throw new NotImplementedError(`pushStaffRecord(${record.id})`);
+  }
+}
+
+export class ApiAnnouncementRepository implements AnnouncementRepository {
+  constructor(private readonly api: ApiClient) {}
+  /** GET /institutes/{id}/announcements?active=true — only notices showing today; the server targets them by audience. */
+  listForInstitute(instituteId: InstituteId): Promise<readonly Announcement[]> {
+    void this.api;
+    throw new NotImplementedError(`listForInstitute(${instituteId})`);
   }
 }

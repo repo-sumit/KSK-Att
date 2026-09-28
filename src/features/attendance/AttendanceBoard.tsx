@@ -10,6 +10,7 @@ import { useToast } from '@/components/ui/Toast';
 import { useI18n } from '@/hooks/i18n';
 import { PeriodList, SessionList, TradeRows } from './SessionList';
 import { useBoard } from './useBoard';
+import styles from './AttendanceBoard.module.css';
 
 /** The instructor/principal "which class?" block; the same component serves Home and the Attendance tab. */
 export function AttendanceBoard({ showGroupTitles = true }: { readonly showGroupTitles?: boolean }) {
@@ -66,14 +67,18 @@ export function AttendanceBoard({ showGroupTitles = true }: { readonly showGroup
           />
         );
       if (data.groups.length === 1 && !showGroupTitles) return <SessionList cards={data.groups[0].cards} viewer="marker" />;
+      // One grid for every trade: a trade with a single batch takes one column, a bigger one the full width,
+      // so batches across several trades (Employability Skills) don't all stack in the left column.
       return (
-        <>
-          {data.groups.map((group) => (
-            <Section key={group.trade.id} variant="label" title={<Latin>{group.trade.name}</Latin>}>
-              <SessionList cards={group.cards} viewer="marker" />
-            </Section>
-          ))}
-        </>
+        <div className={styles.groups}>
+          <div className={styles.groupGrid}>
+            {data.groups.map((group) => (
+              <Section key={group.trade.id} variant="label" title={<Latin>{group.trade.name}</Latin>} className={group.cards.length > 1 ? styles.span : undefined}>
+                <SessionList cards={group.cards} viewer="marker" />
+              </Section>
+            ))}
+          </div>
+        </div>
       );
   }
 }

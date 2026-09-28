@@ -6,7 +6,7 @@ const WIDTHS = [320, 360, 375, 390, 412, 768, 1024, 1280, 1440, 1920];
 test('no horizontal overflow on key screens, phone to desktop', async ({ page, consoleErrors }) => {
   void consoleErrors;
   await preset(page, 'principal');
-  for (const path of ['/home', '/attendance', '/attendance/staff', '/reports', '/reports/view?r=institute_summary&range=month']) {
+  for (const path of ['/home', '/attendance', '/attendance/staff', '/reports', '/reports/view?r=staff_summary&range=month']) {
     await page.goto(path);
     await page.waitForLoadState('networkidle');
     for (const width of WIDTHS) {
@@ -34,7 +34,7 @@ test('roster status buttons fit the row with five statuses, 320px to 412px', asy
 test('key screens pass automated accessibility checks', async ({ page, consoleErrors }) => {
   void consoleErrors;
   await preset(page, 'open');
-  for (const path of ['/home', '/attendance', '/profile/offline']) {
+  for (const path of ['/home', '/reports', '/reports/offline']) {
     await page.goto(path);
     await page.waitForLoadState('networkidle');
     const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
@@ -55,7 +55,7 @@ test('principal and report screens (grey surfaces) pass automated accessibility 
   void consoleErrors;
   await preset(page, 'principal');
   const today = await page.evaluate(() => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date()));
-  for (const path of ['/home', '/attendance/staff', '/reports', '/reports/view?r=institute_summary&range=month', `/attendance/correct?s=ele-s1u1.${today}.daily&student=ele-s1u1-r21`]) {
+  for (const path of ['/home', '/attendance/staff', '/reports', '/reports/view?r=staff_summary&range=month', `/attendance/correct?s=ele-s1u1.${today}.daily&student=ele-s1u1-r21`]) {
     await page.goto(path);
     await page.waitForLoadState('networkidle');
     const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();

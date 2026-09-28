@@ -18,7 +18,6 @@ export type ReportBlock =
   | 'my_attendance'
   | 'my_batches'
   | 'student_percentage'
-  | 'daily_register'
   | 'institute_summary'
   | 'trade_batch'
   | 'staff_summary'
@@ -112,8 +111,21 @@ export interface ReportsConfig {
   readonly dateRanges: readonly DateRangeKind[];
   /** report.pdf_download */
   readonly pdfDownload: boolean;
-  /** Attendance % below which a student is flagged (exam eligibility; PRD gives no value — extension). */
+  /** Attendance % below which a student is flagged "at risk" (exam eligibility; PRD gives no value — extension, D-022). */
   readonly eligibilityThresholdPct: number;
+  /** Order of a batch's student list in Reports: best attendance first, or lowest first (extension, D-053). */
+  readonly leaderboardSort: 'high_first' | 'low_first';
+  /** Months in the "My attendance" trend, this month included; 0 hides it (extension, D-053). */
+  readonly trendMonths: number;
+  /** Batch averages, leaderboards and at-risk cover the last N days (rolling, so early in a month is not thin; D-053). */
+  readonly windowDays: number;
+  /** A student is flagged at risk only once this many days are marked in the window (one absence is not a pattern). */
+  readonly atRiskMinDays: number;
+}
+
+/** Institute / state announcements on Home (extension: the PRD has no notices, D-054). */
+export interface AnnouncementsConfig {
+  readonly enabled: boolean;
 }
 
 export interface OfflineConfig {
@@ -157,6 +169,7 @@ export interface AppConfiguration {
   readonly staff: StaffConfig;
   readonly reports: ReportsConfig;
   readonly offline: OfflineConfig;
+  readonly announcements: AnnouncementsConfig;
   readonly i18n: I18nConfig;
 }
 

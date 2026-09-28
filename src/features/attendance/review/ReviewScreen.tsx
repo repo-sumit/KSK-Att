@@ -25,6 +25,7 @@ import { batchTitle, closingSoon, markLabel } from '../../common/labels';
 import { RosterSummary } from '../mark/RosterSummary';
 import { useSessionLabel } from '../useSessionLabel';
 import styles from './Review.module.css';
+import { useAttendanceRoot } from '../useAttendanceRoot';
 
 const GROUPS: ReadonlyArray<{ status: StatusCode; title: MessageKey; icon: IconName; tone: string }> = [
   { status: 'absent', title: 'review.absent', icon: 'x', tone: styles.error },
@@ -36,6 +37,7 @@ const GROUPS: ReadonlyArray<{ status: StatusCode; title: MessageKey; icon: IconN
 /** Last check before the irreversible submit (PRD §12.1): the exceptions, then a confirmation with the counts. */
 export function ReviewScreen() {
   const { t, format } = useI18n();
+  const root = useAttendanceRoot();
   const router = useRouter();
   const toast = useToast();
   const ctx = useSession();
@@ -50,7 +52,7 @@ export function ReviewScreen() {
     if (redirect && !busy) router.replace(redirect);
   }, [redirect, busy, router]);
 
-  if (!data) return <ScreenLayout area="attendance" width="reading" header={<AppHeader back="back" title={t('review.title')} />}><Skeleton label={t('common.loading')} /></ScreenLayout>;
+  if (!data) return <ScreenLayout area={root.area} width="reading" header={<AppHeader back="back" title={t('review.title')} />}><Skeleton variant="rows" count={3} label={t('common.loading')} /></ScreenLayout>;
   if (!data.ok) return null;
 
   const { card, students, marks } = data.value;
@@ -82,7 +84,7 @@ export function ReviewScreen() {
 
   return (
     <ScreenLayout
-      area="attendance"
+      area={root.area}
       width="reading"
       header={<AppHeader back="back" title={t('review.title')} backHref={routes.mark(key)} />}
       footer={
@@ -146,7 +148,7 @@ export function ReviewScreen() {
         actions={
           <>
             <Button fullWidth onClick={submit} loading={busy}>
-              {t('review.sheetCta')}
+              {busy ? t('review.submitting') : t('review.sheetCta')}
             </Button>
             <Button variant="secondary" fullWidth onClick={() => setSheet(false)} disabled={busy}>
               {t('common.cancel')}

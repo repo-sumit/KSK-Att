@@ -233,16 +233,90 @@ describe('staff attendance (PRD §18)', () => {
   });
 });
 
-describe('reports (PRD §19)', () => {
-  it('computes student percentages from history and flags low attendance', async () => {
+describe('reports (PRD §19, D-053)', () => {
+  it('lists at-risk students below the threshold, grouped by batch, lowest first', async () => {
     const env = setup();
     const ctx = await signIn(env.app, 'TR-10518');
-    const range = env.app.services.reports.rangeFor(ctx, 'month');
-    const report = await env.app.services.reports.build(ctx, 'student_percentage', range, 'ele-s1u2');
-    if (report.block !== 'student_percentage') throw new Error();
-    expect(report.students[0].student.name).toBe('Tushar Yadav');
-    expect(report.students[0].batch.id).toBe('ele-s1u2');
-    expect(report.belowThreshold).toBeGreaterThanOrEqual(2);
+    const report = await env.app.services.reports.atRisk(ctx, { batchId: 'ele-s1u2' });
+    expect(report.threshold).toBe(75);
+    expect(report.groups).toHaveLength(1);
+    const [group] = report.groups;
+    expect(group.batch.id).toBe('ele-s1u2');
+    // The prototype's low-attendance trainee is among them (last 30 days, D-053).
+    expect(group.students.map((x) => x.student.name)).toContain('Tushar Yadav');
+    expect(report.range).toMatchObject({ from: '2026-08-27', to: TODAY });
+    expect(group.students.length).toBeGreaterThanOrEqual(2);
+    expect(group.students.every((s) => s.atRisk && (s.pct ?? 100) < 75)).toBe(true);
+    // Sorted lowest first; healthy students never appear here.
+    expect(group.students.map((s) => s.pct)).toEqual([...group.students.map((s) => s.pct)].sort((a, b) => (a ?? 0) - (b ?? 0)));
+  });
+
+  it('a day counts once however many sessions it had; nobody is flagged on too few days', async () => {
+    const env = setup();
+    const ctx = await signIn(env.app, 'TR-10432');
+    // Today ele-s1u1 has a daily and a first-half record (seeds): still one day per student.
+    const range = env.app.services.reports.recentWindow(ctx);
+    const subs = await env.app.repositories.attendance.listSubmissions({ batchIds: ['ele-s1u1'], from: range.from, to: range.to });
+    const dates = new Set(subs.filter((x) => !x.address.subjectId).map((x) => x.address.date));
+    const students = (await env.app.services.reports.batchStudents(ctx, 'ele-s1u1')) ?? [];
+    expect(students.every((x) => x.daysMarked === dates.size)).toBe(true);
+    // Rolls 20 and 21 were absent in both of today's records: one absent day, not two.
+    const absentToday = students.find((x) => x.student.rollNo === 20);
+    expect(absentToday && absentToday.daysMarked - absentToday.daysPresent).toBeLessThanOrEqual(dates.size);
+    const strict = setup({ reports: { atRiskMinDays: 30 } });
+    const strictCtx = await signIn(strict.app, 'TR-10432');
+    expect((await strict.app.services.reports.atRisk(strictCtx)).groups).toEqual([]);
+  });
+
+  it('the threshold is a parameter and a configuration value', async () => {
+    const env = setup({ reports: { eligibilityThresholdPct: 90 } });
+    const ctx = await signIn(env.app, 'TR-10518');
+    const configured = await env.app.services.reports.atRisk(ctx, { batchId: 'ele-s1u2' });
+    const given = await env.app.services.reports.atRisk(ctx, { batchId: 'ele-s1u2', threshold: 50 });
+    expect(configured.threshold).toBe(90);
+    expect(configured.groups[0].students.length).toBeGreaterThan(given.groups[0]?.students.length ?? 0);
+  });
+
+  it('my batches under open mapping are the ones I teach, not the whole institute', async () => {
+    const env = setup();
+    const ctx = await signIn(env.app, 'TR-10432');
+    const overview = await env.app.services.reports.batchOverview(ctx);
+    expect(overview.batches.map((b) => b.batch.id)).toEqual(['ele-s1u1', 'ele-s2u1']);
+    expect(overview.batches.every((b) => b.pct !== null && b.students > 0)).toBe(true);
+    const students = await env.app.services.reports.batchStudents(ctx, 'ele-s1u1');
+    expect(students).toHaveLength(overview.batches[0].students);
+    expect(await env.app.services.reports.batchStudents(ctx, 'wel-s1u1')).toBeNull();
+  });
+
+  it('my attendance this month with a three-month trend', async () => {
+    const env = setup();
+    const ctx = await signIn(env.app, 'TR-10432');
+    const me = await env.app.services.reports.myAttendance(ctx);
+    expect(me.range).toMatchObject({ from: '2026-09-01', to: TODAY });
+    expect(me.workingDays).toBeGreaterThan(15);
+    expect(me.presentDays + me.absentDays).toBeLessThanOrEqual(me.workingDays);
+    expect(me.trend.map((m) => m.month)).toEqual(['2026-07-01', '2026-08-01', '2026-09-01']);
+    expect(me.trend.every((m) => m.pct !== null)).toBe(true);
+  });
+
+  it('the Employability Skills instructor sees her subject sessions (generated history)', async () => {
+    const env = setup({ mapping: { model: 'batch' } });
+    const ctx = await signIn(env.app, 'TR-11024');
+    const overview = await env.app.services.reports.batchOverview(ctx);
+    expect(overview.batches).toHaveLength(5);
+    expect(overview.batches.every((b) => b.pct !== null)).toBe(true);
+    const past = await env.app.repositories.attendance.getSubmissionById('hist-es~ele-s1u1-2026-09-24');
+    expect(past).toMatchObject({ markedBy: 'st-meera', address: { subjectId: 'es', batchId: 'ele-s1u1' } });
+  });
+
+  it('the principal sees the institute: attendance, size and staff presence', async () => {
+    const env = setup();
+    const ctx = await signIn(env.app, 'PR-2741');
+    const summary = await env.app.services.reports.instituteSummary(ctx);
+    expect(summary).toMatchObject({ students: 417, batches: 17 });
+    expect(summary.pct).not.toBeNull();
+    expect(summary.staffPct).not.toBeNull();
+    expect((await env.app.services.reports.batchOverview(ctx)).batches).toHaveLength(17);
   });
 
   it('shows the seeded correction in the principal log', async () => {
@@ -250,6 +324,63 @@ describe('reports (PRD §19)', () => {
     const ctx = await signIn(env.app, 'PR-2741');
     const report = await env.app.services.reports.build(ctx, 'correction_log', env.app.services.reports.rangeFor(ctx, 'month'));
     expect(report.block === 'correction_log' && report.entries[0].studentName).toBe('Kiran Wagh');
+  });
+});
+
+describe('offline packs: refresh one batch (D-055)', () => {
+  it('re-stamps only that batch, only when online and downloaded', async () => {
+    const env = setup();
+    const ctx = await signIn(env.app, 'TR-10432');
+    const before = await env.app.services.packs.list(ctx);
+    const stale = before.find((r) => r.batch.id === 'fit-s1u2');
+    expect(stale?.stale).toBe(true);
+    const result = await env.app.services.packs.refreshBatch(ctx, 'fit-s1u2');
+    expect(result.ok).toBe(true);
+    const after = await env.app.services.packs.list(ctx);
+    expect(after.find((r) => r.batch.id === 'fit-s1u2')).toMatchObject({ stale: false, pack: { downloadedAt: env.clock.now().toISOString() } });
+    // Every other pack is untouched.
+    for (const row of after.filter((r) => r.batch.id !== 'fit-s1u2')) expect(row.pack).toEqual(before.find((b) => b.batch.id === row.batch.id)?.pack);
+    expect(await env.app.services.packs.refreshBatch(ctx, 'ele-s2u1')).toMatchObject({ ok: false, error: 'not_downloaded' });
+    env.simulation.update({ online: false });
+    expect(await env.app.services.packs.refreshBatch(ctx, 'ele-s1u1')).toMatchObject({ ok: false, error: 'offline' });
+  });
+
+  it('session cards carry when their pack was downloaded', async () => {
+    const env = setup();
+    const ctx = await signIn(env.app, 'TR-10432');
+    const [card] = await env.app.services.attendance.cardsForBatch(ctx, 'ele-s1u1');
+    expect(card.pack).toMatchObject({ stale: false, downloadedAt: instantAt(TODAY, '07:45').toISOString() });
+    const [none] = await env.app.services.attendance.cardsForBatch(ctx, 'ele-s2u1');
+    expect(none.downloaded).toBe(false);
+    expect(none.pack).toBeUndefined();
+  });
+});
+
+describe('announcements (D-054)', () => {
+  const ids = async (app: AppContainer, trainerId: string) => (await app.services.announcements.forUser(await signIn(app, trainerId))).map((a) => a.id);
+
+  it('an instructor sees institute-wide notices and the ones for their trade, batch or name', async () => {
+    const { app } = setup();
+    const rajesh = await ids(app, 'TR-10432');
+    expect(rajesh).toEqual(expect.arrayContaining(['ann-holiday', 'ann-ojt-ele-s1u1', 'ann-shift-ele', 'ann-exam', 'ann-meeting']));
+    expect(rajesh).not.toContain('ann-maintenance-wel');
+    // The high-priority holiday leads the banner.
+    expect(rajesh[0]).toBe('ann-holiday');
+  });
+
+  it('trade notices follow the instructor’s trades, named notices only the named', async () => {
+    const { app } = setup();
+    const sanjay = await ids(app, 'TR-10455');
+    expect(sanjay).toContain('ann-maintenance-wel');
+    expect(sanjay).not.toContain('ann-ojt-ele-s1u1');
+    expect(sanjay).not.toContain('ann-meeting');
+  });
+
+  it('the principal sees every notice for the institute; switched off, nobody sees any', async () => {
+    const { app } = setup();
+    expect(await ids(app, 'PR-2741')).toHaveLength(6);
+    const off = setup({ announcements: { enabled: false } });
+    expect(await ids(off.app, 'TR-10432')).toEqual([]);
   });
 });
 

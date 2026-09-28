@@ -14,9 +14,9 @@ execSync('npx next build', {
   env: { ...process.env, NEXT_PUBLIC_DEMO_MODE: 'false', KSK_DIST_DIR: distDir },
 });
 
-const needles = ['__KSK_DEMO__', 'Demo controls', 'Reset everything', 'Use demo login', 'Quick login', 'Skip login screens'];
-// The demo stylesheet sets these header / scroll reserves; a demo-off build must not ship it.
-const cssNeedles = ['--demo-reserve-inline:84px', '--demo-reserve-block-end:72px'];
+const needles = ['__KSK_DEMO__', 'Demo controls', 'Reset everything', 'Use demo account', 'Quick login', 'Skip login screens'];
+// The demo stylesheet turns on the floating trigger's reserves; a demo-off build must not ship it.
+const cssNeedles = ['html[data-demo-float]', '--demo-reserve-block:40px', '--demo-reserve-block-end:72px'];
 const hits = [];
 const walk = (dir) => {
   for (const name of readdirSync(dir)) {

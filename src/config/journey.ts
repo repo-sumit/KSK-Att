@@ -10,7 +10,11 @@ import { selectableStatuses } from '@/domain/marking';
 import type { StatusCode } from '@/domain/status';
 import type { AppConfiguration, DateRangeKind, DefaultStatus, Language, MarkingFrequency, ReportBlock } from './types';
 
-/** Primary destinations. Profile is not one: it opens from the header avatar on every screen (D-046). */
+/**
+ * Primary destinations (D-046, D-052). Profile is not one: it opens from the header avatar on every
+ * screen. Home owns today's work, so "Attendance" exists only where it adds a view Home doesn't
+ * have: the principal's institute board (the Students / Staff switch).
+ */
 export type NavTab = 'home' | 'attendance' | 'reports';
 export type LocationStep = 'none' | 'background' | 'fence';
 
@@ -61,14 +65,20 @@ export interface Journey {
     readonly dateRanges: readonly DateRangeKind[];
     readonly pdfDownload: boolean;
     readonly eligibilityThresholdPct: number;
+    readonly leaderboardSort: 'high_first' | 'low_first';
+    readonly trendMonths: number;
+    readonly windowDays: number;
   };
+  /** Offline data lives under Reports (D-056): whenever offline is on, the Reports tab exists. */
   readonly offline: { readonly enabled: boolean; readonly manualRefresh: boolean; readonly multiSelect: boolean; readonly maxBatches: number | null };
+  readonly announcements: { readonly enabled: boolean };
   readonly language: { readonly available: readonly Language[]; readonly canSwitch: boolean };
   readonly navTabs: readonly NavTab[];
 }
 
-const INSTRUCTOR_BLOCKS: readonly ReportBlock[] = ['my_attendance', 'my_batches', 'student_percentage', 'daily_register'];
-const PRINCIPAL_BLOCKS: readonly ReportBlock[] = ['institute_summary', 'trade_batch', 'staff_summary', 'correction_log'];
+/** Report sections in page order (D-053). student_percentage is shown as "At-risk students". */
+const INSTRUCTOR_BLOCKS: readonly ReportBlock[] = ['my_attendance', 'my_batches', 'student_percentage'];
+const PRINCIPAL_BLOCKS: readonly ReportBlock[] = ['institute_summary', 'trade_batch', 'student_percentage', 'staff_summary', 'correction_log'];
 
 export function deriveJourney(config: AppConfiguration, user: StaffMember, access: AccessScope, faceEnrolled: boolean): Journey {
   const isPrincipal = user.role === 'principal';
@@ -85,7 +95,12 @@ export function deriveJourney(config: AppConfiguration, user: StaffMember, acces
     .filter((b) => b !== 'correction_log' || config.identity.principalCanCorrect);
 
   const reportsEnabled = config.reports.enabled && blocks.length > 0;
-  const navTabs: NavTab[] = ['home', 'attendance', ...(reportsEnabled ? (['reports'] as const) : [])];
+  const offlineEnabled = config.offline.enabled && !isPrincipal;
+  const navTabs: NavTab[] = [
+    'home',
+    ...(access.selection === 'institute' ? (['attendance'] as const) : []),
+    ...(reportsEnabled || offlineEnabled ? (['reports'] as const) : []),
+  ];
 
   return {
     role: user.role,
@@ -126,13 +141,17 @@ export function deriveJourney(config: AppConfiguration, user: StaffMember, acces
       dateRanges: config.reports.dateRanges,
       pdfDownload: config.reports.pdfDownload,
       eligibilityThresholdPct: config.reports.eligibilityThresholdPct,
+      leaderboardSort: config.reports.leaderboardSort,
+      trendMonths: config.reports.trendMonths,
+      windowDays: config.reports.windowDays,
     },
     offline: {
-      enabled: config.offline.enabled && !isPrincipal,
+      enabled: offlineEnabled,
       manualRefresh: config.offline.manualRefresh,
       multiSelect: config.offline.multiSelect,
       maxBatches: config.offline.maxBatches,
     },
+    announcements: { enabled: config.announcements.enabled },
     language: { available: config.i18n.languages, canSwitch: config.i18n.userSwitch && config.i18n.languages.length > 1 },
     navTabs,
   };

@@ -76,17 +76,6 @@
 }
 .iconSuccess { color: var(--color-icon-success); }
 .iconWarning { color: var(--color-icon-warning); }
-.link {
-  align-self: flex-start;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-4);
-  min-height: var(--touch-target-min);
-  font: var(--type-title-small);
-  letter-spacing: var(--ls-title-small);
-  /* Brand blue is 3.9:1 on the grey page; the subdued brand text passes AA. */
-  color: var(--color-text-brand-subdued);
-}
 /* A count and its word ("2 Absent") or a time and its label never split across lines. */
 .phrase {
   white-space: nowrap;
@@ -120,5 +109,16 @@
   }
   .pair > * {
     height: 100%;
+  }
+  /* A card beside a list (Submitted today) keeps its own height. */
+  .loose {
+    align-items: start;
+  }
+  .loose > * {
+    height: auto;
+  }
+  /* A lone item (no second thing today) takes the full width rather than leaving half the row empty. */
+  .pair > :only-child {
+    grid-column: 1 / -1;
   }
 }

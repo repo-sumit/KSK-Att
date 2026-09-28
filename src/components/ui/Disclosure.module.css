@@ -1,0 +1,71 @@
+.disclosure {
+  display: flex;
+  flex-direction: column;
+}
+.button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  width: 100%;
+  min-height: var(--row-min-height);
+  padding: var(--space-12) var(--space-16);
+  border: none;
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+.button:active {
+  background: var(--color-surface-muted);
+}
+.button:focus-visible {
+  outline: 2px solid var(--color-interactive-focus);
+  outline-offset: -2px;
+}
+.summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  flex: 1;
+  min-width: 0;
+}
+.chevron {
+  flex: none;
+  color: var(--color-icon-secondary);
+  transition: transform var(--motion-base) var(--motion-ease);
+}
+.open > .button .chevron {
+  transform: rotate(180deg);
+}
+.panel {
+  display: grid;
+  grid-template-rows: 1fr;
+  animation: ksk-reveal var(--motion-base) var(--motion-ease);
+}
+.inner {
+  min-height: 0;
+  overflow: hidden;
+}
+@media (hover: hover) {
+  .button:hover {
+    background: var(--color-surface-muted);
+  }
+}
+
+/*
+ * Keyframes live in the module that uses them: CSS Modules scope animation names per
+ * file, so a keyframe defined elsewhere (e.g. globals.css) would never match. The global
+ * prefers-reduced-motion rule still collapses them all.
+ */
+@keyframes ksk-reveal {
+  from {
+    grid-template-rows: 0fr;
+    opacity: 0;
+  }
+  to {
+    grid-template-rows: 1fr;
+    opacity: 1;
+  }
+}

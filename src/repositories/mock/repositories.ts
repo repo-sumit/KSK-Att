@@ -6,7 +6,7 @@
 import { parseSessionKey, type AttendanceSubmission, type Correction, type StaffAttendanceRecord } from '@/domain/attendance';
 import type { InstituteId, MasterData } from '@/domain/entities';
 import { buildMasterData } from '@/data/mock/seeds';
-import { historicalStaffRecord, historicalSubmission, HISTORY_BATCH_IDS } from '@/data/mock/history';
+import { historicalStaffRecord, historicalSubmission, HISTORY_BATCH_IDS, subjectsWithHistory } from '@/data/mock/history';
 import { err, ok } from '@/lib/result';
 import { compareDates, eachDate, type LocalDate } from '@/lib/time';
 import type {
@@ -52,6 +52,12 @@ export class MockMasterDataRepository implements MasterDataRepository {
     return this.all().staff.find((s) => s.instituteId === instituteId && s.trainerId === id);
   }
 
+  async getBatchRoster(instituteId: InstituteId, batchId: string) {
+    const all = this.all();
+    const batch = all.batches.find((b) => b.id === batchId && all.trades.some((t) => t.id === b.tradeId && t.instituteId === instituteId));
+    return batch ? all.students.filter((s) => s.batchId === batch.id) : [];
+  }
+
   async getInstituteData(instituteId: InstituteId): Promise<MasterData> {
     const all = this.all();
     const trades = all.trades.filter((t) => t.instituteId === instituteId);
@@ -75,24 +81,24 @@ export class MockMasterDataRepository implements MasterDataRepository {
 export class MockAttendanceRepository implements AttendanceRepository {
   constructor(private readonly db: MockDatabase) {}
 
-  /** Past daily records come from generated history; anything else from the store. */
-  private historical(batchId: string, date: LocalDate): AttendanceSubmission | undefined {
-    return historicalSubmission(batchId, date, this.db.today());
+  /** Past daily records (and subject sessions) come from generated history; anything else from the store. */
+  private historical(batchId: string, date: LocalDate, subjectId?: string): AttendanceSubmission | undefined {
+    return historicalSubmission(batchId, date, this.db.today(), subjectId);
   }
 
   async getSubmission(sessionKey: string) {
     const stored = this.db.read('submissions')[sessionKey];
     if (stored) return stored;
     const address = parseSessionKey(sessionKey);
-    if (!address || address.slot.kind !== 'daily' || address.subjectId) return undefined;
-    return compareDates(address.date, this.db.today()) < 0 ? this.historical(address.batchId, address.date) : undefined;
+    if (!address || address.slot.kind !== 'daily') return undefined;
+    return compareDates(address.date, this.db.today()) < 0 ? this.historical(address.batchId, address.date, address.subjectId) : undefined;
   }
 
   async getSubmissionById(id: string) {
     const stored = Object.values(this.db.read('submissions')).find((s) => s.id === id);
     if (stored) return stored;
-    const m = /^hist-(.+)-(\d{4}-\d{2}-\d{2})$/.exec(id);
-    return m ? this.historical(m[1], m[2]) : undefined;
+    const m = /^hist-(?:([^~]+)~)?(.+)-(\d{4}-\d{2}-\d{2})$/.exec(id);
+    return m ? this.historical(m[2], m[3], m[1]) : undefined;
   }
 
   async listSubmissions(query: SubmissionQuery) {
@@ -106,8 +112,10 @@ export class MockAttendanceRepository implements AttendanceRepository {
     for (const date of eachDate(query.from, query.to)) {
       if (compareDates(date, today) >= 0) break;
       for (const batchId of query.batchIds ?? HISTORY_BATCH_IDS) {
-        const h = this.historical(batchId, date);
-        if (h && !stored.some((s) => s.sessionKey === h.sessionKey)) history.push(h);
+        for (const subjectId of [undefined, ...subjectsWithHistory(batchId).map((h) => h.subjectId)]) {
+          const h = this.historical(batchId, date, subjectId);
+          if (h && !stored.some((s) => s.sessionKey === h.sessionKey)) history.push(h);
+        }
       }
     }
     return [...stored, ...history];

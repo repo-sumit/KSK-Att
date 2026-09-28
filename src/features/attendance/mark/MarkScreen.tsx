@@ -10,17 +10,18 @@ import { LEAVE_TYPES } from '@/domain/status';
 import { useI18n } from '@/hooks/i18n';
 import { useSession } from '@/hooks/session';
 import { addDays, toLocalDate } from '@/lib/time';
-import { routes } from '@/lib/routes';
 import { batchTitle, closingSoon } from '../../common/labels';
 import { useSessionLabel } from '../useSessionLabel';
 import { RosterSummary } from './RosterSummary';
 import { StudentRow, type RowLabels } from './StudentRow';
 import { useRoster } from './useRoster';
 import styles from './Mark.module.css';
+import { useAttendanceRoot } from '../useAttendanceRoot';
 
 /** The screen instructors use every day (PRD §9): tap the exceptions, review, submit. */
 export function MarkScreen() {
   const { t, format } = useI18n();
+  const root = useAttendanceRoot();
   const ctx = useSession();
   const label = useSessionLabel();
   const key = useSearchParams().get('s') ?? '';
@@ -48,8 +49,8 @@ export function MarkScreen() {
 
   if (!roster) {
     return (
-      <ScreenLayout area="attendance" width="reading" header={<AppHeader back="back" title={t('common.loading')} backHref={routes.attendance} />}>
-        <Skeleton label={t('common.loading')} />
+      <ScreenLayout area={root.area} width="reading" header={<AppHeader back="back" title={t('common.loading')} backHref={root.href} />}>
+        <Skeleton variant="rows" count={6} label={t('common.loading')} />
       </ScreenLayout>
     );
   }
@@ -78,11 +79,11 @@ export function MarkScreen() {
 
   return (
     <ScreenLayout
-      area="attendance"
+      area={root.area}
       width="reading"
       surface="raised"
       padding="none"
-      header={<AppHeader back="back" title={card.trade.name} subtitle={batchTitle(t, card.batch)} backHref={routes.attendance} />}
+      header={<AppHeader back="back" title={card.trade.name} subtitle={batchTitle(t, card.batch)} backHref={root.href} />}
       top={<RosterSummary meta={meta} counts={counts} closingAt={soon ? format.clockTime(card.address.date, soon) : undefined} staleSince={roster.packStale && roster.packDownloadedAt ? format.dayMonth(toLocalDate(new Date(roster.packDownloadedAt))) : undefined} />}
       footer={
         <>

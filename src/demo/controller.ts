@@ -12,11 +12,36 @@ import type { AppContainer } from '@/services/container';
 import { DEFAULT_SIMULATION, type SimulationState } from '@/services/simulation';
 import type { DemoAdapters } from './adapters';
 import { personaById, type PersonaId } from './personas';
-import { PRESETS } from './presets';
+import { PRESETS, type DemoPreset } from './presets';
 import { DEFAULT_DEMO_TIME } from './state';
 
 export type NetworkMode = 'online' | 'offline' | 'pending';
 const INSTITUTE_ID = 'inst-27410';
+
+/**
+ * A preset's story without moving anyone: who is demonstrated, the
+ * configuration, fresh simulated outcomes, the demo clock and face enrolment.
+ * It signs nobody in or out and navigates nowhere. Shared by the panel's
+ * presets and by "Use demo account" on the login screens (through the
+ * LoginAssistSource seam, wired in boot.ts).
+ */
+export function prepareScenario(app: AppContainer, demo: DemoAdapters, presetId: string): DemoPreset | null {
+  const preset = PRESETS.find((p) => p.id === presetId);
+  if (!preset) return null;
+  const persona = personaById(preset.persona);
+  demo.repo.update((s) => ({
+    ...s,
+    presetId: preset.id,
+    persona: preset.persona,
+    config: preset.config,
+    // Speed and the camera choice belong to the presenting machine (e.g. a laptop without a camera), not to the story.
+    simulation: { ...DEFAULT_SIMULATION, speed: s.simulation.speed, camera: s.simulation.camera, liveness: s.simulation.liveness, ...preset.simulation },
+    clock: { mode: 'fixed', time: DEFAULT_DEMO_TIME },
+  }));
+  app.mockDatabase.clearPasses();
+  app.mockDatabase.setFaceEnrolled(persona.staffId, !preset.firstTime, app.clock.now().toISOString());
+  return preset;
+}
 
 export class DemoController {
   constructor(
@@ -64,8 +89,9 @@ export class DemoController {
 
   /**
    * Quick login: pick who to demonstrate, then show the real login steps with that
-   * persona's credentials one tap away ("Use demo login"). Nothing is typed or
-   * submitted for the presenter. With "Skip login" on, signs straight in instead.
+   * persona highlighted under "Use demo account". Nothing is typed or submitted
+   * for the presenter until they pick it there. With "Skip login" on, signs
+   * straight in instead.
    */
   async quickLogin(personaId: PersonaId): Promise<void> {
     if (this.demo.repo.get().skipLogin) return this.signInAs(personaId);
@@ -109,27 +135,15 @@ export class DemoController {
   }
 
   async applyPreset(id: string): Promise<void> {
-    const preset = PRESETS.find((p) => p.id === id);
+    const preset = prepareScenario(this.app, this.demo, id);
     if (!preset) return;
-    const persona = personaById(preset.persona);
-    this.demo.repo.update((s) => ({
-      ...s,
-      presetId: preset.id,
-      persona: preset.persona,
-      config: preset.config,
-      // Speed and the camera choice belong to the presenting machine (e.g. a laptop without a camera), not to the story.
-      simulation: { ...DEFAULT_SIMULATION, speed: s.simulation.speed, camera: s.simulation.camera, liveness: s.simulation.liveness, ...preset.simulation },
-      clock: { mode: 'fixed', time: DEFAULT_DEMO_TIME },
-    }));
-    this.app.mockDatabase.clearPasses();
-    this.app.mockDatabase.setFaceEnrolled(persona.staffId, !preset.firstTime, this.now().toISOString());
     if (preset.start === 'login') {
       await this.app.services.auth.signOut();
       this.navigate('/login');
       return;
     }
-    await this.app.services.auth.startSession(INSTITUTE_ID, persona.staffId);
-    this.navigate(preset.start === 'attendance' ? '/attendance' : '/home');
+    await this.app.services.auth.startSession(INSTITUTE_ID, personaById(preset.persona).staffId);
+    this.navigate('/home');
   }
 
   /** Complete by construction: wipe every namespace and reload from scratch. */

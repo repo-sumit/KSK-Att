@@ -17,6 +17,7 @@ import { ResultScreen } from '../feedback/ResultScreen';
 import { CaptureView } from './CaptureView';
 import { faceProblem, isCheckFailure } from './guidance';
 import styles from './Face.module.css';
+import { AppHeader } from '@/features/shell/AppHeader';
 
 type Step =
   | { readonly kind: 'intro' }
@@ -58,12 +59,15 @@ export function FaceEnrolScreen() {
   };
 
   const later = { label: t('face.later'), onPress: () => router.replace(routes.home) };
+  // Signed in (enrolment follows login): the app header and avatar on every step except the live camera,
+  // which is a full-screen capture view by design (D-048).
+  const signedIn = <AppHeader plain />;
   const note = faceCapture.source() === 'simulated' ? t('face.simulatedCamera') : faceMatch.simulated ? t('face.prototypeNote') : null;
 
   switch (step.kind) {
     case 'primer':
       // "Allow camera" opens the camera, which is what triggers the browser / phone prompt.
-      return <PermissionPrimer kind="camera" purpose="enrol" onAllow={capture} onNotNow={() => setStep({ kind: 'intro' })} />;
+      return <PermissionPrimer kind="camera" purpose="enrol" onAllow={capture} onNotNow={() => setStep({ kind: 'intro' })} header={signedIn} area="home" />;
     case 'capture':
       return (
         <CaptureView
@@ -79,12 +83,12 @@ export function FaceEnrolScreen() {
         />
       );
     case 'problem':
-      return <ProblemScreen kind={step.problem} primary={{ label: t('common.tryAgain'), onPress: capture }} secondary={later} />;
+      return <ProblemScreen kind={step.problem} primary={{ label: t('common.tryAgain'), onPress: capture }} secondary={later} header={signedIn} area="home" />;
     case 'done':
-      return <ResultScreen tone="success" icon="circle-check" title={t('face.successTitle')} meta={t('face.successBody')} primary={{ label: t('common.continue'), onPress: () => router.replace(next) }} />;
+      return <ResultScreen tone="success" icon="circle-check" title={t('face.successTitle')} meta={t('face.successBody')} primary={{ label: t('common.continue'), onPress: () => router.replace(next) }} header={signedIn} area="home" />;
     case 'intro':
       return (
-        <ScreenLayout surface="default" banner={false} padding="center" card footer={<Button fullWidth onClick={() => void start()}>{t('face.start')}</Button>}>
+        <ScreenLayout header={signedIn} area="home" width="form" inlineFooter surface="default" banner={false} padding="center" footer={<Button fullWidth onClick={() => void start()}>{t('face.start')}</Button>}>
           <IconWell icon="scan-face" tone="brand" size={96} />
           <div className={styles.introText}>
             <h1 className={styles.title}>{t('face.introTitle')}</h1>

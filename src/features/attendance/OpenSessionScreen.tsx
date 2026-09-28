@@ -14,6 +14,7 @@ import type { OpenRosterError, SessionCard } from '@/services/attendance';
 import { ProblemScreen } from '../feedback/ProblemScreen';
 import { VerificationFlow } from '../verification/VerificationFlow';
 import { useSessionLabel } from './useSessionLabel';
+import { useAttendanceRoot } from './useAttendanceRoot';
 
 type Gate = { readonly kind: 'ready' | OpenRosterError; readonly card?: SessionCard };
 
@@ -24,6 +25,7 @@ type Gate = { readonly kind: 'ready' | OpenRosterError; readonly card?: SessionC
  */
 export function OpenSessionScreen() {
   const { t, format } = useI18n();
+  const root = useAttendanceRoot();
   const router = useRouter();
   const ctx = useSession();
   const { attendance, sync } = useServices();
@@ -53,7 +55,7 @@ export function OpenSessionScreen() {
   const back = () => router.back();
   if (!gate || gate.kind === 'ready' || gate.kind === 'already_submitted' || enrolFirst) {
     return (
-      <ScreenLayout area="attendance" width="form" header={<AppHeader title={t('verify.title')} back="close" onBack={back} />}>
+      <ScreenLayout area={root.area} width="form" header={<AppHeader title={t('verify.title')} back="close" onBack={back} />}>
         <Skeleton count={1} height={200} label={t('common.loading')} />
       </ScreenLayout>
     );
@@ -63,13 +65,15 @@ export function OpenSessionScreen() {
   const name = card ? label(card) : undefined;
   const session = name ? [name.title, name.meta].filter(Boolean).join(' · ') : '';
   const goBack = { label: t('common.goBack'), onPress: back };
+  // Signed in: every problem keeps the app header (avatar top right), its own heading below it.
+  const signedIn = { header: <AppHeader plain />, area: root.area };
 
   switch (gate.kind) {
     case 'not_verified':
       return (
         <VerificationFlow
           purpose={{ kind: 'session', key }}
-          area="attendance"
+          area={root.area}
           subtitle={<Latin>{session}</Latin>}
           passedSubtitle={t('verify.openingList')}
           onPassed={() => router.replace(routes.mark(key))}
@@ -82,17 +86,18 @@ export function OpenSessionScreen() {
           kind="notOpen"
           params={{ session, time: card?.scheduled.window ? format.clockTime(card.address.date, card.scheduled.window.start) : '' }}
           primary={goBack}
+          {...signedIn}
         />
       );
     case 'window_closed':
-      return <ProblemScreen kind="closed" params={{ session }} primary={goBack} />;
+      return <ProblemScreen kind="closed" params={{ session }} primary={goBack} {...signedIn} />;
     case 'not_downloaded':
-      return <ProblemScreen kind="noPack" params={{ session }} primary={goBack} />;
+      return <ProblemScreen kind="noPack" params={{ session }} primary={goBack} {...signedIn} />;
     case 'needs_connection':
-      return <ProblemScreen kind="noConnection" params={{ session }} primary={goBack} />;
+      return <ProblemScreen kind="noConnection" params={{ session }} primary={goBack} {...signedIn} />;
     case 'no_access':
-      return <ProblemScreen kind="noAccess" primary={goBack} />;
+      return <ProblemScreen kind="noAccess" primary={goBack} {...signedIn} />;
     default:
-      return <ProblemScreen kind="notFound" />;
+      return <ProblemScreen kind="notFound" {...signedIn} />;
   }
 }

@@ -1,10 +1,12 @@
-import { expect, preset, test } from './fixtures';
+import { demo, expect, preset, test } from './fixtures';
 
 test('open instructor: trade → batch → verify → mark → review → submit → locked', async ({ page, consoleErrors }) => {
   void consoleErrors;
   await preset(page, 'open');
-  await page.getByRole('link', { name: 'Choose trade and batch' }).click();
-  await page.getByRole('link', { name: /Electrician/ }).click();
+  // Slow enough that the verification step is on screen long enough to assert (≈300 ms at the fixture's speed).
+  await demo(page, 'setSimulation({ speed: 0.3 })');
+  // Home owns today's work: the trades are right on Home (D-052).
+  await page.getByRole('region', { name: 'Today’s attendance' }).getByRole('link', { name: /Electrician/ }).click();
   await page.getByRole('link', { name: /Shift 1 · Unit 2/ }).click();
   await expect(page.getByRole('heading', { name: 'Verify your presence' })).toBeVisible();
   await page.waitForURL(/\/attendance\/mark/);

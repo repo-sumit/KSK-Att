@@ -22,7 +22,8 @@ test('principal corrects today’s attendance with a reason; the audit log recor
   await expect(page.getByText('Corrected by principal')).toBeVisible();
 
   await page.getByRole('radio', { name: 'Yesterday' }).click();
-  await expect(page.getByText('Attendance from previous days can’t be corrected.')).toBeVisible();
+  // Read-only either way: yesterday's record (or, on a Monday, Sunday's empty day) can't be corrected.
+  await expect(page.getByText(/Attendance from previous days can’t be corrected\.|Nothing was submitted for Electrician · Shift 1 · Unit 1/)).toBeVisible();
   await expect(page.getByRole('link', { name: /Rahul Kumar/ })).toHaveCount(0);
 
   await page.goto('/reports/view?r=correction_log&range=month');

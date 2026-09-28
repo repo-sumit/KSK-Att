@@ -22,9 +22,11 @@ export async function bootApp(): Promise<AppRuntime> {
   const preferencesStore = createDefaultStore('ksk-prefs');
   // Inline env comparison (not DEMO_MODE) so the bundler drops this branch when the demo is off.
   if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
-    const { createDemoAdapters } = await import('@/demo/adapters');
+    const [{ createDemoAdapters }, { prepareScenario }] = await Promise.all([import('@/demo/adapters'), import('@/demo/controller')]);
     const demo = createDemoAdapters();
     const container = createMockContainer({ store, preferencesStore, clock: demo.clock, simulation: demo.simulation, configOverrides: demo.configOverrides, loginAssist: demo.loginAssist });
+    // "Use demo account" prepares the picked account's story; that needs the container, built just above.
+    demo.loginAssist.connect((presetId) => prepareScenario(container, demo, presetId));
     demo.repo.subscribe(() => container.bus.emit('demo'));
     container.services.sync.start();
     return { container, demo };

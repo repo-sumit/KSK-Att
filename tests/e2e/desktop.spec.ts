@@ -1,4 +1,5 @@
-import { expect, openProfileMenu, preset, test } from './fixtures';
+import type { Page } from '@playwright/test';
+import { expect, expectNoOverflow, nav, openProfileMenu, preset, test } from './fixtures';
 
 const WIDE = [
   { width: 768, height: 1024 },
@@ -7,6 +8,17 @@ const WIDE = [
   { width: 1440, height: 900 },
   { width: 1920, height: 1080 },
 ];
+
+/** The avatar is the right-most control of the header (tooling such as the demo trigger sits left of it). */
+async function expectAvatarRightMost(page: Page, where: string) {
+  const buttons = await page
+    .locator('header')
+    .getByRole('button')
+    .evaluateAll((els) => els.map((e) => ({ name: e.getAttribute('aria-label') ?? e.textContent ?? '', right: e.getBoundingClientRect().right })));
+  const avatar = buttons.find((b) => b.name === 'Profile');
+  expect(avatar, where).toBeDefined();
+  for (const b of buttons) expect(avatar!.right, `${where}: "${b.name}" is right of the avatar`).toBeGreaterThanOrEqual(b.right);
+}
 
 test('wider screens use the viewport: full-width chrome, a readable column, navigation in the header, no Profile tab', async ({ page, consoleErrors }) => {
   void consoleErrors;
@@ -22,7 +34,7 @@ test('wider screens use the viewport: full-width chrome, a readable column, navi
     // One primary navigation, in the header; Profile is never a destination.
     const navs = page.getByRole('navigation', { name: 'Main' });
     await expect(navs).toHaveCount(1);
-    await expect(navs.getByRole('link')).toHaveText(['Home', 'Attendance', 'Reports']);
+    await expect(navs.getByRole('link')).toHaveText(['Home', 'Reports']);
     expect((await navs.boundingBox())!.y).toBeLessThan(header.y + header.height);
     await expect(page.getByRole('link', { name: 'Profile' })).toHaveCount(0);
     // Avatar at the top right of the header.
@@ -32,7 +44,62 @@ test('wider screens use the viewport: full-width chrome, a readable column, navi
   }
 });
 
-test('demo controls float collapsed on every size and overlay the app without reflowing it', async ({ page, consoleErrors }) => {
+test('the avatar is the right-most header control; the demo trigger sits in the header, left of the brand (phone task screens: just before the avatar)', async ({ page, consoleErrors }) => {
+  void consoleErrors;
+  await preset(page, 'open');
+  const header = page.locator('header');
+  const trigger = header.getByRole('button', { name: 'Open demo controls' });
+  for (const width of [320, 360, 412, ...WIDE.map((s) => s.width)]) {
+    await page.setViewportSize({ width, height: 800 });
+    await expect(trigger).toBeVisible();
+    const t = (await trigger.boundingBox())!;
+    const brand = (await header.locator('img').first().boundingBox())!;
+    expect(t.x + t.width, `trigger left of the brand at ${width}`).toBeLessThanOrEqual(brand.x);
+    await expectAvatarRightMost(page, `home at ${width}`);
+    await expectNoOverflow(page);
+  }
+  // In the header nothing floats, so no screen reserves room for it.
+  expect(await page.evaluate(() => document.documentElement.hasAttribute('data-demo-float'))).toBe(false);
+
+  await page.goto('/reports/offline');
+  await page.waitForURL(/\/reports\/offline$/);
+  await expect(header.getByRole('button', { name: 'Back' })).toBeVisible();
+  for (const width of [320, 360, 1280]) {
+    await page.setViewportSize({ width, height: 800 });
+    await expectAvatarRightMost(page, `task screen at ${width}`);
+    const t = (await trigger.boundingBox())!;
+    if (width < 600) {
+      // [← title] … [Demo] [avatar]: icon only, after the back arrow and the title.
+      const back = (await header.getByRole('button', { name: 'Back' }).boundingBox())!;
+      const title = (await header.getByRole('heading', { name: 'Offline data' }).boundingBox())!;
+      expect(t.width).toBeLessThanOrEqual(40);
+      expect(t.x).toBeGreaterThanOrEqual(back.x + back.width);
+      expect(t.x).toBeGreaterThanOrEqual(title.x + title.width);
+    } else {
+      expect(t.x + t.width).toBeLessThanOrEqual((await header.locator('img').first().boundingBox())!.x);
+    }
+    await expectNoOverflow(page);
+  }
+});
+
+test('screens without the app header: the demo trigger floats (top right on phones, bottom right from 600px)', async ({ page, consoleErrors }) => {
+  void consoleErrors;
+  await page.setViewportSize({ width: 360, height: 800 });
+  await preset(page, 'first_time', /\/login$/);
+  const trigger = page.getByRole('button', { name: 'Open demo controls' });
+  let t = (await trigger.boundingBox())!;
+  expect(t.x + t.width).toBeGreaterThan(360 - 24);
+  expect(t.y).toBeLessThan(24);
+  // The layout keeps room for it while it floats: the login content starts below it.
+  expect(await page.evaluate(() => document.documentElement.hasAttribute('data-demo-float'))).toBe(true);
+  expect((await page.locator('main img').first().boundingBox())!.y).toBeGreaterThanOrEqual(t.y + t.height);
+  await page.setViewportSize({ width: 1280, height: 720 });
+  t = (await trigger.boundingBox())!;
+  expect(t.x + t.width).toBeGreaterThan(1280 - 40);
+  expect(t.y + t.height).toBeGreaterThan(720 - 40);
+});
+
+test('demo controls start collapsed on every size and overlay the app without reflowing it (a drawer on the left from 600px)', async ({ page, consoleErrors }) => {
   void consoleErrors;
   await preset(page, 'open');
   for (const size of [{ width: 360, height: 800 }, ...WIDE]) {
@@ -47,8 +114,11 @@ test('demo controls float collapsed on every size and overlay the app without re
     await expect(panel.getByText('Quick presets')).toBeVisible();
     const box = (await panel.boundingBox())!;
     if (size.width >= 600) {
+      // On the trigger's side, below the header.
       expect(box.width).toBeLessThanOrEqual(420);
-      expect(box.x + box.width).toBeGreaterThan(size.width - 40);
+      expect(box.x).toBeLessThan(40);
+      const header = (await page.locator('header').boundingBox())!;
+      expect(box.y).toBeGreaterThanOrEqual(header.y + header.height);
     } else {
       expect(box.height).toBeGreaterThan(size.height * 0.5);
     }
@@ -85,9 +155,14 @@ test('profile menu: a bottom sheet on phones, anchored under the avatar on deskt
   const s = (await sheet.boundingBox())!;
   expect(s.y + s.height).toBeGreaterThanOrEqual(799);
   expect(s.width).toBeGreaterThanOrEqual(359);
-  // The menu is the way into Offline data.
-  await sheet.getByRole('button', { name: /Offline data/ }).click();
-  await page.waitForURL(/\/profile\/offline$/);
+  // Offline data is no longer in the menu: it lives on the Reports page.
+  await expect(sheet.getByRole('button', { name: /Offline data/ })).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(sheet).toBeHidden();
+  await nav(page, 'Reports').click();
+  await page.waitForURL(/\/reports$/);
+  await page.locator('main').getByRole('link', { name: /on this phone/ }).click();
+  await page.waitForURL(/\/reports\/offline$/);
 });
 
 test('attendance stays a row list in a readable column on a monitor, with a centred primary action', async ({ page, consoleErrors }) => {

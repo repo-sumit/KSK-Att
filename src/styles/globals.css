@@ -88,42 +88,11 @@ svg {
   border: 0;
 }
 
-@keyframes ksk-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes ksk-pulse {
-  0% {
-    transform: scale(0.8);
-    opacity: 0.7;
-  }
-  100% {
-    transform: scale(1.6);
-    opacity: 0;
-  }
-}
-
-@keyframes ksk-shimmer {
-  0%,
-  100% {
-    opacity: 0.45;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-@keyframes ksk-sheet-in {
-  from {
-    transform: translateY(100%);
-  }
-  to {
-    transform: translateY(0);
-  }
-}
-
+/*
+ * Motion: each component module defines the keyframes it uses (CSS Modules scope
+ * animation names per file). This rule collapses all of them for people who ask for
+ * less motion.
+ */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

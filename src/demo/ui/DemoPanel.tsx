@@ -62,7 +62,7 @@ export function DemoPanel({ demo, controller, onDone }: { readonly demo: DemoAda
         <p className={styles.hint}>
           {state.skipLogin
             ? 'Signs straight in as this person (Skip login is on under Advanced).'
-            : 'Opens the login screens. Tap "Use demo login" there to fill this person’s institute code and Trainer ID.'}
+            : 'Opens the login screens. Pick this person under "Use demo account" there (or type the Trainer ID shown here): nothing is filled until you do.'}
         </p>
         <ul className={styles.personas}>
           {PERSONAS.map((p) => (

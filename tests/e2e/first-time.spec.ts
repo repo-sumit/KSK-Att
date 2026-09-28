@@ -30,8 +30,7 @@ test('first-time user: login with confirmations, face registration (simulated ca
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.waitForURL(/\/home$/);
 
-  await page.getByRole('link', { name: 'Choose trade and batch' }).click();
-  await page.getByRole('link', { name: /Electrician/ }).click();
+  await page.getByRole('region', { name: 'Today’s attendance' }).getByRole('link', { name: /Electrician/ }).click();
   await page.getByRole('link', { name: /Shift 1 · Unit 3/ }).click();
   await expect(page.getByRole('heading', { name: 'Location required' })).toBeVisible();
   await page.getByRole('button', { name: 'Allow location' }).click();

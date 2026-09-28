@@ -4,7 +4,7 @@ Each entry records a choice that the PRD, prototype or brief left open, or where
 
 ## Project and delivery
 
-**D-001 · No git repository.** *Owner.* The folder is not a git repository and must not be initialised or committed by tooling. The docs carry continuity instead.
+**D-001 · Git belongs to the owner.** *Owner.* The owner has initialised a repository and makes the commits. Tooling does not commit or push unless asked.
 
 **D-002 · Vercel: prepare only.** *Owner.* The app is ready for Vercel (static build, no secrets, `.env.example`) but has not been deployed. Deploy only on request.
 
@@ -46,6 +46,24 @@ On the grey app surface (#ECECEC), ghost buttons and links use `text-brand-subdu
 
 **D-035 · The brand name stays English in Marathi.** *Prototype.* The header reads "KSK Attendance" in both languages. Person, trade and institute names stay in Latin script (they are master data, not translated).
 
+**D-059 · Loading states are realistic.** *Assumed.*
+- The mock services wait a simulated network time (`simulatedDelay`, scaled by the demo speed; 0 in unit and integration tests, 5% in E2E). Reports take 250–350 ms per section, refreshing one batch 900 ms, refreshing all 1200 ms, a download 600 ms + 200 ms per batch, a submit 500 ms and each login lookup 450 ms.
+- Each wait says what is happening: "Checking institute…", "Checking Trainer ID…", "Signing in…", "Refreshing student data…", "Submitting attendance…", "Syncing attendance…", "Preparing camera…", "Downloading student data…".
+- Lists load as `Skeleton variant="rows"` (placeholders shaped like the rows to come) on the roster, record, review, staff, reports and offline data screens. Each login step prefetches the next route, so moving on never shows an empty screen.
+- *Why:* instant mocks hid the states a real network will show, and a named wait reads better than a bare spinner.
+- *PRD:* silent.
+
+**D-060 · Motion marks a change, never decorates.** *Assumed.*
+- **Keyframes live in the CSS module that uses them.** CSS Modules (Turbopack's lightningcss) scope animation names per file, so a keyframe defined in `globals.css` never matched a module's `animation:` (in review, nothing moved, including the older spinners and skeleton shimmer). `globals.css` keeps only the reduced-motion rule. `tests/e2e/regressions.spec.ts` checks that animations run and that a panel's animation name resolves to a real keyframes rule.
+- New keyframes at `--motion-base` (200 ms):
+  - `ksk-reveal`: a `Disclosure` panel grows open;
+  - `ksk-fade-in`: a status text that just changed ("Updated just now") and the toast settle in;
+  - `ksk-pop`: the result screen's icon (`IconWell settle`).
+- The refresh icon spins (`ksk-spin`) while a refresh runs. The login account list grows open with a `grid-template-rows` transition.
+- The existing `prefers-reduced-motion` rule collapses every animation and transition to its end state.
+- *Why:* people should notice that something changed, with no bounce and no confetti. This stays within the DS's 80–200 ms.
+- *PRD:* silent.
+
 ## Product rules
 
 **D-011 · A principal marks students only while the window is open.** *Owner.* PRD §3 says a principal can mark "any batch". Here the principal can mark a batch that is **unsubmitted and whose window is open**. A closed, unsubmitted batch stays a visible gap ("Closed · not submitted"), because allowing it would amount to backdating (PRD §2.2). Config: `identity.principalCanMarkStudents`.
@@ -62,9 +80,9 @@ On the grey app surface (#ECECEC), ghost buttons and links use `text-brand-subdu
 
 **D-019 · Who appears in the staff list.** *Assumed.* All teaching staff (instructors, group instructors) and the principal, shown as "(you)". Office staff are excluded until the state asks for non-teaching attendance.
 
-**D-022 · Eligibility threshold 75%.** *Assumed.* The PRD names no value. Students below `reports.eligibilityThresholdPct` (default 75) are flagged in the student percentage report. Half day counts as 0.5 and OJT as present.
+**D-022 · The at-risk benchmark: 75%, configurable.** *Assumed.* PRD §19.2 names the percentage exam eligibility turns on, but no threshold. `reports.eligibilityThresholdPct` (default 75; `validate.ts` accepts 1–100) is the at-risk benchmark (D-053). Students below it (with at least `reports.atRiskMinDays` marked days, on the unrounded figure) are listed under At-risk students and flagged "At risk" in a batch's leaderboard. A batch average below it shows amber, with "below 75%" spoken for screen readers; the per-batch count lives only under At-risk students. `ReportService.atRisk` also accepts an explicit `threshold`. Half day counts as 0.5 and OJT as present.
 
-**D-023 · PDF is the browser print view.** *Assumed.* "Print / Save as PDF" opens a print-styled view (`reports.pdfDownload`). Server-generated PDFs are a production concern, and SwiftChat's WebView may not support `window.print`. The demo shows an honest toast when printing is unavailable.
+**D-023 · PDF is the browser print view, on detail reports only.** *Assumed.* "Print / Save as PDF" (`reports.pdfDownload`) appears only on the two detail reports at `/reports/view` (Staff attendance and Correction log), which keep the range switch. The Reports page itself is an on-screen overview of this month (D-053). The print view carries the institute, the range, the generation time and a principal's signature line. Server-generated PDFs are a production concern, and SwiftChat's WebView may not support `window.print`. When printing is unavailable, the app shows an honest toast.
 
 **D-024 · Options implemented as a single value.** *Assumed.* `login.second_factor` accepts only `'none'` and `staff.capture_trigger` only `'explicit_tap'` (the PRD's recommended default). `offline.eod_trigger_time` is informational, because end-of-day jobs are server-side.
 
@@ -74,7 +92,7 @@ On the grey app surface (#ECECEC), ghost buttons and links use `text-brand-subdu
 
 **D-032 · The Submitted screen reflects the real sync state.** *Assumed.* It reads "Attendance submitted" once the record is locked and while it is being sent (the banner shows the send). When the record cannot be sent (offline, a failed attempt, or sync paused), it reads "Saved on this phone" with the reason.
 
-**D-039 · Correction reasons are stored as codes.** *Assumed.* A quick reason (late, marked by mistake, on institute duty) is stored as `reasonCode` beside the text, so the audit log and printed register show it in the reader's language. Typed reasons are stored and shown as typed.
+**D-039 · Correction reasons are stored as codes.** *Assumed.* A quick reason (late, marked by mistake, on institute duty) is stored as `reasonCode` beside the text, so the correction screens and the Correction log (on screen and printed) show it in the reader's language. Typed reasons are stored and shown as typed.
 
 **D-040 · Face screens say what is real and what is simulated.** *Brief requirement.* With the device camera: "Prototype · photos are not saved · face matching is simulated" on the registration intro (long form), each capture step and the daily face step. With the demo's simulated camera: "Demo simulation · no camera or photo is used". `FaceMatchService.simulated` and `FaceCaptureService.source()` drive the labels, so a real provider removes them automatically.
 
@@ -100,29 +118,114 @@ On the grey app surface (#ECECEC), ghost buttons and links use `text-brand-subdu
 - Grids have two columns at most, where both halves stay easy to read. The DS allows 4-up cards on desktop; the brief forbids dense grids.
 - *Alternatives:* a centred phone column (the old behaviour, rejected by the brief), or full 12-column layouts (too dense for instructors).
 
-**D-046 · Profile lives in the header avatar; one AppHeader; three destinations for everyone.** *Owner (UX update brief); the principal tab set is assumed.*
-- Profile is removed from every navigation. The avatar at the top right of every signed-in screen opens the profile menu, the single entry point: a bottom sheet on phones, an anchored menu on wider screens. It holds identity, language, face registration, offline data, help and logout.
-- The old Profile page's designation, employment type and access rows were dropped to keep the menu short. `/profile` redirects to `/home`; Offline data keeps its routes.
-- Immersive single-task steps (camera, permission primers, results) keep no chrome, as in the prototype.
-- **Principal navigation stays Home · Attendance · Reports**, with the existing Students / Staff switch inside Attendance. The brief's four tabs would need "Student attendance" and "Staff attendance", which don't fit 80px tabs at 320px in either language; shortened to "Students" and "Staff" they lose meaning. Keeping the same three destinations for every role is also simpler. The principal home still has direct actions for both.
+**D-046 · Profile lives in the header avatar; one AppHeader.** *Owner (UX update brief); the principal tab set is assumed.*
+- Profile is removed from every navigation. The avatar at the top right of every signed-in screen opens the profile menu, the single entry point: a bottom sheet on phones, an anchored menu on wider screens. It holds identity, language, face registration, help and logout.
+- The old Profile page's designation, employment type and access rows were dropped to keep the menu short. `/profile` redirects to `/home`. Offline data moved under Reports (D-056).
+- Signed-in result, problem and permission screens and every face-registration step keep the app header (`AppHeader plain`: brand, avatar, navigation; the screen keeps its own heading), so the avatar really is on every signed-in screen (brief §12). The one exception is the live camera capture, a full-screen view by design (D-048). Before sign-in (login steps) there is no avatar to show.
+- **Principal navigation stays Home · Attendance · Reports**, with the existing Students / Staff switch inside Attendance. The brief's four tabs would need "Student attendance" and "Staff attendance", which don't fit 80px tabs at 320px in either language; shortened to "Students" and "Staff" they lose meaning. The principal home still has direct actions for both. Instructors have Home · Reports (D-052).
 - From 600px the destinations move into the header as a compact row. There is never a sidebar or rail: the brief rules them out, although the DS column table allows one.
+
+**D-052 · Home owns today's work; instructors have Home · Reports.** *Owner (UX update brief).*
+- `deriveJourney` adds the Attendance tab only when `access.selection === 'institute'`, which is the principal's institute board with its Students / Staff switch. It adds Reports when a report block is enabled for the role, or when offline data is on (instructors, D-056). So instructors get Home · Reports and the principal Home · Attendance · Reports.
+- Home lists today's classes in the shape the mapping model sets. Under open mapping, the trade list sits on Home itself ("Today's attendance · Choose a trade, then a batch"), with no "Choose trade and batch" card before it. The "View reports" link is gone: past attendance lives in Reports.
+- `/attendance` redirects to Home when the tab is absent (`AttendanceTabScreen`), so old links keep working. Task screens (trade, gateway, roster, review, record) take their `area` and back target from `useAttendanceRoot()` (`src/features/attendance/useAttendanceRoot.ts`): the Attendance tab where it exists, otherwise Home.
+- *Why:* for an instructor, the Attendance tab repeated Home. Now today's work has one place (Home) and history has one place (Reports).
+- *PRD:* silent on navigation and on Home's layout. §7 defines only how a class is chosen.
+
+## Home, reports and offline data
+
+**D-053 · Reports is one page: my month, and my batches over a rolling window.** *Owner (UX update brief); the details are assumed.*
+- `ReportsScreen` renders one section per block in `journey.reports.blocks`. **My attendance** covers this calendar month to date (`ReportService.thisMonth`, as the brief asks). **Batches, leaderboards, at-risk and the institute figure** cover the last `reports.windowDays` days (default 30, `recentWindow`), so the first days of a month are not thin; the section subtitles say "last 30 days".
+- **Counting:** a student's day counts once however many sessions it had (twice daily, periods): present sessions ÷ that day's sessions. A batch or institute average is over student-days. A student is flagged at risk only on the unrounded figure and only with at least `reports.atRiskMinDays` marked days (default 5; one absence is not a pattern). A figure below the threshold never rounds up to it (74.6% shows as 74%, not "75% ⚠").
+- **Instructor sections:**
+  - **My attendance** (`my_attendance`): this month's %, days present and absent, and a trend over `reports.trendMonths` months (default 3).
+  - **My batches** (`my_batches`): each batch's average, grouped under its trade as on Home (no repeated tile or at-risk count on the rows: that lives in At-risk students). A row expands (`src/components/ui/Disclosure.tsx`) into a leaderboard of its students, ranked 1…n, and sorted Highest first or Lowest first (starting from `reports.leaderboardSort`), with at-risk students flagged. Ties keep a stable order (more days present, then name). Students with no marks come last, unranked. A "Hide students" button at the end of the list closes it and returns to the row.
+  - **At-risk students** (`student_percentage`, relabelled): only students below `reports.eligibilityThresholdPct` (D-022), grouped by batch, with a batch filter; one batch with none says "No students at risk in this batch". A new filter shows a placeholder (never the previous filter's groups), a single group opens by itself, and the result count is announced to screen readers.
+- **Principal sections:** Institute attendance (`institute_summary`: %, students, batches, staff presence); Batch attendance (`trade_batch`: every batch grouped by trade, with the same leaderboard); At-risk students across the institute; and **More reports**, which links to Staff attendance and Correction log. These two are the only detail reports left at `/reports/view` (range switch and print, D-023).
+- `daily_register` is removed: its type, service, screen and strings.
+- **Scope** (`batchesInScope`): under open mapping, "mapped" now means the instructor's home batches (`StaffMember.batchIds`), not the whole institute. With `instructorScope: 'both'` it adds the batches they marked this month, and a group instructor adds their trade. The principal sees every batch.
+- **Services:** `myAttendance`, `batchOverview`, `batchStudents`, `atRisk({ threshold?, batchId? })`, `instituteSummary`, `build` (detail blocks only) and `batchesInScope`.
+- **New keys:** `reports.leaderboardSort` (`'high_first'`), `reports.trendMonths` (3; 0 hides the trend), `reports.windowDays` (30) and `reports.atRiskMinDays` (5). `validate.ts` rejects a threshold outside 1–100 (`threshold_range`), a trend outside 0–12 (`trend_months`), a window outside 7–120 days (`report_window`) and a minimum outside 1–window (`at_risk_min_days`).
+- **Known behaviour:** My attendance ("this month") is thin in the first days of a month and stays truthful about it; it reads "No attendance recorded this month yet" until the month's first record, and the trend still shows earlier months. The batch figures don't have this problem (rolling window).
+- *Why:* the old list of report types and ranges made instructors choose before they saw anything. One page answers "how are my students and I doing?" at a glance. Ranges and print stay where the principal needs a document.
+- *PRD §19:* the sections are §19.2's blocks. The daily register is one of them, "switchable per state": Maharashtra switches it off, and the code no longer carries it, so a state that wants it needs it rebuilt. §19.1 gives an open-mapping instructor the batches they actually marked; the default `both` adds their home batches. §19.3–19.4's date ranges and PDF now apply only to the detail reports. The PRD has no at-risk list or threshold: that is an extension.
+
+**D-054 · Announcements on Home.** *Owner (UX update brief). Extension: the PRD has no notices.*
+- **Domain** (`src/domain/announcement.ts`):
+  - fields: category (info / important / holiday / ojt), priority (high / normal), source (state / institute / principal), audience (institute / trade / batch / staff), `showFrom`–`showUntil` (inclusive), optional `eventFrom`–`eventTo`, and bilingual `LocalizedText` (English is required and is the fallback);
+  - `isForReader` does the targeting, and never crosses institutes;
+  - `compareAnnouncements` orders high priority first, then important > holiday > OJT > info, then newest.
+- **Service:** `AnnouncementService.forUser(ctx)` returns the notices showing today for this reader. `readerFor` decides the reader's reach: under open mapping, trade and batch notices follow the person's home batches and trades, not every batch they could mark; the principal reads everything posted for the institute.
+- **Repository:** `AnnouncementRepository`. The mock is `MockAnnouncementRepository`, with six notices built relative to today (`src/data/mock/announcements.ts`). The API stub is `ApiAnnouncementRepository` (`GET /institutes/{id}/announcements?active=true`).
+- **UI** (`src/features/announcements/*`): one compact strip under the greeting on both Homes, with the most important notice and "N more announcements". A tap opens the full list in a bottom sheet. Category colours are Important amber, Holiday green, OJT blue and Info grey, always with the icon and the word.
+- **Config:** `announcements.enabled` is off in the product defaults and on for Maharashtra. Off: the strip is absent and the service returns nothing.
+- Notices are information only. An OJT notice marks nobody OJT: that status still comes from the ERP declaration. The demo's OJT notice has a matching declaration in `seeds.ts`.
+- *Why:* instructors hear about holidays, OJT periods and timing changes in the place where they mark attendance.
+- *PRD:* silent (no notices anywhere).
+
+**D-055 · Refresh one downloaded batch.** *Owner (UX update brief). Extension of PRD §20.3.*
+- `BatchPackService.refreshBatch(ctx, batchId)` pulls one roster through `MasterDataRepository.getBatchRoster` (API stub: `GET /institutes/{id}/batches/{batchId}/roster`; the API build stores it in the pack) and re-stamps its `downloadedAt`. It works only online (`offline`), for a user with offline on and the batch in scope (`no_access`), and for a batch already on the phone (`not_downloaded`). Drafts and records waiting to sync are never touched. Simulated time: about 0.9 s for one batch, at most 1.5 s for many.
+- `SessionCard.pack` carries `{ downloadedAt, stale }`. `PackRow` gains `pendingSync`: that batch's records waiting to sync.
+- **The strip** (`src/features/offline/BatchDataRow.tsx` + `useBatchRefresh.ts`): one "Updated 7:45 AM · Refresh data" strip per downloaded batch on Home and trade cards. It sits on the batch's next session still to come (else its first), is shown to markers only, and only when offline is on. A stale pack reads "Updated 22 Sep · refresh needed".
+- A tap shows "Refreshing student data…", then "Updated just now" for a minute (`JUST_NOW_MS`), then the refresh time. It is a timer, not computed from the clock: the demo clock is fixed, so a computed "just now" would never age. Offline, a toast says "Connect to the internet to refresh". While busy the button keeps focus (`aria-disabled`) and shows only its spinning icon, so the status reads on one line. With `offline.manualRefresh` off the strip still says when the list was downloaded, without the button.
+- *PRD §20.3:* the manual refresh "pulls current data for every pack" from the offline section. That stays (D-056). One batch is an addition, so a roster change the instructor knows about doesn't wait for every pack.
+
+**D-056 · Offline data lives under Reports.** *Owner (UX update brief).*
+- **Routes:** `/reports/offline` and `/reports/offline/download` (`src/features/offline/*`). `next.config.ts` redirects `/profile/offline` and `/profile/offline/download` to them. The profile-menu row is gone.
+- Reports has an "Offline data" section (instructors, while offline is on): how many batches are on the phone, the sync state, and how many need a refresh. With reports off but offline on, the Reports tab stays for it (D-052).
+- **The screen:**
+  - a banner with the sync state only (Sync now while records wait), and an amber "N batches need a refresh" line (with Refresh) when any pack is stale;
+  - the records waiting to sync;
+  - each downloaded batch with when it was updated, a status (Ready offline / Refresh needed / N waiting to sync) and its own refresh; batches that need the instructor come first (waiting to sync, then refresh needed). A refresh-all is announced once (its toast), not by every row;
+  - "Refresh all downloaded data", with a busy state ("Refreshing downloaded data…");
+  - Download more batches.
+- A user without offline (the principal) who opens an old link is sent to Reports or Home, and the service refuses changes for them too.
+- *Why:* "is my data on this phone, and has it been sent?" is a status question that belongs beside the reports, not in profile settings. The profile menu also stays short.
+- *PRD §20:* speaks of "the offline section" without placing it.
 
 ## Demo
 
 **D-017 · Frozen demo clock.** *Assumed.* The demo clock starts fixed at **10:15 IST today**, so every demo tells the same story: Shift 1 is open, Period 3 is "Now" and Shift 2 opens at 2:00 PM. The panel offers 7:30, 10:15, 11:30, 2:30 PM and "Real". With the demo off, the system clock is used.
 
-**D-018 · The story is relative to today.** *Assumed.* The seed builds today's submissions, yesterday's correction and 45 days of deterministic history from the current date. The mock DB reseeds when the calendar day changes, so "today" in the demo always means today. Reset Demo wipes all three storage namespaces and reloads.
+**D-018 · The story is relative to today.** *Assumed.* The seed builds today's submissions, yesterday's correction and deterministic history for every past working day (generated at read time, never stored) from the current date. The mock DB reseeds when the calendar day changes, so "today" in the demo always means today. Reset Demo wipes all three storage namespaces and reloads.
 
-**D-036 · The demo trigger reserves header space on phones only.** *Assumed.* Below 600px, headers leave 84px on the right (`--demo-reserve-inline`) and headerless screens 40px at the top, so the floating **Demo** trigger never covers the avatar, a title or a banner. Below 360px it is icon-only and the reserve drops to 48px. From 600px the trigger sits bottom right outside the content column and nothing is reserved (D-047). The reserve is 0 when the demo is off.
+**D-061 · The Employability Skills instructor has history.** *Assumed.* `SUBJECT_HISTORY` (`src/data/mock/history.ts`) generates each subject instructor's daily session for each of their batches on past working days: ids `hist-es~<batch>-<date>`, marked by the subject instructor in the late morning, with marks drawn from each student's own attendance propensity. Reports for a subject instructor count only their subject's sessions (D-013), so without this the ES persona's Reports were empty. *PRD:* not applicable (mock data).
 
-**D-047 · Demo controls float on every size; presenters log in with one tap per step.** *Owner (UX update brief).*
-- A collapsed **Demo** trigger on every screen: top right on phones (D-036), bottom right from 600px. There, scrollers get 72px of extra bottom room in demo builds (`--demo-reserve-block-end`), so the last row can always scroll clear of it.
-- Phones open a modal bottom sheet (≤ 90% height). From 600px it is a 380px **non-modal** drawer on the right. It starts below the app header, so the avatar and navigation stay usable, and it overlays the app without reflowing it, so the presenter can keep using the app.
+**D-036 · Layout reserves room for the demo trigger only while it floats.** *Assumed.* In the app header the trigger is an ordinary header item (D-057), so nothing is reserved. On screens without the header it floats and sets `html[data-demo-float]`, the only time the reserves in `tokens.css` apply. Otherwise they are 0, and always 0 with the demo off.
+- **Phones:** headerless screens get 40px of extra top padding (`--demo-reserve-block`). `--demo-reserve-inline` (84px; 48px below 360px, where the pill is icon-only) is kept only so a floating first-row banner ends before the pill.
+- **From 600px:** scrollers get 72px of extra bottom room (`--demo-reserve-block-end`), so the last row can scroll clear of the bottom-right pill. Card screens don't need it, because the pill sits outside the card.
+
+**D-047 · Demo controls stay collapsed on every size; presenters pick a demo account at login.** *Owner (UX update brief).*
+- A collapsed **Demo** trigger on every screen: in the app header's tool slot (D-057), floating only on screens without the header (top right on phones, bottom right from 600px; reserves in D-036).
+- Phones open a modal bottom sheet (≤ 90% height). From 600px it is a 380px **non-modal** drawer on the **left**, below the app header, on the trigger's side. The avatar and navigation stay usable, and it overlays the app without reflowing it, so the presenter can keep using the app.
 - Esc closes it (unless a sheet or menu is open on top), and every way of closing returns focus to the trigger. The panel's content mounts only while open, so nothing of it is in the page (or read by a screen reader) while collapsed. The permanent desktop sidebar is gone.
 - In Advanced, location is two controls: **Location source** (Simulated / This device), and the simulated outcome only while simulating. Segmented controls can never overflow their row.
 - Order: **Quick presets** (most prominent), **Quick login** (every persona), then **Advanced** (collapsed: all configuration and simulation controls, plus "Skip login screens").
-- **Autofill:** the product defines a `LoginAssistSource` seam; only the demo supplies one. The login steps show a dashed "Use demo login · <person>" button that fills that one field on a tap and returns focus to it, so Enter continues. It never fills without a tap, never submits, and never skips a confirmation. Credentials come from `src/demo/personas.ts` and follow the last-picked persona. *Alternatives:* prefilled query strings (`?code=`, `?tid=` still work) or a credentials card on the login page (rejected by the brief).
-- Presets keep the presenter's **camera choice** and speed: those describe the machine, not the story.
+- **Autofill:** the product defines a `LoginAssistSource` seam; only the demo supplies one. The login steps show **Use demo account** (D-058). A field is filled only when the presenter picks an account. It never submits and never skips a confirmation. *Alternatives:* prefilled query strings (`?code=`, `?tid=` still work) or a credentials card on the login page (rejected by the brief).
+- Presets keep the presenter's **camera choice**, face-detection mode and speed: those describe the machine, not the story.
+
+**D-057 · The demo trigger sits in the app header.** *Owner (UX update brief).*
+- `AppHeader` always renders an empty tool slot (`HeaderToolSlot`, `src/components/shell/ToolSlot.tsx`): a `display: contents` span, so the header lays out as if it weren't there. `DemoRoot` portals the trigger into it.
+- **Where it sits** (the avatar always stays the right-most control):
+  - tab roots: `[Demo] brand … [avatar]`;
+  - phone task screens: `[← title] … [Demo] [avatar]`, icon-only;
+  - Home on 360–399px keeps the labelled pill, slightly tighter, so "KSK Attendance" stays on one line; below 360px icon-only;
+  - from 600px, at the start of the brand row; icon-only up to 900px, where the principal's three destinations need the room.
+- Screens without the app header (login, camera, results, permission cards) have no slot. There the trigger floats (top right on phones, bottom right from 600px) and sets `html[data-demo-float]` (D-036).
+- The wide drawer opens on the left, below the whole header: `DemoRoot` measures it, so on task screens it starts under the back + title row. Phones keep the bottom sheet.
+- *Why:* a pill floating over the header had to reserve space on every screen, and at some widths it still crowded the avatar or a title. In the slot it is a normal header item. The product never puts anything in the slot and never depends on it.
+- *PRD:* not applicable (presenter tooling).
+
+**D-058 · "Use demo account" on the login screens.** *Owner (UX update brief).*
+- `LoginAssistPicker` sits under the field on the Institute code and Trainer ID steps. It expands to five accounts: Open, Batch-mapped, Timetable, Employability Skills and Principal (`DEMO_ACCOUNTS`, `src/demo/adapters.ts`).
+- **Choosing an account** runs that persona's preset preparation (`prepareScenario` in `src/demo/controller.ts`: persona, configuration, simulation, the 10:15 clock, face enrolment, cleared passes) without signing in or navigating. It then fills the Institute code and focuses it, so Enter continues. `boot.ts` connects the preparation step once the container exists.
+- **Trainer ID step:** it arrives prefilled from the chosen account, with "Demo account: … · Change". Typing a different value forgets the pick.
+- **First-time preset:** protected. Picking its own account (Open) keeps the first-time story: face not registered, permissions not yet asked.
+- **Quick login:** the persona picked in the panel is highlighted in the list but never filled.
+- Every step and both confirmations are still shown, and nothing is submitted for the user.
+- **Production:** `services.loginAssist` is null, so nothing renders. `scripts/check-demo-stripped.mjs` fails the demo-off build if "Use demo account", "Quick login", "Skip login screens" or the other demo needles reach it.
+- *Why:* one explicit pick at the first step sets up the whole story and carries into the second field. The old per-step button filled whichever persona had been picked last in the panel, so the name on screen was not a choice made at login.
+- *PRD:* not applicable. The production login (PRD §6) is unchanged.
 
 **D-048 · Real camera, prototype movement check, simulated matching.** *Owner (UX update brief).*
 - Three seams: `FaceCaptureService` (`CameraFaceCaptureService`: getUserMedia, front camera), `LivenessService` (`BasicClientLivenessService`: MediaPipe BlazeFace on the device) and `FaceMatchService` (`MockFaceMatchService`).
@@ -147,7 +250,7 @@ On the grey app surface (#ECECEC), ghost buttons and links use `text-brand-subdu
 
 **D-050 · Location results say whether they are real.** *Brief requirement.* `DevicePosition.source` and `CapturedLocation.source` are `'device'` or `'simulated'`, stored with the pass for audit and never shown to instructors.
 
-**D-051 · Unsaved staff marks guard every way out.** *Assumed.* The principal's staff screen already hid the bottom nav while marks were unsaved. From 600px the header navigation is always visible, so `ScreenLayout.guardNavigation` routes header nav, bottom nav and the profile menu (Offline data, face registration, Logout) through the same "Discard n changes?" sheet as the Students/Staff switch. The roster likewise saves its draft when left within the 300 ms debounce.
+**D-051 · Unsaved staff marks guard every way out.** *Assumed.* The principal's staff screen already hid the bottom nav while marks were unsaved. From 600px the header navigation is always visible, so `ScreenLayout.guardNavigation` routes header nav, bottom nav and the profile menu (face registration, Logout) through the same "Discard n changes?" sheet as the Students/Staff switch. The roster likewise saves its draft when left within the 300 ms debounce.
 
 ## Localisation
 

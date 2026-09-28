@@ -4,9 +4,9 @@ import type { Tone } from './Badge';
 import styles from './IconWell.module.css';
 
 /** Large circular icon well for problem, result, intro and permission screens. */
-export function IconWell({ icon, tone, size = 88 }: { readonly icon: IconName; readonly tone: Tone; readonly size?: 88 | 96 }) {
+export function IconWell({ icon, tone, size = 88, settle = false }: { readonly icon: IconName; readonly tone: Tone; readonly size?: 88 | 96; readonly settle?: boolean }) {
   return (
-    <span className={cx(styles.well, styles[tone], styles[`s${size}`])} aria-hidden="true">
+    <span className={cx(styles.well, styles[tone], styles[`s${size}`], settle && styles.settle)} aria-hidden="true">
       <Icon name={icon} size={size === 96 ? 48 : 44} />
     </span>
   );

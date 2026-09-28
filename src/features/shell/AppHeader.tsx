@@ -6,6 +6,7 @@ import { Latin } from '@/components/ui/Latin';
 import { HeaderNav } from '@/components/shell/AppNav';
 import { useBack, useDocumentTitle } from '@/components/shell/Headers';
 import { useScreenArea } from '@/components/shell/ScreenLayout';
+import { HeaderToolSlot } from '@/components/shell/ToolSlot';
 import { useT } from '@/hooks/i18n';
 import { useSession } from '@/hooks/session';
 import { routes } from '@/lib/routes';
@@ -21,26 +22,35 @@ interface AppHeaderProps {
   readonly backHref?: string;
   readonly onBack?: () => void;
   readonly trailing?: ReactNode;
+  /**
+   * The screen below has its own heading (result, problem, permission screens): the
+   * brand stays plain text, so the page keeps a single h1. The avatar is still there.
+   */
+  readonly plain?: boolean;
 }
 
 /**
  * The one header of every signed-in screen (D-046): KSK brand and institute on
  * the left, the profile avatar at the top right, the primary destinations in
  * between on tablets and desktops. Phones keep the prototype's single 60px bar:
- * the brand on tab roots, back + screen title on task screens.
+ * the brand on tab roots, back + screen title on task screens. The avatar is
+ * always the right-most control; tooling outside the product (HeaderToolSlot,
+ * empty in the product) sits at the start of the bar: left of the brand, or
+ * just before the avatar on phone task screens.
  */
-export function AppHeader({ title, subtitle, back = false, backHref = routes.home, onBack, trailing }: AppHeaderProps) {
+export function AppHeader({ title, subtitle, back = false, backHref = routes.home, onBack, trailing, plain = false }: AppHeaderProps) {
   const t = useT();
   const ctx = useSession();
   const area = useScreenArea();
   const goBack = useBack(backHref);
   useDocumentTitle(title ?? t('app.name'));
   const task = Boolean(back);
-  const AppName = title ? 'p' : 'h1';
+  const AppName = title || plain ? 'p' : 'h1';
 
   return (
     <header className={styles.header} data-mode={task ? 'task' : 'root'}>
       <div className={styles.bar}>
+        <HeaderToolSlot />
         <div className={styles.brand}>
           <Image src="/branding/ksk-emblem.png" alt="" width={36} height={36} className={styles.emblem} loading="eager" />
           <span className={styles.brandText}>

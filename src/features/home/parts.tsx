@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/Button';
 import { Card, PressableCard } from '@/components/ui/Card';
 import { Icon } from '@/components/ui/icons/Icon';
 import { IconTile } from '@/components/ui/IconWell';
-import { Latin } from '@/components/ui/Latin';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useI18n } from '@/hooks/i18n';
@@ -15,7 +14,8 @@ import { useSession } from '@/hooks/session';
 import { useQuery } from '@/hooks/useQuery';
 import { useSyncStatus } from '@/hooks/useSync';
 import { routes } from '@/lib/routes';
-import { batchWithTrade, firstName, greetingKey, markLabel } from '../common/labels';
+import { BatchLabel } from '../common/BatchLabel';
+import { firstName, greetingKey, markLabel } from '../common/labels';
 import styles from './Home.module.css';
 
 export function Greeting({ subtitle, name }: { readonly subtitle: string; readonly name?: string }) {
@@ -38,25 +38,6 @@ export function PendingSyncCard() {
     <Banner tone="warning" icon="cloud-upload" strong action={status.online ? { label: t('common.syncNow'), onPress: () => void sync.syncNow() } : undefined}>
       {t('home.pendingSync', { count: status.pending })}
     </Banner>
-  );
-}
-
-export function OpenAccessCard() {
-  const { t } = useI18n();
-  const ctx = useSession();
-  return (
-    <Card>
-      <div className={styles.cardRow}>
-        <IconTile icon="clipboard-check" tint="blue" />
-        <div className={styles.cardText}>
-          <p className={styles.cardTitle}>{t('home.studentAttendance')}</p>
-          <p className={styles.cardSub}>{t('home.openCardSub', { trades: ctx.access.tradeIds.length, batches: ctx.access.batchIds.size })}</p>
-        </div>
-      </div>
-      <Button size="md" fullWidth href={routes.attendance}>
-        {t('home.chooseTradeBatch')}
-      </Button>
-    </Card>
   );
 }
 
@@ -147,7 +128,7 @@ export function SubmittedToday() {
                   <Icon name={s?.pendingSync ? 'cloud-upload' : 'circle-check'} size={20} className={s?.pendingSync ? styles.iconWarning : styles.iconSuccess} />
                   <span className={styles.cardText}>
                     <span className={styles.recentName}>
-                      <Latin>{batchWithTrade(t, card.trade, card.batch)}</Latin>
+                      <BatchLabel trade={card.trade} batch={card.batch} />
                     </span>
                     <span className={styles.cardSub}>
                       <span className={styles.phrase}>{s?.pendingSync ? t('selection.waitingToSync') : t('home.submittedAt', { time: format.time(s?.at ?? '') })}</span>
@@ -161,12 +142,6 @@ export function SubmittedToday() {
             );
           })}
         </ul>
-      )}
-      {ctx.journey.reports.enabled && (
-        <Link href={routes.reports} className={styles.link}>
-          {t('home.viewReports')}
-          <Icon name="chevron-right" size={16} />
-        </Link>
       )}
     </section>
   );

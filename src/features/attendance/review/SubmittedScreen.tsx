@@ -11,6 +11,8 @@ import { useSyncStatus } from '@/hooks/useSync';
 import { routes } from '@/lib/routes';
 import { ResultScreen } from '../../feedback/ResultScreen';
 import { useSessionLabel } from '../useSessionLabel';
+import { AppHeader } from '@/features/shell/AppHeader';
+import { useAttendanceRoot } from '../useAttendanceRoot';
 
 /**
  * Submitted — or "saved on this phone" when it cannot be sent right now
@@ -19,6 +21,7 @@ import { useSessionLabel } from '../useSessionLabel';
  */
 export function SubmittedScreen() {
   const { t, format } = useI18n();
+  const root = useAttendanceRoot();
   const ctx = useSession();
   const { attendance } = useServices();
   const label = useSessionLabel();
@@ -49,6 +52,8 @@ export function SubmittedScreen() {
       }
       note={saved ? t(sync.online ? 'result.savedNoteLater' : 'result.savedNote') : undefined}
       primary={{ label: t('common.done'), href: routes.home }}
+      header={<AppHeader plain />}
+      area={root.area}
     />
   );
 }

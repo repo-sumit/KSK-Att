@@ -1,0 +1,130 @@
+/* Offline data (D-056). */
+.inst {
+  font: var(--type-body-small);
+  letter-spacing: var(--ls-body-small);
+  color: var(--color-text-secondary);
+}
+.ok,
+.warn,
+.packStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  font: var(--type-label-small-strong);
+  letter-spacing: var(--ls-label-small);
+}
+.ok { color: var(--color-text-success); }
+.warn { color: var(--color-text-warning); }
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+/* DS: standalone buttons are 280px and centred on tablets and desktops; they grow to fit a longer label on one line. */
+@media (min-width: 600px) {
+  .actions {
+    align-items: center;
+  }
+  .actions > a,
+  .actions > button {
+    width: auto;
+    min-width: var(--container-footer);
+    max-width: 100%;
+  }
+}
+
+/* ---- Downloaded batches: one row each, with its own refresh (D-055) ---- */
+.packs {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-lg);
+  background: var(--color-background-surface-raised);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+.pack {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  min-height: 80px;
+  padding: var(--space-12) var(--space-8) var(--space-12) var(--space-16);
+}
+.pack + .pack {
+  border-top: var(--divider-thin) solid var(--color-border-subtle);
+}
+.packText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  flex: 1;
+  min-width: 0;
+}
+.packTitle {
+  font: var(--type-title-small);
+  letter-spacing: var(--ls-title-small);
+}
+.packMeta {
+  font: var(--type-body-small);
+  letter-spacing: var(--ls-body-small);
+  color: var(--color-text-secondary);
+}
+.settle {
+  display: inline-block;
+  animation: ksk-fade-in var(--motion-base) var(--motion-ease);
+}
+.packStatus > svg {
+  flex: none;
+}
+.packRefresh {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-icon-brand);
+  cursor: pointer;
+}
+.packRefresh:active {
+  background: var(--color-surface-pressed);
+}
+.packRefresh[aria-disabled='true'] {
+  color: var(--color-icon-secondary);
+  cursor: default;
+}
+.packRefresh:focus-visible {
+  outline-offset: -2px;
+}
+.spin {
+  animation: ksk-spin 0.8s linear infinite;
+}
+@media (hover: hover) {
+  .packRefresh:not([aria-disabled='true']):hover {
+    background: var(--color-surface-brand-subtle);
+  }
+}
+
+/*
+ * Keyframes live in the module that uses them: CSS Modules scope animation names per
+ * file, so a keyframe defined elsewhere (e.g. globals.css) would never match. The global
+ * prefers-reduced-motion rule still collapses them all.
+ */
+@keyframes ksk-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes ksk-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

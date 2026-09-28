@@ -6,6 +6,8 @@ import { useContainer } from './services';
 export interface QueryState<T> {
   readonly data: T | undefined;
   readonly loading: boolean;
+  /** The data shown is for a previous key (e.g. the last filter) while the new one loads. */
+  readonly stale: boolean;
   readonly error: unknown;
   readonly refresh: () => void;
 }
@@ -48,6 +50,7 @@ export function useQuery<T>(key: string, fetcher: () => Promise<T>, topics: read
   return {
     data: settled.data,
     loading: settled.key !== key || settled.version !== version,
+    stale: settled.data !== undefined && settled.key !== key,
     error: settled.error,
     refresh: () => setVersion((v) => v + 1),
   };

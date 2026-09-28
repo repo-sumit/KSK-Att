@@ -1,16 +1,17 @@
 /*
  * DEMO ONLY. A collapsed trigger on every screen size (D-036, D-047).
- * Phones: top right, in the space headers reserve for it, so it never covers
- * a row, a CTA or the bottom navigation. Tablets and desktops: bottom right,
- * outside the centred content column; nothing is reserved.
+ * Screens with the app header: in the header's tool slot, left of the brand
+ * (just before the avatar on phone task screens), so the avatar stays the
+ * right-most control and nothing needs reserving. Screens without the app
+ * header: it floats (top right on phones, bottom right from 600px) and marks
+ * <html data-demo-float>, which turns on the reserves below.
  */
 .trigger {
-  position: fixed;
-  top: calc(env(safe-area-inset-top) + var(--space-12));
-  right: var(--space-12);
-  z-index: var(--z-demo);
+  position: relative;
+  flex: none;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: var(--space-4);
   min-height: 36px;
   padding: 0 var(--space-12) 0 var(--space-8);
@@ -18,11 +19,11 @@
   border-radius: var(--radius-full);
   background: var(--color-surface-warning-subtle);
   color: var(--color-text-warning);
-  box-shadow: var(--shadow-raised);
   font: var(--type-label-small-strong);
   letter-spacing: var(--ls-label-small);
+  white-space: nowrap;
 }
-/* The visible hit area is 36px; the real one reaches the 44px minimum. */
+/* The visible pill is 36px; the real hit area reaches the 44px minimum. */
 .trigger::after {
   content: '';
   position: absolute;
@@ -30,6 +31,50 @@
 }
 .trigger[aria-expanded='true'] {
   background: var(--color-status-warning-subtle);
+}
+.floating {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + var(--space-12));
+  right: var(--space-12);
+  z-index: var(--z-demo);
+  box-shadow: var(--shadow-raised);
+}
+/* Icon only (its aria-label still says "Open demo controls"): phone task screens, so the screen title keeps its room… */
+@media (max-width: 599px) {
+  header[data-mode='task'] .inHeader {
+    width: 36px;
+    padding: 0;
+  }
+  header[data-mode='task'] .inHeader .triggerText {
+    display: none;
+  }
+}
+/* Home on 360–399px phones keeps the labelled "Demo" pill, a little tighter, so "KSK Attendance" stays on one line… */
+@media (min-width: 360px) and (max-width: 399px) {
+  header[data-mode='root'] .inHeader {
+    gap: var(--space-2);
+    padding: 0 var(--space-8) 0 var(--space-4);
+  }
+}
+/* …tablets up to 900px, where the navigation needs the room (the principal's three destinations)… */
+@media (min-width: 600px) and (max-width: 899px) {
+  .inHeader {
+    width: 36px;
+    padding: 0;
+  }
+  .inHeader .triggerText {
+    display: none;
+  }
+}
+/* …and every narrow phone. */
+@media (max-width: 359px) {
+  .trigger {
+    width: 36px;
+    padding: 0;
+  }
+  .triggerText {
+    display: none;
+  }
 }
 
 /* Phones: a modal bottom sheet, up to 90% of the screen, scrolling inside. */
@@ -86,54 +131,56 @@
   color: var(--color-icon-primary);
 }
 
-/* Tablets and desktops: the bottom-right trigger floats over the page, so the last row can always scroll clear of it. */
-@media (min-width: 600px) {
-  :global(html:root) {
-    --demo-reserve-block-end: 72px;
-  }
-}
-/* Phones: headers keep the top-right corner free for the trigger. */
+/*
+ * Reserves while floating (html[data-demo-float] outranks the :root
+ * defaults in tokens.css whatever the stylesheet order). Phones: headerless
+ * screens start below the pill and a first-row banner ends before it.
+ * Tablets and desktops: the last row can always scroll clear of the
+ * bottom-right pill.
+ */
 @media (max-width: 599px) {
-  /* html:root outranks the :root defaults in tokens.css whatever the stylesheet order. */
-  :global(html:root) {
+  :global(html[data-demo-float]) {
     --demo-reserve-inline: 84px;
     --demo-reserve-block: 40px;
   }
 }
-/* Narrow phones: icon-only trigger (its aria-label still says "Open demo controls"), so headers keep their room. */
 @media (max-width: 359px) {
-  :global(html:root) {
+  :global(html[data-demo-float]) {
     --demo-reserve-inline: 48px;
   }
-  .trigger {
-    width: 36px;
-    padding: 0;
-    justify-content: center;
-  }
-  .triggerText {
-    display: none;
+}
+@media (min-width: 600px) {
+  :global(html[data-demo-float]) {
+    --demo-reserve-block-end: 72px;
   }
 }
 
-/* Tablets and desktops: trigger bottom right; the panel is a floating drawer that overlays the app. */
+/* Tablets and desktops: a floating trigger sits bottom right; the panel is a drawer on the left that overlays the app. */
 @media (min-width: 600px) {
-  .trigger {
+  .floating {
     top: auto;
     right: var(--space-24);
     bottom: calc(env(safe-area-inset-bottom) + var(--space-24));
     min-height: var(--touch-target-min);
     padding: 0 var(--space-16) 0 var(--space-12);
   }
-  .trigger::after {
+  .floating::after {
     content: none;
   }
   .panel {
-    /* Below the app header, so the avatar and navigation stay usable while the drawer is open. */
-    inset: calc(env(safe-area-inset-top) + var(--header-height-wide) + var(--space-8)) var(--space-16) var(--space-16) auto;
+    /* Below the whole app header (DemoRoot measures it: task screens add a back + title row), on the trigger's side, so back, title, navigation and avatar stay usable. */
+    inset: var(--demo-drawer-top, calc(env(safe-area-inset-top) + var(--header-height-wide) + var(--space-8))) auto var(--space-16) var(--space-16);
     width: 380px;
     max-height: none;
     height: auto;
     border: var(--divider-thin) solid var(--color-border-subtle);
     border-radius: var(--radius-xl);
+  }
+}
+
+/* Printed reports: presenter tooling stays off the page. */
+@media print {
+  .trigger {
+    display: none;
   }
 }

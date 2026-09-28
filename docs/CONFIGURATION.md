@@ -32,7 +32,7 @@ To add a state, create `src/config/states/<state>.ts` with a `StateConfiguration
 
 | Option | MH | Values → what the user sees |
 |---|---|---|
-| `model` (mapping.model) | `'open'` | `open`: Home shows "Choose trade and batch" → trade list → batch list; any batch in the institute. `trade`: the instructor's own trade's batches, with a trade switcher if they hold several. `batch`: "Your batches", listing only assigned batches grouped by trade. `timetable`: "Today's timetable", one card per period in time order, with the current one marked **Now** |
+| `model` (mapping.model) | `'open'` | `open`: Home's "Today's attendance" lists the trades ("Choose a trade, then a batch") → batch list; any batch in the institute. `trade`: the instructor's own trade's batches, with a trade switcher if they hold several. `batch`: "Your batches", listing only assigned batches grouped by trade. `timetable`: "Today's timetable", one card per period in time order, with the current one marked **Now** |
 | `tradeAutoselect` (mapping.trade_autoselect) | `true` | `trade` model with a single trade: skips the trade step |
 | `multiTrade` (mapping.multi_trade) | `'named'` | `none`: primary trade only. `named`: primary plus secondary trades, only for staff flagged `multiTradeAllowed`. `all`: every instructor may hold several trades |
 | `allBatchInstructors` (mapping.all_batch_instructors) | `false` | Under the `trade` model, subject instructors (e.g. Employability Skills): `true` reach every batch in the institute; `false` reach only their assigned batches |
@@ -79,7 +79,7 @@ The fence is hard, with no grace period (D-016). Backdating is impossible whatev
 
 | Option | MH | Values → what the user sees |
 |---|---|---|
-| `enabled` (staff.attendance) | `true` | `true`: a "My attendance" card on the instructor home; a Students / Staff switch and a Staff card for the principal; the My attendance and Staff summary reports. `false`: all absent |
+| `enabled` (staff.attendance) | `true` | `true`: a "My attendance" card on the instructor home; a Students / Staff switch and a Staff card for the principal; the My attendance report section and the Staff attendance report. `false`: all absent |
 | `selfMarking` (staff.self_marking) | `true` | `true`: "Mark attendance" on the card → the same verification step → marked. `false`: the card only shows status ("Marked Present by principal" / "Not marked") |
 | `captureTrigger` (staff.capture_trigger) | `'explicit_tap'` | Only an explicit tap is implemented |
 | `principalMarking` (staff.principal_marking) | `true` | `true`: the principal's staff list has Present/Absent pills and "Save n changes". `false`: read-only list |
@@ -89,27 +89,37 @@ The fence is hard, with no grace period (D-016). Backdating is impossible whatev
 
 | Option | MH | Values → what the user sees |
 |---|---|---|
-| `enabled` (report.enabled) | `true` | `false`, or no block available for the role: the **Reports tab disappears** |
-| `instructorScope` (report.instructor_scope) | `'both'` | `mapped`: batches the instructor can reach. `marked_only`: batches they marked this month. `both`: the union |
-| `blocks` (report.blocks) | all 8 | Instructor: My attendance, My batches, Student attendance %, Daily register. Principal: Institute summary, Trade & batch, Staff summary, Correction log. Staff blocks also need `staff.enabled`; the correction log also needs `principalCanCorrect` |
-| `dateRanges` (report.date_ranges) | day, week, month, custom | Options in the range switch ("Today / Week / Month / Custom") |
-| `pdfDownload` (report.pdf_download) | `true` | "Print / Save as PDF" (browser print view, D-023) |
-| `eligibilityThresholdPct` | `75` | Students below it are counted and flagged ("2 students are below 75% attendance") |
+| `enabled` (report.enabled) | `true` | `false`, or no block available for the role: the Reports sections disappear. The **Reports tab disappears** too, unless offline data is on (instructors keep it for Offline data, D-056) |
+| `instructorScope` (report.instructor_scope) | `'both'` | `mapped`: the instructor's assigned batches (under open mapping, their home batches, not the whole institute; a group instructor adds their trade). `marked_only`: batches they marked this month. `both`: the union |
+| `blocks` (report.blocks) | all 7 | One Reports page for this month (D-053), a section per block. Instructor: My attendance, My batches (expandable leaderboard per batch), At-risk students (`student_percentage`). Principal: Institute attendance (`institute_summary`), Batch attendance (`trade_batch`, grouped by trade), At-risk students, and under "More reports" Staff attendance and Correction log (detail screens). Staff blocks also need `staff.enabled`; the correction log also needs `principalCanCorrect`. There is no daily register block |
+| `dateRanges` (report.date_ranges) | day, week, month, custom | The range switch ("Today / Week / Month / Custom") on the two detail reports only. The Reports page is always this month to date |
+| `pdfDownload` (report.pdf_download) | `true` | "Print / Save as PDF" on the detail reports (browser print view, D-023) |
+| `eligibilityThresholdPct` | `75` | The at-risk benchmark (D-022): "Students below 75% attendance this month" are listed under At-risk students, flagged "At risk" in leaderboards and counted on each batch row; a batch average below it is amber. 1–100 |
+| `leaderboardSort` | `'high_first'` | A batch's students start Highest first (`low_first`: Lowest first); the viewer can switch. Positions stay 1 = best either way |
+| `trendMonths` | `3` | Months in My attendance's trend, this month included ("Last 3 months"). `0` hides it. 0–12 |
+| `windowDays` | `30` | Batches, leaderboards, at-risk and the institute figure cover the last N days ("Average attendance, last 30 days"); My attendance stays this month. 7–120 |
+| `atRiskMinDays` | `5` | A student is flagged at risk only once this many days are marked in the window. 1 to `windowDays` |
 
 ## Offline: `offline` (PRD §20)
 
 | Option | MH | Values → what the user sees |
 |---|---|---|
-| `enabled` (offline.enabled) | `true` | `true`: profile menu (avatar, top right) → Offline data (downloaded batches, pending records, "Sync now"); a batch that wasn't downloaded shows "This batch isn't downloaded" when opened offline. `false`: no Offline data screen; opening any batch offline shows "You're offline · Connect to the internet to mark attendance" |
-| `refreshDays` (offline.refresh_days) | `7` | A pack older than this shows "Student list downloaded on 22 Sep. New admissions may be missing…" |
-| `manualRefresh` (offline.manual_refresh) | `true` | "Refresh downloaded data" button |
+| `enabled` (offline.enabled) | `true` | `true`: Reports → **Offline data** (`/reports/offline`, D-056): each downloaded batch with its updated time and status (Ready offline / Refresh needed / N waiting to sync), pending records, "Sync now". Each downloaded batch's card on Home and trade screens ends with "Updated 7:45 AM · Refresh data" (D-055). A batch that wasn't downloaded shows "This batch isn't downloaded" when opened offline. `false`: no Offline data screen and no card strip; opening any batch offline shows "You're offline · Connect to the internet to mark attendance" |
+| `refreshDays` (offline.refresh_days) | `7` | A pack older than this shows "Student list downloaded on 22 Sep. New admissions may be missing…" on the roster, "Refresh needed" on Offline data and "Updated 22 Sep · refresh needed" on its card |
+| `manualRefresh` (offline.manual_refresh) | `true` | "Refresh all downloaded data", each row's refresh on Offline data, and the "Refresh data" button in a batch card's strip. Off: the strip still says when the student list was downloaded, with no button. |
 | `multiSelect` (offline.multi_select) | `true` | Download several batches at once |
 | `maxBatches` (offline.max_batches) | `null` | Caps how many batches can be kept on the phone |
 | `autoSync` (offline.auto_sync) | `true` | Records are sent automatically on reconnect and when the app opens online. `false`: they wait for "Sync now" |
 | `syncOnOpen` (offline.sync_on_open) | `true` | Sync is attempted before opening another batch |
 | `eodTriggerTime` (offline.eod_trigger_time) | `21:00` | Informational (a server-side end-of-day job) |
 
-The principal never works offline (`journey.offline.enabled` is false for the principal), and a record can be corrected only after it has synced.
+The principal never works offline (`journey.offline.enabled` is false for the principal, so their Reports has no Offline data section), and a record can be corrected only after it has synced.
+
+## Announcements: `announcements` (extension, D-054)
+
+| Option | MH | Values → what the user sees |
+|---|---|---|
+| `enabled` | `true` (product default `false`) | `true`: a compact strip under the greeting on both Homes with the most important notice showing today ("Holiday · Special holiday: institute closed · 4 more announcements"); a tap opens the full list in a sheet. Instructors see institute-wide notices and those for their trades, batches or name; the principal sees every notice for the institute. `false`: no strip; the service returns no notices |
 
 ## Language: `i18n` (PRD §21)
 
@@ -135,6 +145,8 @@ These are errors:
 - `default_language`: the default language is not in the list.
 - `language_count`: the state does not ship 1–3 languages.
 - `staff_no_path`: staff attendance is on but both capture paths are off.
+- `threshold_range`: the at-risk threshold is outside 1–100.
+- `trend_months`: the trend is not a whole number of months from 0 to 12.
 
 These are warnings:
 

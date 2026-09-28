@@ -43,6 +43,15 @@ export function validateConfiguration(config: AppConfiguration, ctx: ValidationC
     add('error', 'language_count', 'A state ships between one and three languages.');
   if (staff.enabled && !staff.selfMarking && !staff.principalMarking)
     add('error', 'staff_no_path', 'staff.attendance is on but neither capture path is enabled.');
+  if (config.reports.eligibilityThresholdPct < 1 || config.reports.eligibilityThresholdPct > 100)
+    add('error', 'threshold_range', 'The at-risk threshold must be a percentage from 1 to 100.');
+  if (!Number.isInteger(config.reports.trendMonths) || config.reports.trendMonths < 0 || config.reports.trendMonths > 12)
+    add('error', 'trend_months', 'The attendance trend covers 0 (hidden) to 12 months.');
+  const { windowDays, atRiskMinDays } = config.reports;
+  if (!Number.isInteger(windowDays) || windowDays < 7 || windowDays > 120)
+    add('error', 'report_window', 'The report window is 7 to 120 days.');
+  if (!Number.isInteger(atRiskMinDays) || atRiskMinDays < 1 || atRiskMinDays > windowDays)
+    add('error', 'at_risk_min_days', 'The at-risk minimum is 1 day up to the report window.');
 
   if (marking.frequency === 'twice' && marking.statusSet.includes('half_day'))
     add('warning', 'twice_with_half_day', 'Twice-daily marking and half day answer the same question (PRD §10.2).');

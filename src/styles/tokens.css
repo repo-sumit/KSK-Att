@@ -244,10 +244,15 @@
   --motion-base: 200ms;
   --motion-ease: cubic-bezier(0.2, 0, 0, 1);
 
-  /* Space the demo control reserves in headers; 0 when the demo is off. */
+  /*
+   * Room for the demo trigger while it FLOATS (screens without the app header,
+   * where it has no header slot to sit in). 0 when it sits in the header and
+   * when the demo is off. Inline: the end of a first-row banner (phones).
+   * Block: extra top padding on headerless phone screens. Block-end: scroll
+   * room at the bottom of the scroller (600px and up).
+   */
   --demo-reserve-inline: 0px;
   --demo-reserve-block: 0px;
-  /* Extra scroll room at the bottom of the scroller for the floating trigger (600px and up). */
   --demo-reserve-block-end: 0px;
 
   color-scheme: light;

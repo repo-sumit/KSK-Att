@@ -12,7 +12,7 @@ export type DemoRole = 'instructor' | 'group_instructor' | 'principal';
 export interface DemoPersona {
   readonly id: PersonaId;
   readonly staffId: string;
-  /** Login credentials from the mock master data (institute 27410, Govt ITI Pune): used by demo autofill. */
+  /** Login credentials from the mock master data (institute 27410, Govt ITI Pune): filled by "Use demo account" on a tap. */
   readonly instituteCode: string;
   readonly trainerId: string;
   readonly name: string;

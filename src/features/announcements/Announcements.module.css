@@ -1,0 +1,118 @@
+/* ---- Home banner: one compact card, the whole card is the button ---- */
+.banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  width: 100%;
+  padding: var(--space-12) var(--space-12) var(--space-12) var(--space-16);
+  border: var(--divider-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--color-background-surface-raised);
+  box-shadow: var(--shadow-card);
+  color: var(--color-text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+.banner:active {
+  background: var(--color-surface-pressed);
+}
+.bannerText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  flex: 1;
+  min-width: 0;
+}
+.bannerTop {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-4) var(--space-8);
+}
+.bannerDate {
+  font: var(--type-label-small-strong);
+  letter-spacing: var(--ls-label-small);
+  color: var(--color-text-secondary);
+}
+.bannerTitle {
+  font: var(--type-title-small);
+  letter-spacing: var(--ls-title-small);
+  /* Two lines at most: the full text is one tap away. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: break-word;
+}
+.bannerMore {
+  font: var(--type-label-small-strong);
+  letter-spacing: var(--ls-label-small);
+  color: var(--color-text-brand-subdued);
+}
+.chevron {
+  flex: none;
+  color: var(--color-icon-secondary);
+}
+@media (hover: hover) {
+  .banner:hover {
+    background: var(--color-surface-muted);
+  }
+}
+
+/* ---- The list in the sheet ---- */
+.list {
+  display: flex;
+  flex-direction: column;
+}
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  padding: var(--space-16) 0;
+}
+.item + .item {
+  border-top: var(--divider-thin) solid var(--color-border-subtle);
+}
+.item:first-child {
+  padding-top: 0;
+}
+.itemTop {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-4) var(--space-8);
+}
+.posted {
+  font: var(--type-label-small);
+  letter-spacing: var(--ls-label-small);
+  color: var(--color-text-secondary);
+}
+.itemTitle {
+  font: var(--type-title-medium);
+  letter-spacing: var(--ls-title-medium);
+}
+.itemBody {
+  font: var(--type-body-medium);
+  letter-spacing: var(--ls-body-medium);
+  color: var(--color-text-secondary);
+  text-wrap: pretty;
+}
+.itemMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4) var(--space-16);
+  font: var(--type-label-small-strong);
+  letter-spacing: var(--ls-label-small);
+  color: var(--color-text-primary);
+}
+.metaPart {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+.metaPart > svg {
+  flex: none;
+  color: var(--color-icon-secondary);
+}

@@ -47,6 +47,8 @@ export interface SessionCard {
   readonly canMark: boolean;
   /** The roster is on this phone (a batch pack), so it can be opened offline. */
   readonly downloaded: boolean;
+  /** When the pack was last downloaded or refreshed, and whether that is past the refresh interval. */
+  readonly pack?: { readonly downloadedAt: string; readonly stale: boolean };
 }
 
 export interface BatchGroup {
@@ -84,6 +86,8 @@ export interface AttendanceDeps {
   readonly isPackStale: (downloadedAt: string) => boolean;
   /** Called after a record is locked locally, so sync can push it. */
   readonly onRecordQueued: () => void;
+  /** Simulated write time, so "Submitting attendance…" is seen (absent in tests). */
+  readonly delay?: (ms: number) => Promise<void>;
 }
 
 export class AttendanceService {
@@ -119,6 +123,11 @@ export class AttendanceService {
     };
   }
 
+  private async packInfo(batchId: string): Promise<Pick<SessionCard, 'downloaded' | 'pack'>> {
+    const pack = (await this.deps.packs.list()).find((p) => p.batchId === batchId);
+    return pack ? { downloaded: true, pack: { downloadedAt: pack.downloadedAt, stale: this.deps.isPackStale(pack.downloadedAt) } } : { downloaded: false };
+  }
+
   private async card(ctx: SessionContext, batch: Batch, scheduled: ScheduledSlot, subjectId: string | undefined): Promise<SessionCard> {
     const address: SessionAddress = { batchId: batch.id, date: this.today(ctx), slot: scheduled.slot, ...(subjectId ? { subjectId } : {}) };
     const key = toSessionKey(address);
@@ -136,7 +145,7 @@ export class AttendanceService {
       studentCount: ctx.data.students.filter((s) => s.batchId === batch.id).length,
       submission: await this.summarize(ctx, submission),
       canMark: status === 'open' && allowed,
-      downloaded: (await this.deps.packs.list()).some((p) => p.batchId === batch.id),
+      ...(await this.packInfo(batch.id)),
     };
   }
 
@@ -215,7 +224,7 @@ export class AttendanceService {
       studentCount: ctx.data.students.filter((s) => s.batchId === batch.id).length,
       submission: await this.summarize(ctx, submission),
       canMark: false,
-      downloaded: (await this.deps.packs.list()).some((p) => p.batchId === batch.id),
+      ...(await this.packInfo(batch.id)),
     };
   }
 
@@ -311,6 +320,7 @@ export class AttendanceService {
       config: ctx.config,
     });
     if (!check.ok) return check;
+    await this.deps.delay?.(500);
     const submission: AttendanceSubmission = {
       id: createId('att'),
       sessionKey: key,

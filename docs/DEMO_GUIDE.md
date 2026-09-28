@@ -13,9 +13,9 @@ npm run build && npm start
 
 It works on a phone, a tablet and a laptop or projector. The app is mobile-first but uses the whole screen on wider devices: a full-width header with the navigation, and content in a readable column (D-045).
 
-The demo controls are **collapsed by default on every screen size**: a small yellow **Demo** trigger.
-- **Phones:** top right (the header leaves room for it). It opens a bottom sheet (up to 90% of the screen, scrolling inside).
-- **Tablets and laptops:** bottom right. It opens a drawer on the right that floats over the app. The app stays visible and usable, so you can change a setting and watch the screen react. **Esc** or **×** closes it.
+The demo controls are **collapsed by default on every screen size**: a small yellow **Demo** trigger in the app header (D-057). The avatar always stays the right-most control.
+- **Phones:** left of the KSK brand on Home and Reports; just before the avatar, icon-only, on task screens. On screens without the header (login, camera, results) it floats top right. It opens a bottom sheet (up to 90% of the screen, scrolling inside).
+- **Tablets and laptops:** at the start of the header row (bottom right on screens without the header). It opens a drawer on the left, below the header, that floats over the app. The app stays visible and usable, so you can change a setting and watch the screen react. **Esc** or **×** closes it.
 
 **Jump straight to a story:** `/?preset=open`, `batch`, `timetable`, `es`, `principal`, `first_time` or `offline`.
 
@@ -37,11 +37,16 @@ The demo controls are **collapsed by default on every screen size**: a small yel
 
 Presets sign straight in and keep the presenter's camera choice (below).
 
-## Quick login and demo credentials
+## Logging in during a demo
 
-**Quick login** (in the panel, under the presets) lists every demo person: Open, Trade-mapped, Batch-mapped, Timetable and Employability Skills instructors, the Group instructor and the Principal. Choosing one signs out and opens the **real login screens**; nothing is typed for you.
+The login screens show a dashed yellow **Use demo account** box under the field (D-058). It expands to five accounts: **Open instructor**, **Batch-mapped**, **Timetable**, **Employability Skills** and **Principal**. Picking one does three things:
+- it sets up that account's story, as its preset would (configuration, simulation, the 10:15 clock, face registration), without signing in;
+- it fills **Institute code** (27410) and puts the cursor there, so **Continue** (or Enter) moves on;
+- the Trainer ID step then arrives already filled, with *Demo account: … · Change*.
 
-On each login step a small, dashed yellow **Use demo login** button shows whose credentials it holds (e.g. *Vikas Shinde · Timetable instructor*). Tap it to fill the field, then press **Continue** (or Enter): the audience still sees the institute code → *Is this your institute?* → Trainer ID → *Is this you?* sequence. The credentials come from the demo personas (`src/demo/personas.ts`) and always match the person you picked last (preset, quick login or skip login). Production builds don't have the button.
+The audience still sees the whole sequence: institute code → *Is this your institute?* → Trainer ID → *Is this you?*. Nothing is submitted for you. Typing a different value forgets the pick. On the **First-time user** preset, picking *Open instructor* keeps the first-time story (face not registered, permissions not asked). Production builds don't have the box.
+
+**Quick login** (in the panel, under the presets) lists every demo person, including the Trade-mapped and Group instructors. Choosing one signs out and opens the real login screens with that person highlighted under *Use demo account*. Nothing is filled until you pick. Trade-mapped and Group aren't among the five accounts: type their Trainer ID from the table below.
 
 | Person | Institute code | Trainer ID |
 |---|---|---|
@@ -73,8 +78,8 @@ Any configuration change starts a new session: verification passes are cleared a
 ## Demo scripts
 
 ### 1. Mark a batch in under a minute (Open instructor)
-1. Preset **Open instructor** → Home shows "Choose trade and batch" and "My attendance · Not marked".
-2. Choose trade and batch → **Electrician** → **Shift 1 · Unit 2**.
+1. Preset **Open instructor** → Home shows the notice strip, *Today's attendance* with the trade list (*Choose a trade, then a batch*), and *My attendance · Not marked*. The navigation is just **Home · Reports**: today's work is on Home (D-052).
+2. **Electrician** → **Shift 1 · Unit 2**.
 3. Verification runs on a full screen: *Checking your location…* → *Location verified* → *Look at the camera* (the **live front camera**, with *Hold still* once a face is found) → *Identity verified*. The note under it says it's a prototype: photos aren't saved and matching is simulated.
 4. The roster opens with everyone **Present**. Tap **Absent** on two students; the tiles update (31 · 29 · 2) and the rows tint red.
 5. **Review & Submit** → the absent list → **Submit attendance** → confirm in the sheet → *Attendance submitted*.
@@ -95,7 +100,7 @@ Any configuration change starts a new session: verification passes are cleared a
 ### 4. Principal: overview, correction, staff
 1. Preset **Principal** → "Good morning, Principal", *5 of 17 batches submitted*, *9 Shift 2 batches open at 2:00 PM*, *Needs attention*.
 2. **Attendance → Electrician → Shift 1 · Unit 1** (submitted 9:48 AM by Rajesh Patil) → tap the pencil on **Rahul Kumar** (Absent).
-3. Choose **Present**, pick the reason *Student arrived late* (or type one; a reason is required) → **Save correction**. The row shows *Corrected by principal*, and **Reports → Correction log** shows the entry with old → new, reason, who and when. The original record is untouched.
+3. Choose **Present**, pick the reason *Student arrived late* (or type one; a reason is required) → **Save correction**. The row shows *Corrected by principal*, and **Reports → More reports → Correction log** shows the entry with old → new, reason, who and when. The original record is untouched.
 4. **Yesterday** tab on the same batch: read-only ("Attendance from previous days can't be corrected").
 5. **Attendance → Staff**: self-verified staff are locked; mark the rest Present/Absent → **Save n changes**. With unsaved marks, leaving (Students, or any navigation) asks *Discard n changes?* first.
 
@@ -105,33 +110,46 @@ Any configuration change starts a new session: verification passes are cleared a
 3. Open **Fitter · Shift 1 · Unit 2**: *Student list downloaded on … New admissions may be missing.*
 4. Open a batch that wasn't downloaded (Mechanic Diesel) → *This batch isn't downloaded*.
 5. Panel → Network **Online** → *Syncing 1 attendance record…* → *All attendance synced*. For the failure path, set *Next sync* → **Fails** first; the banner offers **Try again**.
-6. Tap the avatar (top right) → **Offline data**: downloaded batches and pending records, with *Sync now*.
+6. **Reports → Offline data** (D-056). You see the sync state and the records waiting to sync (*Sync now*). Each downloaded batch shows when it was updated, its status (*Ready offline*, *Refresh needed*, or *n waiting to sync* while a record is unsent) and its own refresh. Below them are **Refresh all downloaded data** and *Download more batches*. Refreshing needs a connection: offline it says *Connect to the internet to refresh*.
 
 ### 6. Configuration changes, live
 1. *Default* → **Blank**: nobody is pre-marked; Review & Submit stays inactive and says how many students remain.
 2. *Half day* **On** + *Ask which half* **On**, *Leave* **On**: rows show a full-width pill row; Half day asks *First half / Second half*; Leave asks *Sick / Casual / Medical*.
 3. *OJT* **On**: in Electrician Shift 1 · Unit 2, rolls 6 and 13 show a locked **OJT** chip ("On-the-job training · declared in the ERP").
 4. *Frequency* → **Twice**: two cards per batch (Morning / After lunch), each locked separately.
-5. *Staff attendance* **Off**: *My attendance* and the staff reports disappear.
+5. *Staff attendance* **Off**: *My attendance* (Home and Reports) and the staff report disappear.
 
 ### 7. Marathi
 Tap the avatar (top right) → Language **मराठी** (or Advanced → Language in the panel). Every screen switches to Marathi in Mukta, with Latin digits (D-012). Names stay in Latin script. Switch back to English the same way.
 
 ### 8. First-time user
-Preset **First-time user** → **Use demo login** (or type **27410**) → *Is this your institute?* → **Yes** → **Use demo login** (**TR-10432**) → *Is this you?* → **Yes** → *Set up face verification* → *Start* → *Camera required* → *Allow camera* (the browser asks) → the live camera takes **three photos**: *Look straight* → *Turn slightly left* → *Turn slightly right*, each appearing as a thumbnail → *Face registered successfully* → Home. The first attendance run then asks for location permission first.
+Preset **First-time user** → **Use demo account** → **Open instructor** (or type **27410**) → *Is this your institute?* → **Yes** → the Trainer ID (**TR-10432**) is already filled → **Continue** → *Is this you?* → **Yes** → *Set up face verification* → *Start* → *Camera required* → *Allow camera* (the browser asks) → the live camera takes **three photos**: *Look straight* → *Turn slightly left* → *Turn slightly right*, each appearing as a thumbnail → *Face registered successfully* → Home. The first attendance run then asks for location permission first.
 
 On-device face detection guides each step: *Face not visible*, *Move closer*, *Keep your face in the oval*, *Only you in the frame*, *More light needed*, *Face detected*, *Hold still*, *Turn your head left*, *Turn back a little*, *Now turn the other way*, *Good*. If detection can't start on a device, after two failed attempts, or when you choose *Face detection: Guided only*, each photo is taken on a 3-2-1 countdown instead.
 
 ### 9. The same app on a laptop or projector
-1. Open any preset at full window width. The header spans the screen: KSK brand, **Home · Attendance · Reports**, and the avatar top right. There is no side column and no phone frame.
-2. Home shows *Student attendance* and *My attendance* side by side; the class list and the trade list use two columns.
+1. Open any preset at full window width. The header spans the screen: the **Demo** trigger, the KSK brand, the navigation (**Home · Reports** for instructors, **Home · Attendance · Reports** for the principal) and the avatar top right. There is no side column and no phone frame.
+2. Home's trade list and class cards use two columns. Reports stays one readable column.
 3. Open a batch: the roster is the same row list (name, father's name, Present/Absent) in a readable centred column, with **Review & Submit** centred below. It is never a table.
 4. Login and single-question steps appear as a centred card.
 5. Open the Demo drawer, switch *Network → Offline*, and watch the banner appear with the drawer still open.
 
+### 10. Notices, fresh student lists and reports
+1. Preset **Open instructor**. Under the greeting, one strip: **Holiday** · *Special holiday: institute closed* · *4 more announcements*. Tap it: the full list opens in a sheet. It has the Electrician timing change, *Batch on OJT* for Electrician Shift 1 · Unit 1, the practical exam, and the instructor meeting (*For you*). The Welding notice isn't there, because it is for another trade (D-054).
+2. Preset **Batch mapped**. Each downloaded batch's card ends with *Updated 7:45 AM · Refresh data*. Tap **Refresh data** on Shift 1 · Unit 2: *Refreshing student data…* → *Updated just now*. The other card still says 7:45 AM (D-055).
+3. **Reports** (this month, D-053):
+   - *My attendance*: the %, present and absent days, and *Last 3 months*.
+   - *My batches*: tap a batch to see its students ranked 1…n. Switch *Highest first* / *Lowest first*; anyone under 75% is flagged *At risk*.
+   - *At-risk students*: only the students below 75%, by batch. Use the *Batch* filter to see one batch.
+   - *Offline data* is at the bottom.
+4. Preset **Employability Skills** → Reports: Meera's figures come from her own ES sessions in each batch (D-061).
+5. Preset **Principal** → Reports: *Institute attendance* (417 students · 17 batches), *Batch attendance* for all 17 batches grouped by trade, and at-risk students across the institute. Under *More reports* are Staff attendance and the Correction log, each with a date range and **Print / Save as PDF**.
+
+Early in a month, *This month* covers only a few days, so the percentages swing. That is the real figure, not a fault.
+
 ## Tips
 
-- **If a screen seems stuck, it isn't.** Simulated delays run at normal speed (about 1–2 s). E2E tests run them at 5%.
+- **If a screen seems stuck, it isn't.** Simulated delays run at normal speed (about 0.25–2 s), and each one says what it is waiting for ("Checking institute…", "Refreshing student data…", D-059). E2E tests run them at 5%.
 - **The data looks wrong after a long demo:** use **Reset everything**.
 - **No camera on this machine** (or it's in use): *Advanced → Camera → Simulated*. The face steps then play without a camera and say "Demo simulation · no camera or photo is used". Presets keep this choice.
 - **Camera over the network:** browsers allow the camera only on HTTPS or `localhost`. Use the Vercel URL, or `localhost`, not a LAN IP over http.

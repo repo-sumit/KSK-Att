@@ -2,13 +2,17 @@
  * ReportService — in-app reports computed from attendance records (PRD §19).
  * Returns structured data; screens format it in the user's language. Scope
  * follows the mapping model (§19.1); percentages count present = 1, half = 0.5.
+ *
+ * The Reports page (D-053) reads this month's overview: my attendance, my
+ * batches with each batch's students, and the at-risk list. Staff attendance
+ * and the correction log keep a detail view with date ranges and print.
  */
 import type { ReportBlock, DateRangeKind } from '@/config/types';
 import { effectiveMarks, type AttendanceSubmission, type Correction } from '@/domain/attendance';
-import type { Batch, StaffMember, Student } from '@/domain/entities';
+import type { Batch, StaffMember, Student, Trade } from '@/domain/entities';
 import { presenceWeight } from '@/domain/marking';
-import type { StatusCode } from '@/domain/status';
-import { compareDates, eachDate, startOfMonth, startOfWeek, toLocalDate, type LocalDate } from '@/lib/time';
+import type { Mark } from '@/domain/status';
+import { addDays, compareDates, endOfMonth, shiftMonth, startOfMonth, startOfWeek, toLocalDate, type LocalDate } from '@/lib/time';
 import type { AttendanceRepository, CorrectionRepository, StaffAttendanceRepository } from '@/repositories/interfaces';
 import type { SessionContext } from './context';
 import type { CorrectionLogEntry, CorrectionService } from './corrections';
@@ -21,30 +25,95 @@ export interface DateRange {
 
 export const pct = (part: number, whole: number) => (whole > 0 ? Math.round((part / whole) * 100) : null);
 
-export interface BatchStat {
-  readonly batch: Batch;
-  readonly tradeName: string;
-  readonly students: number;
-  readonly pct: number | null;
-  readonly markedByName?: string;
-}
-
-export interface StudentStat {
+/**
+ * One student's attendance over the window: the figure exam eligibility turns on (PRD §19.2).
+ * A day counts once however many sessions it had (twice daily, periods): its sessions share the day.
+ */
+export interface StudentStanding {
   readonly student: Student;
+  /** Rounded for display; never shows the threshold itself for a student who is below it. */
   readonly pct: number | null;
+  /** Present = 1, half day = 0.5; a day of several sessions gives partial credit. */
   readonly daysPresent: number;
   readonly daysMarked: number;
+  /** Below the threshold on the unrounded figure, with at least report.atRiskMinDays marked days. */
+  readonly atRisk: boolean;
 }
 
+export interface BatchOverview {
+  readonly batch: Batch;
+  readonly trade: Trade;
+  readonly students: number;
+  /** Average over every student-day in the window. */
+  readonly pct: number | null;
+  /** The average itself is below the threshold. */
+  readonly low: boolean;
+  readonly atRisk: number;
+}
+
+export interface MonthStat {
+  /** First day of the month. */
+  readonly month: LocalDate;
+  readonly pct: number | null;
+}
+
+export interface MyAttendanceSummary {
+  readonly range: DateRange;
+  readonly presentDays: number;
+  readonly absentDays: number;
+  readonly workingDays: number;
+  readonly pct: number | null;
+  /** Oldest first, this month last; empty when report.trendMonths is 0. */
+  readonly trend: readonly MonthStat[];
+}
+
+export interface AtRiskGroup {
+  readonly batch: Batch;
+  readonly trade: Trade;
+  /** Only students below the threshold, lowest first. */
+  readonly students: readonly StudentStanding[];
+}
+
+export interface AtRiskReport {
+  readonly range: DateRange;
+  readonly threshold: number;
+  /** Batches with at least one student at risk, in batch order. */
+  readonly groups: readonly AtRiskGroup[];
+  /** How many batches were checked (to say "N other batches have no students at risk"). */
+  readonly batchesChecked: number;
+}
+
+export interface InstituteSummary {
+  readonly range: DateRange;
+  readonly pct: number | null;
+  readonly low: boolean;
+  readonly students: number;
+  readonly batches: number;
+  /** Staff presence this month; null when staff attendance is off. */
+  readonly staffPct: number | null;
+}
+
+/** Blocks that keep a detail screen (range switch + print): the principal's staff and audit reports. */
+export const DETAIL_BLOCKS = ['staff_summary', 'correction_log'] as const satisfies readonly ReportBlock[];
+export type DetailBlock = (typeof DETAIL_BLOCKS)[number];
+export const isDetailBlock = (block: string): block is DetailBlock => (DETAIL_BLOCKS as readonly string[]).includes(block);
+
 export type ReportData =
-  | { readonly block: 'my_attendance'; readonly days: ReadonlyArray<{ date: LocalDate; status: StatusCode | null; source?: string; at?: string }>; readonly present: number; readonly workingDays: number }
-  | { readonly block: 'my_batches'; readonly batches: readonly BatchStat[]; readonly averagePct: number | null }
-  | { readonly block: 'student_percentage'; readonly students: ReadonlyArray<StudentStat & { batch: Batch }>; readonly belowThreshold: number; readonly threshold: number }
-  | { readonly block: 'daily_register'; readonly days: ReadonlyArray<{ date: LocalDate; batch: Batch; present: number; total: number; submitted: boolean }> }
-  | { readonly block: 'institute_summary'; readonly trades: ReadonlyArray<{ tradeId: string; name: string; batches: number; students: number; pct: number | null }>; readonly pct: number | null; readonly students: number }
-  | { readonly block: 'trade_batch'; readonly batches: readonly BatchStat[]; readonly lowest?: BatchStat }
   | { readonly block: 'staff_summary'; readonly staff: ReadonlyArray<{ member: StaffMember; present: number; workingDays: number }>; readonly pct: number | null }
   | { readonly block: 'correction_log'; readonly entries: readonly CorrectionLogEntry[] };
+
+type Delay = (ms: number) => Promise<void>;
+const noDelay: Delay = () => Promise.resolve();
+
+/** Unrounded average over every student-day. */
+const average = (standings: readonly StudentStanding[]) => {
+  const days = standings.reduce((a, s) => a + s.daysMarked, 0);
+  return days ? (standings.reduce((a, s) => a + s.daysPresent, 0) / days) * 100 : null;
+};
+
+/** Rounded for display, but a figure below the threshold never rounds up to it ("74.6%" shows as 74, not 75 ⚠). */
+const shown = (raw: number | null, threshold: number) => (raw === null ? null : raw < threshold ? Math.min(Math.round(raw), threshold - 1) : Math.round(raw));
+type Rows = ReadonlyArray<{ readonly sub: AttendanceSubmission; readonly marks: Readonly<Record<string, Mark>> }>;
 
 export class ReportService {
   constructor(
@@ -52,6 +121,8 @@ export class ReportService {
     private readonly corrections: CorrectionRepository,
     private readonly staff: StaffAttendanceRepository,
     private readonly correctionService: CorrectionService,
+    /** Simulated network time, so loading states are seen (0 in tests). */
+    private readonly delay: Delay = noDelay,
   ) {}
 
   rangeFor(ctx: SessionContext, kind: DateRangeKind, custom?: { from: LocalDate; to: LocalDate }): DateRange {
@@ -71,10 +142,21 @@ export class ReportService {
     }
   }
 
-  /** Batches this user's reports cover (PRD §19.1 and report.instructor_scope). */
+  /** "My attendance": this calendar month, to date. */
+  thisMonth(ctx: SessionContext): DateRange {
+    return this.rangeFor(ctx, 'month');
+  }
+
+  /** Batches, leaderboards and at-risk: the last report.windowDays days, today included. */
+  recentWindow(ctx: SessionContext): DateRange {
+    const today = toLocalDate(ctx.clock.now());
+    return { kind: 'custom', from: addDays(today, -(ctx.config.reports.windowDays - 1)), to: today };
+  }
+
+  /** Batches this user's reports cover (PRD §19.1 and report.instructor_scope), in board order. */
   async batchesInScope(ctx: SessionContext): Promise<Batch[]> {
-    if (ctx.journey.isPrincipal) return [...ctx.data.batches];
-    const mapped = new Set(ctx.access.batchIds);
+    if (ctx.journey.isPrincipal) return this.ordered(ctx, ctx.data.batches);
+    const mapped = new Set(ctx.access.selection === 'trade_picker' ? ctx.user.batchIds : ctx.access.batchIds);
     if (ctx.access.tradeWideViewTradeId) ctx.data.batches.filter((b) => b.tradeId === ctx.access.tradeWideViewTradeId).forEach((b) => mapped.add(b.id));
     const scope = ctx.config.reports.instructorScope;
     const marked = new Set<string>();
@@ -84,115 +166,140 @@ export class ReportService {
       subs.filter((s) => s.markedBy === ctx.user.id).forEach((s) => marked.add(s.address.batchId));
     }
     const ids = scope === 'marked_only' ? marked : scope === 'mapped' ? mapped : new Set([...mapped, ...marked]);
-    return ctx.data.batches.filter((b) => ids.has(b.id));
+    return this.ordered(ctx, ctx.data.batches.filter((b) => ids.has(b.id)));
   }
 
-  private async submissions(ctx: SessionContext, batchIds: readonly string[], range: DateRange): Promise<Array<{ sub: AttendanceSubmission; marks: Record<string, ReturnType<typeof effectiveMarks>[string]> }>> {
+  private ordered(ctx: SessionContext, batches: readonly Batch[]): Batch[] {
+    const tradeIndex = (b: Batch) => ctx.data.trades.findIndex((t) => t.id === b.tradeId);
+    return [...batches].sort((a, b) => tradeIndex(a) - tradeIndex(b) || a.shift - b.shift || a.unit - b.unit);
+  }
+
+  private trade(ctx: SessionContext, batch: Batch): Trade {
+    const trade = ctx.data.trades.find((t) => t.id === batch.tradeId);
+    if (!trade) throw new Error(`Batch ${batch.id} has no trade`);
+    return trade;
+  }
+
+  private async submissions(ctx: SessionContext, batchIds: readonly string[], range: DateRange): Promise<Rows> {
     const subs = (await this.attendance.listSubmissions({ batchIds, from: range.from, to: range.to }))
-      // Reports use the batch's own daily/half/period records; subject sessions are reported separately.
+      // Reports use the batch's own daily/half/period records; a subject instructor sees their subject's sessions.
       .filter((s) => (ctx.access.subjectId ? s.address.subjectId === ctx.access.subjectId : !s.address.subjectId));
     const corrections: Correction[] = await this.corrections.listForAttendance(subs.map((s) => s.id));
     return subs.map((sub) => ({ sub, marks: effectiveMarks(sub, corrections) }));
   }
 
-  private batchStat(ctx: SessionContext, batch: Batch, rows: Awaited<ReturnType<ReportService['submissions']>>): BatchStat {
-    let weight = 0;
-    let count = 0;
-    for (const { sub, marks } of rows) {
-      if (sub.address.batchId !== batch.id) continue;
-      for (const mark of Object.values(marks)) {
-        weight += presenceWeight(mark);
-        count++;
-      }
+  /** Per student, per day: the share of that day's sessions present (sessions of one day count as one day). */
+  private standings(ctx: SessionContext, batch: Batch, rows: Rows): StudentStanding[] {
+    const { eligibilityThresholdPct: threshold, atRiskMinDays } = ctx.config.reports;
+    const mine = rows.filter((r) => r.sub.address.batchId === batch.id);
+    return ctx.data.students
+      .filter((s) => s.batchId === batch.id)
+      .map((student) => {
+        const days = new Map<string, { w: number; n: number }>();
+        for (const { sub, marks } of mine) {
+          const m = marks[student.id];
+          if (!m) continue;
+          const day = days.get(sub.address.date) ?? { w: 0, n: 0 };
+          days.set(sub.address.date, { w: day.w + presenceWeight(m), n: day.n + 1 });
+        }
+        const daysPresent = [...days.values()].reduce((a, d) => a + d.w / d.n, 0);
+        const raw = days.size ? (daysPresent / days.size) * 100 : null;
+        const atRisk = raw !== null && days.size >= atRiskMinDays && raw < threshold;
+        return { student, pct: shown(raw, threshold), daysPresent: Math.round(daysPresent * 10) / 10, daysMarked: days.size, atRisk };
+      });
+  }
+
+  /** "My attendance": this month's staff record, plus a short monthly trend (report.trendMonths). */
+  async myAttendance(ctx: SessionContext): Promise<MyAttendanceSummary> {
+    await this.delay(300);
+    const range = this.thisMonth(ctx);
+    const records = await this.staff.listBetween([ctx.user.id], range.from, range.to);
+    const weight = (rs: typeof records) => rs.reduce((a, r) => a + presenceWeight({ status: r.status }), 0);
+    const months = Math.max(0, ctx.config.reports.trendMonths);
+    const trend: MonthStat[] = [];
+    for (let k = months - 1; k >= 0; k--) {
+      const month = shiftMonth(range.to, -k);
+      const inMonth = k === 0 ? records : await this.staff.listBetween([ctx.user.id], month, endOfMonth(month));
+      trend.push({ month, pct: pct(weight(inMonth), inMonth.length) });
     }
-    const latest = rows.filter((r) => r.sub.address.batchId === batch.id).sort((a, b) => b.sub.address.date.localeCompare(a.sub.address.date))[0];
     return {
-      batch,
-      tradeName: ctx.data.trades.find((t) => t.id === batch.tradeId)?.name ?? '',
-      students: ctx.data.students.filter((s) => s.batchId === batch.id).length,
-      pct: pct(weight, count),
-      markedByName: latest ? ctx.data.staff.find((s) => s.id === latest.sub.markedBy)?.name : undefined,
+      range,
+      presentDays: records.filter((r) => r.status === 'present').length,
+      absentDays: records.filter((r) => r.status === 'absent').length,
+      workingDays: records.length,
+      pct: pct(weight(records), records.length),
+      trend,
     };
   }
 
-  async build(ctx: SessionContext, block: ReportBlock, range: DateRange, batchId?: string): Promise<ReportData> {
-    const scopeBatches = await this.batchesInScope(ctx);
+  /** "My batches" (principal: every batch): average attendance and how many students are at risk. */
+  async batchOverview(ctx: SessionContext): Promise<{ readonly range: DateRange; readonly threshold: number; readonly batches: readonly BatchOverview[] }> {
+    await this.delay(350);
+    const range = this.recentWindow(ctx);
+    const threshold = ctx.config.reports.eligibilityThresholdPct;
+    const batches = await this.batchesInScope(ctx);
+    const rows = await this.submissions(ctx, batches.map((b) => b.id), range);
+    return {
+      range,
+      threshold,
+      batches: batches.map((batch) => {
+        const standings = this.standings(ctx, batch, rows);
+        const avg = average(standings);
+        return { batch, trade: this.trade(ctx, batch), students: standings.length, pct: shown(avg, threshold), low: avg !== null && avg < threshold, atRisk: standings.filter((s) => s.atRisk).length };
+      }),
+    };
+  }
+
+  /** One batch's students this month (the leaderboard); null when the batch isn't in this user's reports. */
+  async batchStudents(ctx: SessionContext, batchId: string): Promise<readonly StudentStanding[] | null> {
+    await this.delay(250);
+    const batch = (await this.batchesInScope(ctx)).find((b) => b.id === batchId);
+    if (!batch) return null;
+    const rows = await this.submissions(ctx, [batch.id], this.recentWindow(ctx));
+    return this.standings(ctx, batch, rows);
+  }
+
+  /** Students below the threshold (report.eligibilityThresholdPct unless given), grouped by batch. */
+  async atRisk(ctx: SessionContext, options: { readonly threshold?: number; readonly batchId?: string } = {}): Promise<AtRiskReport> {
+    await this.delay(350);
+    const range = this.recentWindow(ctx);
+    const threshold = options.threshold ?? ctx.config.reports.eligibilityThresholdPct;
+    const at = { ...ctx, config: { ...ctx.config, reports: { ...ctx.config.reports, eligibilityThresholdPct: threshold } } };
+    const scope = await this.batchesInScope(ctx);
+    const batches = options.batchId ? scope.filter((b) => b.id === options.batchId) : scope;
+    const rows = await this.submissions(ctx, batches.map((b) => b.id), range);
+    const groups = batches
+      .map((batch) => ({
+        batch,
+        trade: this.trade(ctx, batch),
+        students: this.standings(at, batch, rows)
+          .filter((s) => s.atRisk)
+          .sort((a, b) => (a.pct ?? 0) - (b.pct ?? 0) || a.student.name.localeCompare(b.student.name)),
+      }))
+      .filter((g) => g.students.length > 0);
+    return { range, threshold, groups, batchesChecked: batches.length };
+  }
+
+  /** The principal's headline over the same window as the batches: institute attendance, size, staff presence. */
+  async instituteSummary(ctx: SessionContext): Promise<InstituteSummary> {
+    await this.delay(300);
+    const range = this.recentWindow(ctx);
+    const threshold = ctx.config.reports.eligibilityThresholdPct;
+    const rows = await this.submissions(ctx, ctx.data.batches.map((b) => b.id), range);
+    const avg = average(ctx.data.batches.flatMap((b) => this.standings(ctx, b, rows)));
+    let staffPct: number | null = null;
+    if (ctx.config.staff.enabled) {
+      const people = ctx.data.staff.filter((s) => s.role !== 'office_staff');
+      const records = await this.staff.listBetween(people.map((p) => p.id), range.from, range.to);
+      staffPct = pct(records.reduce((a, r) => a + presenceWeight({ status: r.status }), 0), records.length);
+    }
+    return { range, pct: shown(avg, threshold), low: avg !== null && avg < threshold, students: ctx.data.students.length, batches: ctx.data.batches.length, staffPct };
+  }
+
+  /** Detail reports (range switch + print). */
+  async build(ctx: SessionContext, block: DetailBlock, range: DateRange): Promise<ReportData> {
+    await this.delay(300);
     switch (block) {
-      case 'my_attendance': {
-        const records = await this.staff.listBetween([ctx.user.id], range.from, range.to);
-        const days = eachDate(range.from, range.to).reverse().map((date) => {
-          const r = records.find((x) => x.date === date);
-          return { date, status: r?.status ?? null, source: r?.source, at: r?.deviceTimestamp };
-        }).filter((d) => d.status !== null || d.date === range.to);
-        const present = records.filter((r) => r.status === 'present').length;
-        return { block, days, present, workingDays: records.length };
-      }
-      case 'my_batches':
-      case 'trade_batch': {
-        const rows = await this.submissions(ctx, scopeBatches.map((b) => b.id), range);
-        const stats = scopeBatches.map((b) => this.batchStat(ctx, b, rows));
-        if (block === 'my_batches') {
-          const valid = stats.filter((s) => s.pct !== null);
-          const avg = valid.length ? Math.round(valid.reduce((a, s) => a + (s.pct ?? 0), 0) / valid.length) : null;
-          return { block, batches: stats, averagePct: avg };
-        }
-        const lowest = [...stats].filter((s) => s.pct !== null).sort((a, b) => (a.pct ?? 0) - (b.pct ?? 0))[0];
-        return { block, batches: stats, lowest };
-      }
-      case 'student_percentage': {
-        const batches = batchId ? scopeBatches.filter((b) => b.id === batchId) : scopeBatches;
-        const threshold = ctx.config.reports.eligibilityThresholdPct;
-        const rows = await this.submissions(ctx, batches.map((b) => b.id), range);
-        const students = batches.flatMap((batch) =>
-          ctx.data.students
-            .filter((s) => s.batchId === batch.id)
-            .map((student) => {
-              let weight = 0;
-              let marked = 0;
-              for (const { sub, marks } of rows) {
-                if (sub.address.batchId !== batch.id) continue;
-                const m = marks[student.id];
-                if (!m) continue;
-                marked++;
-                weight += presenceWeight(m);
-              }
-              return { student, batch, pct: pct(weight, marked), daysPresent: weight, daysMarked: marked };
-            }),
-        );
-        students.sort((a, b) => (a.pct ?? 101) - (b.pct ?? 101));
-        return { block, students, belowThreshold: students.filter((s) => s.pct !== null && s.pct < threshold).length, threshold };
-      }
-      case 'daily_register': {
-        const batches = batchId ? scopeBatches.filter((b) => b.id === batchId) : scopeBatches;
-        const rows = await this.submissions(ctx, batches.map((b) => b.id), range);
-        const days = eachDate(range.from, range.to)
-          .reverse()
-          .flatMap((date) =>
-            batches.flatMap((batch) => {
-              const total = ctx.data.students.filter((s) => s.batchId === batch.id).length;
-              const day = rows.filter((r) => r.sub.address.date === date && r.sub.address.batchId === batch.id);
-              if (!day.length) return date === range.to ? [{ date, batch, present: 0, total, submitted: false }] : [];
-              const present = Object.values(day[0].marks).filter((m) => presenceWeight(m) > 0).length;
-              return [{ date, batch, present, total, submitted: true }];
-            }),
-          );
-        return { block, days };
-      }
-      case 'institute_summary': {
-        const rows = await this.submissions(ctx, ctx.data.batches.map((b) => b.id), range);
-        const trades = ctx.data.trades.map((t) => {
-          const batches = ctx.data.batches.filter((b) => b.tradeId === t.id);
-          const stats = batches.map((b) => this.batchStat(ctx, b, rows));
-          const students = stats.reduce((a, s) => a + s.students, 0);
-          const weighted = stats.filter((s) => s.pct !== null);
-          const tradePct = weighted.length ? Math.round(weighted.reduce((a, s) => a + (s.pct ?? 0) * s.students, 0) / weighted.reduce((a, s) => a + s.students, 0)) : null;
-          return { tradeId: t.id, name: t.name, batches: batches.length, students, pct: tradePct };
-        });
-        const students = trades.reduce((a, t) => a + t.students, 0);
-        const withPct = trades.filter((t) => t.pct !== null);
-        const overall = withPct.length ? Math.round(withPct.reduce((a, t) => a + (t.pct ?? 0) * t.students, 0) / withPct.reduce((a, t) => a + t.students, 0)) : null;
-        return { block, trades, pct: overall, students };
-      }
       case 'staff_summary': {
         const people = ctx.data.staff.filter((s) => s.role !== 'office_staff');
         const records = await this.staff.listBetween(people.map((p) => p.id), range.from, range.to);

@@ -28,16 +28,15 @@ export const routes = {
   correct: (key: string, studentId: string) => `/attendance/correct${qs({ s: key, student: studentId })}`,
   selfAttendance: '/me/attendance',
   reports: '/reports',
-  report: (block: ReportBlock, range?: DateRangeKind, extra: { batch?: string; from?: string; to?: string } = {}) =>
-    `/reports/view${qs({ r: block, range, ...extra })}`,
-  reportPrint: (block: ReportBlock, range: DateRangeKind, extra: { batch?: string; from?: string; to?: string } = {}) =>
-    `/reports/print${qs({ r: block, range, ...extra })}`,
-  offline: '/profile/offline',
-  offlineDownload: '/profile/offline/download',
+  /** Detail reports (staff attendance, correction log) with a date range. */
+  report: (block: ReportBlock, range?: DateRangeKind, extra: { from?: string; to?: string } = {}) => `/reports/view${qs({ r: block, range, ...extra })}`,
+  /** Offline data lives under Reports (D-056); /profile/offline redirects here. */
+  offline: '/reports/offline',
+  offlineDownload: '/reports/offline/download',
 } as const;
 
 /** Only same-app paths may be used as a post-step redirect target. */
-const INTERNAL_PREFIXES = ['/home', '/attendance', '/me/', '/reports', '/profile', '/face'];
+const INTERNAL_PREFIXES = ['/home', '/attendance', '/me/', '/reports', '/face'];
 
 export function safeNext(next: string | null | undefined, fallback: string = routes.home): string {
   if (!next || !next.startsWith('/') || next.startsWith('//') || next.includes('\\')) return fallback;

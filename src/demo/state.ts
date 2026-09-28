@@ -12,7 +12,7 @@ export type DemoClockSetting = { readonly mode: 'fixed'; readonly time: LocalTim
 export interface DemoState {
   readonly version: 1;
   readonly presetId: string | null;
-  /** The persona the presenter picked last (preset, quick login, skip login): demo autofill uses its credentials. */
+  /** The persona the presenter picked last (preset, quick login, skip login, demo account): highlighted under "Use demo account". */
   readonly persona: PersonaId;
   /** Advanced: quick login signs straight in instead of opening the login screens. */
   readonly skipLogin: boolean;

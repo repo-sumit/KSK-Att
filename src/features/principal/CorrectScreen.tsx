@@ -73,6 +73,8 @@ export function CorrectScreen() {
         sub={<Latin>{student.name}</Latin>}
         meta={<Latin>{session}</Latin>}
         primary={{ label: t('common.done'), onPress: () => router.replace(back) }}
+        header={<AppHeader plain />}
+        area="attendance"
       >
         <DetailRows
           variant="card"

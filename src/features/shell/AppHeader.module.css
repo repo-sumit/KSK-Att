@@ -1,6 +1,9 @@
 /*
  * Phones (< 600px): one bar. The header is the flex row; .bar dissolves into it
- * (display: contents) so the task context and the avatar share the bar.
+ * (display: contents) so the task context and the avatar share the bar. The
+ * tool slot (first in .bar) lands left of the brand on tab roots and, because
+ * the task context moves to the front (order: -1), just before the avatar on
+ * task screens.
  * Tablets and desktops: a full-width bar (brand · navigation · avatar) aligned
  * to the wide container, and on task screens a second row with back + title
  * aligned to the screen's content column.
@@ -13,7 +16,7 @@
   align-items: center;
   gap: var(--space-12);
   min-height: var(--header-height);
-  padding: calc(var(--space-8) + env(safe-area-inset-top)) calc(var(--space-16) + var(--demo-reserve-inline)) var(--space-8) var(--space-16);
+  padding: calc(var(--space-8) + env(safe-area-inset-top)) var(--space-16) var(--space-8);
   background: var(--color-background-surface-raised);
   border-bottom: var(--divider-thin) solid var(--color-border-subtle);
   color: var(--color-text-primary);
@@ -99,11 +102,15 @@
   overflow-wrap: break-word;
 }
 
-/* Narrow phones (with the demo trigger beside the avatar): the brand stays on one line. */
+/* Narrow phones (with a tool in the header slot beside it): the brand stays on one line. */
 @media (max-width: 359px) {
   .appName {
     font: var(--type-title-medium);
     letter-spacing: var(--ls-title-medium);
+  }
+  /* A task title with the tool beside it takes one line, so the bar stays at most three lines. */
+  .header[data-mode='task']:has([data-tool-slot] > *) .title {
+    -webkit-line-clamp: 1;
   }
 }
 
@@ -121,6 +128,19 @@
     min-height: var(--header-height-wide);
     padding: var(--space-8) var(--gutter-wide);
   }
+}
+/* Tablets: brand, three destinations and the avatar share the bar without crowding. */
+@media (min-width: 600px) and (max-width: 899px) {
+  .bar {
+    gap: var(--space-12);
+  }
+}
+@media (min-width: 600px) and (max-width: 767px) {
+  .bar {
+    gap: var(--space-8);
+  }
+}
+@media (min-width: 600px) {
   .brand,
   .header[data-mode='task'] .brand {
     display: flex;

@@ -131,3 +131,25 @@
     width: 100%;
   }
 }
+
+/* A downloaded batch: the card and its "Updated · Refresh data" strip read as one card (D-055). */
+.joined {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: var(--border-selected) solid transparent;
+  border-radius: var(--radius-lg);
+  background: var(--color-background-surface-raised);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+.joinedHighlight {
+  border-color: var(--color-border-focus);
+}
+.joined > .joinedCard {
+  /* The card body fills a stretched grid cell, so strips in one row line up at the foot. */
+  flex: 1 1 auto;
+  border: none;
+  border-radius: var(--radius-none);
+  box-shadow: none;
+}

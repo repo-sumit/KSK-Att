@@ -14,8 +14,9 @@ import type {
   SessionKey,
   StaffAttendanceRecord,
 } from '@/domain/attendance';
+import type { Announcement } from '@/domain/announcement';
 import type { BatchPack, FaceEnrolment } from '@/domain/device';
-import type { Institute, InstituteId, MasterData, StaffId, StaffMember } from '@/domain/entities';
+import type { BatchId, Institute, InstituteId, MasterData, StaffId, StaffMember, Student } from '@/domain/entities';
 import type { Language } from '@/config/types';
 import type { Result } from '@/lib/result';
 import type { LocalDate } from '@/lib/time';
@@ -26,6 +27,8 @@ export interface MasterDataRepository {
   findStaffByTrainerId(instituteId: InstituteId, trainerId: string): Promise<StaffMember | undefined>;
   /** Everything one institute needs — small enough to load once per session (PRD §4 scale notes). */
   getInstituteData(instituteId: InstituteId): Promise<MasterData>;
+  /** One batch's current roster: what a pack download or refresh pulls (PRD §20.1, D-055). */
+  getBatchRoster(instituteId: InstituteId, batchId: BatchId): Promise<readonly Student[]>;
 }
 
 export interface SubmissionQuery {
@@ -96,6 +99,11 @@ export interface BatchPackRepository {
   upsert(packs: readonly BatchPack[]): Promise<void>;
 }
 
+/** Notices posted for one institute (D-054). The server will target them; the service filters again per reader. */
+export interface AnnouncementRepository {
+  listForInstitute(instituteId: InstituteId): Promise<readonly Announcement[]>;
+}
+
 export interface StoredSession {
   readonly instituteId: InstituteId;
   readonly staffId: StaffId;
@@ -128,6 +136,7 @@ export interface Repositories {
   readonly verification: VerificationRepository;
   readonly offlineQueue: OfflineQueueRepository;
   readonly packs: BatchPackRepository;
+  readonly announcements: AnnouncementRepository;
   readonly session: SessionRepository;
   readonly preferences: PreferencesRepository;
   readonly syncGateway: SyncGateway;

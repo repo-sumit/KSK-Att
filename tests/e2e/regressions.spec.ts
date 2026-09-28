@@ -25,15 +25,19 @@ test('long lists scroll to their last row: review absentees and report tables (m
     await page.setViewportSize(size);
     await page.goto('/?preset=principal');
     await page.waitForURL(/\/home$/);
-    await page.goto('/reports/view?r=trade_batch&range=month');
+    await page.goto('/reports');
     await page.waitForLoadState('networkidle');
     await expectNothingClipped(page);
-    // The report's last row (17 batches) can be scrolled into view.
-    const rows = page.locator('main [class*="__rows"] > *');
-    expect(await rows.count()).toBeGreaterThanOrEqual(17);
+    // Every batch of the institute (17) is a row; the last one scrolls into view and opens its students.
+    const rows = page.getByRole('region', { name: 'Batch attendance' }).getByRole('button', { expanded: false });
+    await expect(rows).toHaveCount(17);
     const last = rows.last();
     await last.scrollIntoViewIfNeeded();
     await expect(last).toBeInViewport();
+    await last.click();
+    const lastStudent = page.getByRole('region', { name: 'Batch attendance' }).locator('ol > li').last();
+    await lastStudent.scrollIntoViewIfNeeded();
+    await expect(lastStudent).toBeInViewport();
   }
 });
 
@@ -54,13 +58,19 @@ test('the demo panel never scrolls sideways, with Advanced open, on narrow phone
   }
 });
 
-test('on a 320×568 phone the demo login helper is fully above the Continue bar', async ({ page, consoleErrors }) => {
+test('on a 320×568 phone "Use demo account" is fully above the Continue bar, and its list scrolls into view', async ({ page, consoleErrors }) => {
   void consoleErrors;
   await page.setViewportSize({ width: 320, height: 568 });
   await preset(page, 'first_time', /\/login$/);
-  const assist = (await page.getByRole('button', { name: /Use demo login/ }).boundingBox())!;
+  const toggle = page.getByRole('button', { name: 'Use demo account' });
+  const assist = (await toggle.boundingBox())!;
   const cta = (await page.getByRole('button', { name: 'Continue' }).boundingBox())!;
   expect(assist.y + assist.height).toBeLessThanOrEqual(cta.y - 8);
+  // Opening grows the list below the fold: it is brought into view (main is the scroller, above the Continue bar).
+  await toggle.click();
+  const last = page.getByRole('list', { name: 'Use demo account' }).getByRole('button').last();
+  await expect(last).toBeInViewport({ ratio: 1 });
+  expect((await last.boundingBox())!.y + (await last.boundingBox())!.height).toBeLessThanOrEqual(cta.y);
 });
 
 test('every problem inside verification keeps the app header (avatar and close)', async ({ page, consoleErrors }) => {
@@ -71,4 +81,40 @@ test('every problem inside verification keeps the app header (avatar and close)'
   await expect(page.getByRole('heading', { name: 'Location access is off' })).toBeVisible({ timeout: 20_000 });
   await expect(page.locator('header').getByRole('button', { name: 'Profile' })).toBeVisible();
   await expect(page.locator('header').getByRole('button', { name: 'Close' })).toBeVisible();
+});
+
+test('motion really runs: CSS Modules keyframes resolve (refresh spin, skeleton shimmer, a row opening)', async ({ page, consoleErrors }) => {
+  void consoleErrors;
+  await preset(page, 'batch');
+  // Real speed, so the refresh lasts long enough to look at.
+  await demo(page, 'setSimulation({ speed: 1 })');
+  await page.getByRole('button', { name: 'Refresh data for Electrician · Shift 1 · Unit 2' }).click();
+  await expect(page.getByText('Refreshing student data…')).toBeVisible();
+  expect(await page.evaluate(() => document.getAnimations().length)).toBeGreaterThan(0);
+  await expect(page.getByText('Updated just now')).toBeVisible();
+  await page.goto('/reports');
+  const row = page.getByRole('region', { name: 'My batches' }).getByRole('button', { name: /Shift 1 · Unit 2/ });
+  await row.click();
+  // The opened panel's animation names a keyframes rule that exists in the page (not a scoped name with no rule).
+  const panelId = await row.getAttribute('aria-controls');
+  const resolved = await page.evaluate((id) => {
+    const names = new Set<string>();
+    for (const sheet of [...document.styleSheets]) {
+      try {
+        const walk = (rules: CSSRuleList) => {
+          for (const r of [...rules]) {
+            if (r instanceof CSSKeyframesRule) names.add(r.name);
+            else if ('cssRules' in r) walk((r as CSSGroupingRule).cssRules);
+          }
+        };
+        walk(sheet.cssRules);
+      } catch {
+        // cross-origin sheet: not ours
+      }
+    }
+    const name = getComputedStyle(document.getElementById(id ?? '')!).animationName;
+    return { name, ok: names.has(name) };
+  }, panelId);
+  expect(resolved.name).not.toBe('none');
+  expect(resolved.ok, `keyframes ${resolved.name}`).toBe(true);
 });

@@ -25,8 +25,13 @@ const nextConfig: NextConfig = {
     ];
   },
   async redirects() {
-    // Profile is no longer a page: it opens from the header avatar on every screen (D-046).
-    return [{ source: '/profile', destination: '/home', permanent: false }];
+    return [
+      // Offline data moved under Reports (D-056); old links keep working.
+      { source: '/profile/offline', destination: '/reports/offline', permanent: false },
+      { source: '/profile/offline/download', destination: '/reports/offline/download', permanent: false },
+      // Profile is no longer a page: it opens from the header avatar on every screen (D-046).
+      { source: '/profile', destination: '/home', permanent: false },
+    ];
   },
 };
 

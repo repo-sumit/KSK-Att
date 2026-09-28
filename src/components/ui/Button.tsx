@@ -67,10 +67,15 @@ export function Button({
       className={classes}
       data-variant={variant}
       data-inactive={inactive || undefined}
-      aria-disabled={inactive || undefined}
+      // Busy is not disabled: the button keeps keyboard and screen-reader focus while it works, and ignores taps.
+      aria-disabled={inactive || loading || undefined}
       aria-busy={loading || undefined}
-      disabled={disabled || loading}
+      disabled={disabled}
       onClick={(event) => {
+        if (loading) {
+          event.preventDefault();
+          return;
+        }
         if (inactive) {
           event.preventDefault();
           onInactivePress?.();

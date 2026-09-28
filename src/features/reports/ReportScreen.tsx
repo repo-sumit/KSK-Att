@@ -10,19 +10,23 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { useToast } from '@/components/ui/Toast';
 import { ScreenLayout } from '@/components/shell/ScreenLayout';
 import { AppHeader } from '@/features/shell/AppHeader';
-import type { DateRangeKind, ReportBlock } from '@/config/types';
+import type { DateRangeKind } from '@/config/types';
 import { useI18n } from '@/hooks/i18n';
 import { useServices } from '@/hooks/services';
 import { useSession } from '@/hooks/session';
 import { useQuery } from '@/hooks/useQuery';
 import { routes } from '@/lib/routes';
 import { toLocalDate } from '@/lib/time';
-import { REPORT_META, buildReport, rangeLabel } from './reportRows';
+import { isDetailBlock } from '@/services/reports';
+import { DETAIL_META, buildReport, rangeLabel } from './reportRows';
 import styles from './Report.module.css';
 
 const RANGE_KEYS = { day: 'reports.day', week: 'reports.week', month: 'reports.month', custom: 'reports.custom' } as const;
 
-/** One report: range switch, a one-line summary, stacked rows — never a desktop table (PRD §19). */
+/**
+ * A detail report (staff attendance, correction log): range switch, a one-line
+ * summary, stacked rows — never a desktop table (PRD §19), and print / PDF.
+ */
 export function ReportScreen() {
   const { t, format } = useI18n();
   const router = useRouter();
@@ -31,14 +35,15 @@ export function ReportScreen() {
   const { reports } = useServices();
   const params = useSearchParams();
   const j = ctx.journey.reports;
-  const block = (params.get('r') ?? j.blocks[0]) as ReportBlock;
+  const requested = params.get('r') ?? '';
+  const block = isDetailBlock(requested) ? requested : 'staff_summary';
   const kind = (params.get('range') ?? 'month') as DateRangeKind;
   const today = toLocalDate(ctx.clock.now());
   const custom = { from: params.get('from') ?? `${today.slice(0, 8)}01`, to: params.get('to') ?? today };
   const range = reports.rangeFor(ctx, j.dateRanges.includes(kind) ? kind : 'month', kind === 'custom' ? custom : undefined);
-  const allowed = j.enabled && j.blocks.includes(block);
+  const allowed = j.enabled && isDetailBlock(requested) && j.blocks.includes(block);
 
-  const { data, loading } = useQuery(`report:${block}:${range.kind}:${range.from}:${range.to}`, () => reports.build(ctx, block, range), ['attendance', 'corrections', 'staff']);
+  const { data, loading } = useQuery(`report:${block}:${range.kind}:${range.from}:${range.to}`, () => (allowed ? reports.build(ctx, block, range) : Promise.resolve(null)), ['attendance', 'corrections', 'staff']);
   const built = data ? buildReport(t, format, ctx, data, range) : null;
   const setRange = (next: DateRangeKind, extra: { from?: string; to?: string } = {}) => router.replace(routes.report(block, next, next === 'custom' ? { from: extra.from ?? custom.from, to: extra.to ?? custom.to } : {}));
 
@@ -52,9 +57,9 @@ export function ReportScreen() {
   if (!allowed) return <ScreenLayout area="reports" width="reading" header={<AppHeader back="back" title={t('reports.title')} backHref={routes.reports} />}><EmptyState icon="chart" title={t('problem.notFoundTitle')} /></ScreenLayout>;
 
   return (
-    <ScreenLayout area="reports" width="reading" header={<AppHeader back="back" title={t(REPORT_META[block].title)} backHref={routes.reports} />}>
+    <ScreenLayout area="reports" width="reading" header={<AppHeader back="back" title={t(DETAIL_META[block].title)} backHref={routes.reports} />}>
       <div className={styles.printHead}>
-        <p className={styles.printTitle}>{t('reports.printTitle', { report: t(REPORT_META[block].title), institute: ctx.institute.name })}</p>
+        <p className={styles.printTitle}>{t('reports.printTitle', { report: t(DETAIL_META[block].title), institute: ctx.institute.name })}</p>
         <p>{t('reports.printMeta', { range: rangeLabel(t, format, range), when: `${format.dayMonthYear(today)} ${format.time(ctx.clock.now())}` })}</p>
       </div>
       <Segmented
@@ -79,7 +84,7 @@ export function ReportScreen() {
         </div>
       )}
       {!built || loading ? (
-        <Skeleton label={t('common.loading')} />
+        <Skeleton variant="rows" count={5} label={t('common.loading')} />
       ) : (
         <>
           <Card>

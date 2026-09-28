@@ -133,3 +133,19 @@
     gap: var(--space-4);
   }
 }
+
+/*
+ * Keyframes live in the module that uses them: CSS Modules scope animation names per
+ * file, so a keyframe defined elsewhere (e.g. globals.css) would never match. The global
+ * prefers-reduced-motion rule still collapses them all.
+ */
+@keyframes ksk-pulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}

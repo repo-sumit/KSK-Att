@@ -10,6 +10,7 @@ import type { BatchPack, FaceEnrolment } from '@/domain/device';
 import type { MasterData, OjtDeclaration } from '@/domain/entities';
 import type { Mark } from '@/domain/status';
 import { addDays, instantAt, type LocalDate } from '@/lib/time';
+import { OJT_NOTICE_BATCH, ojtNoticeDates } from './announcements';
 import { INSTITUTES } from './institutes';
 import { STAFF } from './staff';
 import { STUDENTS } from './students';
@@ -22,6 +23,8 @@ export function buildMasterData(today: LocalDate): MasterData {
     { id: 'ojt-ele-s1u2-pair', studentIds: ['ele-s1u2-r06', 'ele-s1u2-r13'], from: addDays(today, -3), to: addDays(today, 11) },
     // Whole-batch OJT declared by the principal in the ERP.
     { id: 'ojt-md-s2u1', studentIds: STUDENTS.filter((s) => s.batchId === 'md-s2u1').map((s) => s.id), from: addDays(today, -7), to: addDays(today, 21) },
+    // The upcoming OJT the Home announcement tells Electrician Shift 1 Unit 1 about (announcements.ts).
+    { id: `ojt-${OJT_NOTICE_BATCH}-notice`, studentIds: STUDENTS.filter((s) => s.batchId === OJT_NOTICE_BATCH).map((s) => s.id), ...ojtNoticeDates(today) },
   ];
   return { institutes: INSTITUTES, trades: TRADES, subjects: SUBJECTS, batches: BATCHES, students: STUDENTS, staff: STAFF, timetable: TIMETABLE, ojt };
 }

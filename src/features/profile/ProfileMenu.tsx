@@ -15,7 +15,6 @@ import { useI18n } from '@/hooks/i18n';
 import { useServices } from '@/hooks/services';
 import { useSession } from '@/hooks/session';
 import { useQuery } from '@/hooks/useQuery';
-import { useSyncStatus } from '@/hooks/useSync';
 import { routes } from '@/lib/routes';
 import { roleLine } from '../home/roleLine';
 import styles from './ProfileMenu.module.css';
@@ -111,15 +110,13 @@ function MenuContent({ onClose, onLogout, guarded }: MenuContentProps) {
   const router = useRouter();
   const toast = useToast();
   const ctx = useSession();
-  const { faceMatch, packs } = useServices();
-  const sync = useSyncStatus();
+  const { faceMatch } = useServices();
   const j = ctx.journey;
   const nameId = useId();
   const nameRef = useRef<HTMLHeadingElement>(null);
   // Start on the person's name (showModal() ran before this content existed, so focus it here).
   useEffect(() => nameRef.current?.focus(), []);
   const { data: enrolled } = useQuery(`face:${ctx.user.id}`, () => faceMatch.isEnrolled(ctx.user.id), ['face']);
-  const { data: packRows } = useQuery(`packs:${ctx.user.id}`, () => (j.offline.enabled ? packs.list(ctx) : Promise.resolve([])), ['packs']);
   const after = (fn: () => void) => () => {
     onClose();
     fn();
@@ -172,17 +169,6 @@ function MenuContent({ onClose, onLogout, guarded }: MenuContentProps) {
                 </span>
               )
             }
-            minHeight={56}
-          />
-        )}
-        {j.offline.enabled && (
-          <ListRow
-            leading={<Icon name="hard-drive" size={20} className={styles.icon} />}
-            titleStyle="label"
-            title={t('profile.offline')}
-            subtitle={t('profile.offlineSub', { count: packRows?.length ?? 0, sync: sync.pending ? t('profile.waiting', { count: sync.pending }) : t('profile.allSynced') })}
-            onClick={after(() => guarded(() => router.push(routes.offline)))}
-            trailing="chevron"
             minHeight={56}
           />
         )}

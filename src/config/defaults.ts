@@ -31,6 +31,10 @@ export const PRODUCT_DEFAULTS: AppConfiguration = {
     dateRanges: ['day', 'month', 'custom'],
     pdfDownload: true,
     eligibilityThresholdPct: 75,
+    leaderboardSort: 'high_first',
+    trendMonths: 3,
+    windowDays: 30,
+    atRiskMinDays: 5,
   },
   offline: {
     enabled: false,
@@ -42,5 +46,6 @@ export const PRODUCT_DEFAULTS: AppConfiguration = {
     syncOnOpen: true,
     eodTriggerTime: '21:00',
   },
+  announcements: { enabled: false },
   i18n: { languages: ['en'], defaultLanguage: 'en', userSwitch: true, fallback: 'en', numerals: 'locale' },
 };

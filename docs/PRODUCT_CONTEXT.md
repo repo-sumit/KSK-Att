@@ -30,18 +30,18 @@ Non-goals: student views, payroll/HR/leave management, timetable authoring, OJT 
 
 ## Maharashtra configuration in one paragraph
 
-Mapping is **open**: any instructor can mark any trade and batch in their institute. Verification is **geo-fencing (500 m) plus face**. Marking happens **once a day per batch** and **everyone starts Present**; the status set is Present and Absent. **Time fencing** is on, with shift windows 07:00–14:00 and 14:00–20:00, and institutes may override the windows. **Staff attendance** is on (self-marking plus principal marking). All eight report blocks and the day, week, month and custom ranges are enabled. **Offline marking** of downloaded batches is on, with auto-sync. The UI is available in **English and Marathi**, with Latin digits in Marathi. The full list is in [CONFIGURATION.md](CONFIGURATION.md).
+Mapping is **open**: any instructor can mark any trade and batch in their institute. Verification is **geo-fencing (500 m) plus face**. Marking happens **once a day per batch** and **everyone starts Present**; the status set is Present and Absent. **Time fencing** is on, with shift windows 07:00–14:00 and 14:00–20:00, and institutes may override the windows. **Staff attendance** is on (self-marking plus principal marking). All seven report blocks are enabled (Maharashtra switches off the PRD's daily register), students below 75% are flagged at risk, and the detail reports offer day, week, month and custom ranges. **Offline marking** of downloaded batches is on, with auto-sync. **Announcements** on Home are on. The UI is available in **English and Marathi**, with Latin digits in Marathi. The full list is in [CONFIGURATION.md](CONFIGURATION.md).
 
 The demo can switch to the other models the PRD defines (trade-mapped, batch-mapped, timetable/period-wise, Employability Skills across trades, twice-daily, blank or absent defaults, half day, leave, OJT). Stakeholders can then see how another state would behave without a code change. See [DEMO_GUIDE.md](DEMO_GUIDE.md).
 
 ## Core journeys
 
 1. **Login:** institute code → "Is this your institute?" → Trainer ID → "Is this you?" (name, designation, trade, employment type). On a first login with face verification on, the app first asks the user to set up their face (real camera, three photos; matching simulated).
-2. **Mark students:** choose the class. The configuration decides how: trade picker (open), assigned batches (batch/ES), today's timetable (timetable), or trade switcher (trade-mapped). The user verifies presence on a full-screen step (location, then face). Then they mark with one tap per student (default Present, tap Absent), review the summary, submit, and the record locks.
+2. **Mark students:** Home is today's work (D-052): any notices, then today's classes, in the shape the configuration decides: the trade list (open), assigned batches (batch/ES), today's timetable (timetable), or a trade switcher (trade-mapped). The user verifies presence on a full-screen step (location, then face). Then they mark with one tap per student (default Present, tap Absent), review the summary, submit, and the record locks.
 3. **My attendance:** the instructor marks their own attendance with the same verification step.
-4. **Principal:** an institute overview (batches submitted, staff marked, what needs attention), batch records, same-day corrections with a mandatory reason, staff marking and institute reports.
-5. **Offline:** the instructor downloads batches while online, marks them offline, and the records lock locally and sync automatically later. The app always shows its sync state.
-6. **Reports:** mobile cards, never tables, over day, week, month or custom ranges. Print or save as PDF uses the browser's print view.
+4. **Principal:** an institute overview (batches submitted, staff marked, what needs attention), the Attendance board (batch records, Students / Staff), same-day corrections with a mandatory reason, staff marking and institute reports.
+5. **Offline:** the instructor downloads batches while online, marks them offline, and the records lock locally and sync automatically later. Each downloaded batch shows when its student list was updated and can be refreshed on its own. Offline data lives under Reports. The app always shows its sync state.
+6. **Reports:** one page for this month, as rows and cards, never tables (D-053). Instructors see their own attendance with a short trend, their batches (tap one for its students, ranked) and the students at risk (below 75%). The principal sees the institute, every batch by trade, at-risk students, and two detail reports (staff attendance and the correction log) with date ranges and print or save as PDF through the browser's print view.
 
 ## Integrity rules that no configuration can relax (PRD §5.3, §12, §18, §20)
 
@@ -58,7 +58,7 @@ The demo can switch to the other models the PRD defines (trade-mapped, batch-map
 
 The primary device is a low-end Android phone in the SwiftChat WebView, so phones (320–412px) are the reference design. The same app also opens in a normal browser on a tablet, laptop or projector. There it uses the whole screen: the same simple screens with more breathing room, the navigation in the header, and content in a readable column. It gains no extra features, buttons or analytics (D-045).
 
-Profile is not a destination. The person's initials at the top right of every screen open a small menu: identity, language, face registration, offline data, help and logout (D-046).
+Navigation is **Home · Reports** for instructors and **Home · Attendance · Reports** for the principal (D-052). Profile is not a destination. The person's initials at the top right of every screen open a small menu: identity, language, face registration, help and logout (D-046).
 
 ## What is simulated in this build
 
@@ -68,6 +68,8 @@ This build uses **mock data and simulations only**. Nothing is sent to a server,
 - **Face matching is simulated; the camera is real.** Face registration and the daily check open the phone's front camera and run a prototype movement check on the device (one face, in the oval, straight / turn left / turn right). Photos stay in memory for that screen and are never saved or sent. **No face is ever compared**: a demo switch decides "match" or "no match". Every face screen says so ("Prototype · photos are not saved · face matching is simulated"). **None of it may be presented as secure biometric verification or liveness detection** (D-048). On a machine without a camera the demo can simulate the camera too.
 - **Location** is simulated by default in the demo (inside, outside, denied, or no GPS). The demo panel can switch to the device's real GPS, which is used only to compute distance from the mock institute. Code records which it was (`source: 'device' | 'simulated'`).
 - **Server sync** is a simulated gateway that can be told to fail once.
+- **Announcements** are six demo notices built relative to today. The PRD has no notices; they are an extension (D-054).
+- **Network time** is simulated too: loading states show for a moment and say what they are waiting for (D-059).
 
 What "production" still needs is in [ARCHITECTURE.md § Going live](ARCHITECTURE.md#going-live-what-replaces-the-mocks).
 

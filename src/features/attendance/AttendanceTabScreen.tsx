@@ -1,13 +1,12 @@
 'use client';
 import { useRouter } from 'next/navigation';
-import { Section } from '@/components/ui/Section';
+import { useEffect } from 'react';
 import { Segmented } from '@/components/ui/Segmented';
 import { ScreenLayout } from '@/components/shell/ScreenLayout';
 import { AppHeader } from '@/features/shell/AppHeader';
 import { useI18n } from '@/hooks/i18n';
 import { useSession } from '@/hooks/session';
 import { routes } from '@/lib/routes';
-import { toLocalDate } from '@/lib/time';
 import { AttendanceBoard } from './AttendanceBoard';
 import styles from './AttendanceTab.module.css';
 
@@ -34,13 +33,21 @@ export function ViewSwitch({ value, onSwitch }: { readonly value: 'students' | '
   );
 }
 
+/**
+ * The Attendance tab exists only where it adds a view Home doesn't have: the
+ * principal's institute board with the Students / Staff switch (D-052). For
+ * everyone else Home owns today's classes, so an old /attendance link goes there.
+ */
 export function AttendanceTabScreen() {
-  const { t, format } = useI18n();
+  const { t } = useI18n();
+  const router = useRouter();
   const ctx = useSession();
   const j = ctx.journey;
-  const title =
-    j.selection === 'trade_picker' ? t('selection.selectTrade') : j.selection === 'timetable' ? t('home.timetable') : j.selection === 'institute' ? null : t('home.yourBatches');
-  const subtitle = j.selection === 'timetable' ? format.longDate(toLocalDate(ctx.clock.now())) : undefined;
+  const exists = j.navTabs.includes('attendance');
+  useEffect(() => {
+    if (!exists) router.replace(routes.home);
+  }, [exists, router]);
+  if (!exists) return null;
 
   return (
     <ScreenLayout
@@ -49,13 +56,7 @@ export function AttendanceTabScreen() {
       area="attendance"
       bottomNav
     >
-      {title ? (
-        <Section id="classes" title={title} subtitle={subtitle}>
-          <AttendanceBoard />
-        </Section>
-      ) : (
-        <AttendanceBoard />
-      )}
+      <AttendanceBoard />
     </ScreenLayout>
   );
 }

@@ -1,0 +1,4 @@
+/* No box of its own: whatever is portalled in becomes an item of the header row. */
+.slot {
+  display: contents;
+}

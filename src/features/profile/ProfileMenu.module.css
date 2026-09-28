@@ -132,3 +132,17 @@
     padding: var(--space-16);
   }
 }
+
+/*
+ * Keyframes live in the module that uses them: CSS Modules scope animation names per
+ * file, so a keyframe defined elsewhere (e.g. globals.css) would never match. The global
+ * prefers-reduced-motion rule still collapses them all.
+ */
+@keyframes ksk-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}

@@ -9,3 +9,110 @@
   background: var(--color-background-surface-raised);
   animation: ksk-shimmer 1.2s ease-in-out infinite;
 }
+
+/* Row-shaped: the list card the content will fill, so nothing jumps when it arrives. */
+.card {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-lg);
+  background: var(--color-background-surface-raised);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  min-height: var(--row-min-height);
+  padding: var(--space-12) var(--space-16);
+  animation: ksk-shimmer 1.2s ease-in-out infinite;
+}
+.row + .row {
+  border-top: var(--divider-thin) solid var(--color-border-subtle);
+}
+.dot,
+.tile {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: var(--color-background-surface);
+}
+.tile {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+}
+/* Summary: a headline figure, two facts, a short trend (the My attendance / institute card). */
+.summary {
+  gap: var(--space-12);
+  padding: var(--space-16);
+  animation: ksk-shimmer 1.2s ease-in-out infinite;
+}
+.summaryTop {
+  display: flex;
+  align-items: center;
+  gap: var(--space-24);
+  padding-bottom: var(--space-12);
+  border-bottom: var(--divider-thin) solid var(--color-border-subtle);
+}
+.figure {
+  display: block;
+  width: 88px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  background: var(--color-background-surface);
+}
+.trendRow {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-12);
+}
+.bar {
+  display: block;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-background-surface);
+}
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  flex: 1;
+  min-width: 0;
+}
+.line,
+.lineShort {
+  display: block;
+  height: 12px;
+  border-radius: var(--radius-full);
+  background: var(--color-background-surface);
+}
+.lineShort {
+  width: 32%;
+  min-width: 40px;
+  height: 10px;
+}
+.pill {
+  flex: none;
+  width: 48px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  background: var(--color-background-surface);
+}
+
+/*
+ * Keyframes live in the module that uses them: CSS Modules scope animation names per
+ * file, so a keyframe defined elsewhere (e.g. globals.css) would never match. The global
+ * prefers-reduced-motion rule still collapses them all.
+ */
+@keyframes ksk-shimmer {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { DownloadScreen } from '@/features/profile/DownloadScreen';
+import { DownloadScreen } from '@/features/offline/DownloadScreen';
 
 export const metadata: Metadata = { title: 'Download batches' };
 

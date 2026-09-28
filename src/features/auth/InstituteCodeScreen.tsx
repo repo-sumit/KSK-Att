@@ -1,14 +1,14 @@
 'use client';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { ScreenLayout } from '@/components/shell/ScreenLayout';
 import { useT } from '@/hooks/i18n';
 import { useServices } from '@/hooks/services';
 import { routes } from '@/lib/routes';
-import { LoginAssistButton } from './LoginAssistButton';
+import { LoginAssistPicker, useAssistAccountValue } from './LoginAssistPicker';
 import { useLoginFlow } from './LoginFlow';
 import styles from './Login.module.css';
 
@@ -19,10 +19,17 @@ const INPUT_ID = 'institute-code-input';
 export function InstituteCodeScreen() {
   const t = useT();
   const router = useRouter();
+  // The next steps load while the code is typed, so moving on never shows an empty screen.
+  useEffect(() => {
+    router.prefetch(routes.loginInstitute);
+    router.prefetch(routes.loginTrainer);
+  }, [router]);
   const params = useSearchParams();
   const { auth, configuration } = useServices();
   const flow = useLoginFlow();
-  const [code, setCode] = useState(params.get('code') ?? '');
+  const picked = useAssistAccountValue('instituteCode');
+  // Back from a later step: the account picked in this attempt is still in the field.
+  const [code, setCode] = useState(params.get('code') ?? picked.value ?? '');
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
 
@@ -48,7 +55,7 @@ export function InstituteCodeScreen() {
       padding="none"
       footer={
         <Button type="submit" form={FORM_ID} fullWidth disabled={!code.trim()} loading={busy}>
-          {busy ? t('common.checking') : t('common.continue')}
+          {busy ? t('login.checkingInstitute') : t('common.continue')}
         </Button>
       }
     >
@@ -70,8 +77,10 @@ export function InstituteCodeScreen() {
             label={t('login.codeLabel')}
             value={code}
             onChange={(v) => {
-              setCode(v.replace(/\D/g, '').slice(0, 6));
+              const next = v.replace(/\D/g, '').slice(0, 6);
+              setCode(next);
               setError(undefined);
+              picked.edited(next);
             }}
             placeholder={t('login.codePlaceholder')}
             inputMode="numeric"
@@ -80,7 +89,7 @@ export function InstituteCodeScreen() {
             latin
             error={error}
           />
-          <LoginAssistButton
+          <LoginAssistPicker
             field="instituteCode"
             inputId={INPUT_ID}
             onFill={(v) => {

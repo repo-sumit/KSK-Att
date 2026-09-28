@@ -4,13 +4,12 @@ test('offline: mark against a downloaded roster, lock locally, then sync when ba
   void consoleErrors;
   await preset(page, 'offline');
   await expect(page.getByText('You’re offline. Attendance will sync automatically.')).toBeVisible();
-  await page.getByRole('link', { name: 'Choose trade and batch' }).click();
-  await page.getByRole('link', { name: /Mechanic Diesel/ }).click();
+  await page.getByRole('region', { name: 'Today’s attendance' }).getByRole('link', { name: /Mechanic Diesel/ }).click();
   await page.getByRole('link', { name: /Shift 1 · Unit 1/ }).click();
   await expect(page.getByRole('heading', { name: 'This batch isn’t downloaded' })).toBeVisible();
   await page.getByRole('button', { name: 'Go back' }).click();
   await page.goBack();
-  await page.getByRole('link', { name: /Electrician/ }).click();
+  await page.getByRole('region', { name: 'Today’s attendance' }).getByRole('link', { name: /Electrician/ }).click();
   await page.getByRole('link', { name: /Shift 1 · Unit 2/ }).click();
   await page.waitForURL(/\/attendance\/mark/, { timeout: 20_000 });
   await page.getByRole('button', { name: 'Review & Submit' }).click();

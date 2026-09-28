@@ -40,7 +40,7 @@ export function VerificationFlow({ purpose, area, subtitle, passedSubtitle, onPa
   const header = <AppHeader title={t('verify.title')} subtitle={subtitle} back="close" onBack={onExit} />;
 
   if (phase.kind === 'primer')
-    return <PermissionPrimer kind={phase.permission} onAllow={phase.permission === 'location' ? flow.allowLocation : flow.allowCamera} onNotNow={onExit} />;
+    return <PermissionPrimer kind={phase.permission} onAllow={phase.permission === 'location' ? flow.allowLocation : flow.allowCamera} onNotNow={onExit} header={header} area={area} />;
 
   if (phase.kind === 'problem') {
     switch (phase.problem) {

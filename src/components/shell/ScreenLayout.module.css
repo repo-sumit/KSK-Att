@@ -45,7 +45,7 @@
   flex: none;
   min-width: 0;
 }
-/* Headerless screens: the demo pill floats over the first row, so the bar keeps clear of it. */
+/* Headerless screens: a floating demo trigger sits over the first row (phones), so the banner keeps clear of it. */
 .bannerFirst {
   --banner-end-reserve: var(--demo-reserve-inline);
 }

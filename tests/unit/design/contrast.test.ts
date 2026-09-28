@@ -51,6 +51,15 @@ const TEXT_PAIRS: ReadonlyArray<[string, string]> = [
   ['color-text-warning', 'color-status-warning-subtle'],
   // Camera screens: step count, hints and the prototype note on the dark surface.
   ['color-camera-text-secondary', 'color-background-inverse'],
+  // Batch "Updated · Refresh data" strip and the expanded leaderboard panel (muted surface).
+  ['color-text-primary', 'color-surface-muted'],
+  ['color-text-secondary', 'color-surface-muted'],
+  ['color-text-warning', 'color-surface-muted'],
+  ['color-text-success', 'color-surface-muted'],
+  ['color-text-brand-subdued', 'color-surface-muted'],
+  // Home notice banner ("2 more announcements") and the at-risk "all clear" line.
+  ['color-text-brand-subdued', 'color-background-surface-raised'],
+  ['color-text-success', 'color-background-surface'],
 ];
 
 describe('text contrast meets WCAG AA (4.5:1)', () => {

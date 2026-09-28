@@ -55,7 +55,7 @@ export function ConfirmIdentityScreen() {
       footer={
         <>
           <Button fullWidth onClick={confirm} loading={busy}>
-            {t('login.yesContinue')}
+            {busy ? t('login.signingIn') : t('login.yesContinue')}
           </Button>
           <Button
             variant="ghost"

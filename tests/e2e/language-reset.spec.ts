@@ -8,7 +8,15 @@ test('Marathi: the whole interface switches, digits stay Latin, nothing overflow
   await expect(page.locator('html')).toHaveAttribute('lang', 'mr');
   await page.keyboard.press('Escape');
   await expect(menu).toBeHidden();
-  await nav(page, 'हजेरी').click();
+  // Instructors have Home · Reports only (D-052).
+  await expect(nav(page, 'हजेरी')).toHaveCount(0);
+  await nav(page, 'अहवाल').click();
+  await page.waitForURL(/\/reports$/);
+  await expect(page.getByRole('heading', { name: 'कमी हजेरीचे विद्यार्थी' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'माझ्या बॅच' })).toBeVisible();
+  await page.setViewportSize({ width: 320, height: 640 });
+  await expectNoOverflow(page);
+  await page.setViewportSize({ width: 393, height: 851 });
   await nav(page, 'मुख्यपृष्ठ').click();
   await expect(page.getByText('तुमच्या बॅच')).toBeVisible();
   await expect(page.getByText(/सुप्रभात/)).toBeVisible();

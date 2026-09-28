@@ -1,8 +1,11 @@
 'use client';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Suspense, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { Icon } from '@/components/ui/icons/Icon';
+import { useHeaderToolSlot } from '@/components/shell/ToolSlot';
 import { useContainer } from '@/hooks/services';
+import { cx } from '@/lib/cx';
 import type { DemoAdapters } from '../adapters';
 import { DemoController } from '../controller';
 import { DemoPanel } from './DemoPanel';
@@ -29,19 +32,29 @@ function PresetFromUrl({ controller }: { readonly controller: DemoController }) 
 
 /** Tablets and desktops keep the product usable while the panel is open (it overlays, never reflows). */
 const WIDE = '(min-width: 600px)';
+/** On <html> while the trigger floats: turns on the reserves in tokens.css (--demo-reserve-*). */
+const FLOAT_MARKER = 'data-demo-float';
 
 /**
- * DEMO ONLY. The presenter controls float over the product on every screen
- * size and start collapsed: a small "Demo" trigger. Phones open a bottom sheet
- * (modal); tablets and desktops open a drawer on the right that overlays the
- * app without taking layout space, so the presenter can keep using the app
- * while changing settings. The product never imports this.
+ * DEMO ONLY. The presenter controls start collapsed: a small "Demo" trigger.
+ * On screens with the app header it sits in the header's tool slot (left of
+ * the brand; just before the avatar on phone task screens), so the avatar
+ * stays the right-most control. Screens without the app header (login,
+ * camera, result and permission cards) have no slot: there it floats (top
+ * right on phones, bottom right from 600px) and marks <html> so the layout
+ * keeps room for it. Phones open a modal bottom sheet; tablets and desktops
+ * open a drawer on the left, below the header, that overlays the app without
+ * taking layout space, so the presenter can keep using the app while changing
+ * settings. The product never imports this.
  */
 export function DemoRoot({ demo, children }: { readonly demo: DemoAdapters; readonly children: ReactNode }) {
   const app = useContainer();
   const router = useRouter();
+  const slot = useHeaderToolSlot();
   const dialog = useRef<HTMLDialogElement>(null);
+  /** Whichever trigger is mounted (in the header slot or floating): focus comes back to it. */
   const trigger = useRef<HTMLButtonElement>(null);
+  const triggerFocused = useRef(false);
   const title = useRef<HTMLParagraphElement>(null);
   /** Opened with show() (drawer, no native Esc) rather than showModal() (sheet). `:modal` isn't in older WebViews. */
   const drawer = useRef(false);
@@ -55,6 +68,33 @@ export function DemoRoot({ demo, children }: { readonly demo: DemoAdapters; read
       delete window.__kskDemo;
     };
   }, [controller]);
+
+  // Floating: reserve room for it. Before paint, so nothing jumps when a screen with the header arrives.
+  useLayoutEffect(() => {
+    if (slot) return;
+    const html = document.documentElement;
+    html.setAttribute(FLOAT_MARKER, '');
+    return () => html.removeAttribute(FLOAT_MARKER);
+  }, [slot]);
+
+  // A new screen's header re-mounts the trigger in its slot: keyboard focus stays on it. (Removal
+  // from the page fires no blur React sees, so the flag still holds from before the move.)
+  useLayoutEffect(() => {
+    if (triggerFocused.current && document.activeElement !== trigger.current) trigger.current?.focus();
+  }, [slot]);
+
+  // The wide drawer starts below the whole header (task screens add a back + title row), re-measured
+  // when the header changes size or a new screen's header arrives while the drawer is open.
+  useLayoutEffect(() => {
+    const d = dialog.current;
+    if (!open || !drawer.current || !d) return;
+    const header = document.querySelector('header');
+    const place = () => d.style.setProperty('--demo-drawer-top', header ? `${Math.round(header.getBoundingClientRect().bottom) + 8}px` : '');
+    place();
+    const observer = header ? new ResizeObserver(place) : null;
+    if (header) observer?.observe(header);
+    return () => observer?.disconnect();
+  }, [open, slot]);
 
   // The non-modal drawer gets no native Esc handling: add it while open.
   useEffect(() => {
@@ -81,13 +121,26 @@ export function DemoRoot({ demo, children }: { readonly demo: DemoAdapters; read
   };
   const close = () => dialog.current?.close();
 
+  const button = (
+    <button
+      ref={trigger}
+      type="button"
+      className={cx(styles.trigger, slot ? styles.inHeader : styles.floating)}
+      onClick={() => (open ? close() : show())}
+      onFocus={() => (triggerFocused.current = true)}
+      onBlur={() => (triggerFocused.current = false)}
+      aria-label="Open demo controls"
+      aria-expanded={open}
+    >
+      <Icon name="sliders" size={16} />
+      <span className={styles.triggerText}>Demo</span>
+    </button>
+  );
+
   return (
     <>
       {children}
-      <button ref={trigger} type="button" className={styles.trigger} onClick={() => (open ? close() : show())} aria-label="Open demo controls" aria-expanded={open}>
-        <Icon name="sliders" size={16} />
-        <span className={styles.triggerText}>Demo</span>
-      </button>
+      {slot ? createPortal(button, slot) : button}
       <dialog
         ref={dialog}
         className={styles.panel}

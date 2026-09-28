@@ -52,4 +52,10 @@
   .icon {
     display: none;
   }
+  .headerNav {
+    gap: 0;
+  }
+  .item {
+    padding: 0 var(--space-8);
+  }
 }
