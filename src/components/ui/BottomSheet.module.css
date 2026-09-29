@@ -1,4 +1,14 @@
-.sheet {
+/*
+ * The one overlay surface (CHROME-03). Every overlay is a bottom sheet on
+ * phones: radius xl on top, the scrim, the slide-in. From 600px it goes where
+ * its placement says:
+ *   bottom:   still anchored to the bottom edge (DS), centred at the dialog width;
+ *   anchored: a menu under the header, right-aligned to its trigger (profile);
+ *   drawer:   a panel on the viewport's right edge below the header (demo, D-047).
+ * Owners of anchored and drawer set --overlay-top (the header's bottom edge)
+ * and anchored also --overlay-right; the surface adds the gap.
+ */
+.surface {
   position: fixed;
   inset: auto 0 0 0;
   width: 100%;
@@ -12,25 +22,68 @@
   box-shadow: var(--shadow-overlay);
   color: var(--color-text-primary);
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
-.sheet[open] {
+.surface[open] {
   animation: ksk-sheet-in var(--motion-base) var(--motion-ease);
 }
-.sheet::backdrop {
+.surface::backdrop {
   background: var(--color-scrim);
 }
+.grabber {
+  display: block;
+  align-self: center;
+  width: 40px;
+  height: 4px;
+  margin: 0 auto;
+  border-radius: var(--radius-full);
+  background: var(--color-border-default);
+}
+
+/* Title bar of reading sheets and the demo panel: one title style, a 44px close, one divider; it stays pinned while the content scrolls. */
+.titleBar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  min-height: var(--header-height);
+  padding: var(--space-8) var(--space-8) var(--space-8) var(--space-16);
+  border-bottom: var(--divider-thin) solid var(--color-border-subtle);
+  background: var(--color-background-surface-raised);
+}
+.titleText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+}
+.barTitle {
+  font: var(--type-title-large);
+  letter-spacing: var(--ls-title-large);
+  overflow-wrap: break-word;
+}
+.barSubtitle {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font: var(--type-body-small);
+  letter-spacing: var(--ls-body-small);
+  color: var(--color-text-secondary);
+}
+
+/* ---- BottomSheet content ---- */
 .panel {
   display: flex;
   flex-direction: column;
   gap: var(--space-24);
   padding: var(--space-8) var(--space-16) calc(var(--space-24) + env(safe-area-inset-bottom));
 }
-.grabber {
-  align-self: center;
-  width: 40px;
-  height: 4px;
-  border-radius: var(--radius-full);
-  background: var(--color-border-default);
+/* Under a title bar the content starts one step below the divider. */
+.reading {
+  padding-top: var(--space-16);
 }
 .text {
   display: flex;
@@ -52,46 +105,64 @@
   flex-direction: column;
   gap: var(--space-8);
 }
-/* Tablets and desktops: still anchored to the bottom edge (DS), centred at a 6-column width. */
+.title:focus,
+.barTitle:focus {
+  outline: none;
+}
+.title:focus-visible,
+.barTitle:focus-visible {
+  outline: 2px solid var(--color-interactive-focus);
+  outline-offset: 2px;
+}
+
 @media (min-width: 600px) {
-  .sheet {
-    max-width: var(--container-dialog);
-  }
-  .panel {
-    padding: var(--space-16) var(--space-24) calc(var(--space-24) + env(safe-area-inset-bottom));
-  }
   .grabber {
     display: none;
   }
-}
-/* Reading sheet: the title and its close button stay pinned while the list scrolls under them. */
-.reading {
-  padding-top: 0;
-}
-.titleRow {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  margin: 0 calc(-1 * var(--space-16));
-  padding: var(--space-12) var(--space-8) var(--space-12) var(--space-16);
-  border-bottom: var(--divider-thin) solid var(--color-border-subtle);
-  background: var(--color-background-surface-raised);
-}
-@media (min-width: 600px) {
-  .titleRow {
-    margin: 0 calc(-1 * var(--space-24));
-    padding: var(--space-12) var(--space-16) var(--space-12) var(--space-24);
+  .panel {
+    padding-top: var(--space-16);
   }
-}
-.title:focus {
-  outline: none;
-}
-.title:focus-visible {
-  outline: 2px solid var(--color-interactive-focus);
-  outline-offset: 2px;
+  /* Actions side by side at the DS standalone width, primary first, never stretched across the dialog; long labels wrap to a stack. */
+  .actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-12);
+  }
+  .actions > * {
+    flex: 1 1 calc((100% - var(--space-12)) / 2);
+    max-width: var(--container-footer);
+  }
+  .bottom {
+    max-width: var(--container-dialog);
+  }
+  .anchored,
+  .drawer {
+    border: var(--divider-thin) solid var(--color-border-subtle);
+    border-radius: var(--radius-xl);
+  }
+  .anchored[open],
+  .drawer[open] {
+    animation: none;
+  }
+  /* The page stays visible and usable around it: no scrim (a click outside still closes the modal menu). */
+  .anchored::backdrop {
+    background: transparent;
+  }
+  .anchored {
+    inset: calc(var(--overlay-top, var(--header-height-wide)) + var(--space-8)) var(--overlay-right, var(--space-16)) auto auto;
+    width: var(--overlay-width-menu);
+    max-height: calc(100dvh - var(--overlay-top, var(--header-height-wide)) - var(--space-8) - var(--space-16));
+    margin: 0;
+  }
+  .drawer {
+    inset: calc(var(--overlay-top, calc(env(safe-area-inset-top) + var(--header-height-wide))) + var(--space-8)) var(--space-16) var(--space-16) auto;
+    width: var(--overlay-width-drawer);
+    /* Top to bottom of the space below the header (the native dialog would shrink to its content). */
+    height: auto;
+    max-height: none;
+    margin: 0;
+  }
 }
 
 /*

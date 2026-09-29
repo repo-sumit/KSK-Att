@@ -2,7 +2,6 @@
 import Image from 'next/image';
 import type { ReactNode } from 'react';
 import { IconButton } from '@/components/ui/IconButton';
-import { Latin } from '@/components/ui/Latin';
 import { HeaderNav } from '@/components/shell/AppNav';
 import { useBack, useDocumentTitle } from '@/components/shell/Headers';
 import { useScreenArea } from '@/components/shell/ScreenLayout';
@@ -48,14 +47,18 @@ export function AppHeader({ title, subtitle, back = false, backHref = routes.hom
   const AppName = title || plain ? 'p' : 'h1';
 
   return (
-    <header className={styles.header} data-mode={task ? 'task' : 'root'}>
+    // data-nav-tabs: how many destinations share the wide bar (tooling beside the avatar sizes itself to the room left).
+    <header className={styles.header} data-mode={task ? 'task' : 'root'} data-nav-tabs={ctx.journey.navTabs.length}>
       <div className={styles.bar}>
         <div className={styles.brand}>
           <Image src="/branding/ksk-emblem.png" alt="" width={36} height={36} className={styles.emblem} loading="eager" />
           <span className={styles.brandText}>
-            <AppName className={styles.appName}>{t('app.name')}</AppName>
-            <span className={styles.institute}>
-              <Latin>{ctx.institute.shortName}</Latin>
+            {/* Brand and institute stay English in Marathi (D-035): lang on the elements themselves, so face and line height are both Latin (a <Latin> span inside keeps the Marathi line box). */}
+            <AppName className={styles.appName} lang="en">
+              {t('app.name')}
+            </AppName>
+            <span className={styles.institute} lang="en">
+              {ctx.institute.shortName}
             </span>
           </span>
         </div>

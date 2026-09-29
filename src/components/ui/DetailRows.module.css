@@ -59,3 +59,4 @@
 .error .label, .error .value { color: var(--color-text-error); }
 .warning .label, .warning .value { color: var(--color-text-warning); }
 .info .label, .info .value { color: var(--color-text-info); }
+.brand .label, .brand .value { color: var(--color-text-brand-subdued); }

@@ -1,0 +1,150 @@
+/*
+ * AttendanceSummary (D-069): the group total and one tile per configured status.
+ * Phones: a six-column grid with rows of at most three tiles, balanced by the
+ * per-tile --summary-span (5 tiles → 3 + 2, never one tile alone on a row);
+ * with more than three, each tile is a single line.
+ * From 560px of container: one row of tiles, each at most --summary-tile-max
+ * wide; from 600px they sit beside the lead (date, batch) when there are four
+ * or fewer, in line with the rows' status column. Tiles never stretch into
+ * empty slabs, and a status icon is never dropped (icon + text + colour).
+ */
+.summary {
+  container-type: inline-size;
+  min-width: 0;
+}
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-8);
+}
+.lead {
+  min-width: 0;
+}
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--space-8);
+}
+.tile {
+  grid-column: span var(--summary-span, 2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-8) var(--space-4);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+.value {
+  font: var(--type-heading-small);
+  font-variant-numeric: tabular-nums;
+}
+.label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  max-width: 100%;
+  font: var(--type-caption);
+  letter-spacing: var(--ls-caption);
+}
+.label > svg {
+  flex: none;
+}
+/* A long label (large text, Marathi) wraps under its icon instead of losing it. */
+.label > span {
+  min-width: 0;
+  text-wrap: balance;
+}
+.note {
+  font: var(--type-label-small);
+  letter-spacing: var(--ls-label-small);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+  text-wrap: pretty;
+}
+
+/* Tones: the status colour in the text and a subtle fill, as on the row's status control. */
+.neutral {
+  color: var(--color-text-primary);
+}
+.hero .neutral {
+  background: var(--color-hero-banner);
+}
+.raised .neutral {
+  background: var(--color-background-surface-raised);
+}
+.success {
+  background: var(--color-surface-success-subtle);
+  color: var(--color-text-success);
+}
+.error {
+  background: var(--color-surface-error-subtle);
+  color: var(--color-text-error);
+}
+.warning {
+  background: var(--color-surface-warning-subtle);
+  color: var(--color-text-warning);
+}
+.info {
+  background: var(--color-surface-info-subtle);
+  color: var(--color-text-info);
+}
+.brand {
+  background: var(--color-surface-brand-subtle);
+  color: var(--color-text-brand-subdued);
+}
+
+/*
+ * Phones with more than three tiles (half day, leave, OJT on): each tile is one
+ * line, the number beside its label, so two rows stay about 80px and the roster
+ * keeps its room on a small phone.
+ */
+@container (max-width: 559px) {
+  .dense .tile {
+    flex-direction: row;
+    gap: var(--space-4);
+    padding: var(--space-8) var(--space-4);
+  }
+  .dense .value {
+    font: var(--type-title-large);
+    font-variant-numeric: tabular-nums;
+  }
+}
+@container (min-width: 560px) {
+  .tiles {
+    grid-template-columns: repeat(var(--summary-count, 3), minmax(0, var(--summary-tile-max)));
+    justify-content: start;
+  }
+  .tile {
+    grid-column: auto;
+    padding: var(--space-8) var(--space-12);
+  }
+}
+/* Wide, four tiles or fewer: the lead on the left, the tiles on the right, in line with the rows' status column. */
+@container (min-width: 600px) {
+  .withLead:not(.many) {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: 'lead tiles';
+    align-items: center;
+    column-gap: var(--space-24);
+  }
+  .withLead.hasNote:not(.many) {
+    grid-template-areas:
+      'lead tiles'
+      'lead note';
+  }
+  .withLead:not(.many) > .lead {
+    grid-area: lead;
+  }
+  .withLead:not(.many) > .tiles {
+    grid-area: tiles;
+    justify-content: end;
+  }
+  .withLead:not(.many) > .note {
+    grid-area: note;
+    text-align: end;
+  }
+}

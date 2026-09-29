@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AttendanceSubmission } from '@/domain/attendance';
-import { completenessIssues, countMarks, initialMarks } from '@/domain/marking';
+import { completenessIssues, contributesToPresent, countMarks, effectivePresent, initialMarks, presentTerms, summaryStatuses } from '@/domain/marking';
 import { checkCorrection, checkStaffMark, checkSubmission, type SubmitCheck } from '@/domain/rules';
 import { TODAY, configWith, data, staff } from '../../helpers/fixtures';
 
@@ -34,6 +34,37 @@ describe('initial marks (PRD §9.2)', () => {
     const marks = { a: { status: 'half_day' as const } };
     expect(completenessIssues(marks, configWith({ marking: { statusSet: ['present', 'absent', 'half_day'], halfDayHalves: true } }).marking)).toHaveLength(1);
     expect(completenessIssues(marks, configWith({ marking: { statusSet: ['present', 'absent', 'half_day'], halfDayHalves: false } }).marking)).toHaveLength(0);
+  });
+});
+
+describe('effective Present (D-069: half day ½, OJT as present)', () => {
+  // The owner's example: 31 students, 24 present, 2 half day, 2 leave, 2 OJT, 1 absent.
+  const counts = { total: 31, present: 24, absent: 1, half_day: 2, leave: 2, ojt: 2, unmarked: 0 };
+  it('counts each status by its presence weight: 24 + 2 × ½ + 2 OJT = 27', () => {
+    expect(effectivePresent(counts)).toBe(27);
+    expect(presentTerms(counts)).toEqual([
+      { status: 'present', count: 24, weight: 1 },
+      { status: 'half_day', count: 2, weight: 0.5 },
+      { status: 'ojt', count: 2, weight: 1 },
+    ]);
+  });
+  it('a single half day gives a half: 24.5', () => {
+    expect(effectivePresent({ ...counts, half_day: 1, ojt: 0, leave: 5 })).toBe(24.5);
+  });
+  it('leave, absent and unmarked add nothing', () => {
+    expect(effectivePresent({ total: 10, present: 0, absent: 4, half_day: 0, leave: 3, ojt: 0, unmarked: 3 })).toBe(0);
+  });
+  it('summaries show every configured status in registry order, plus any status an older record used', () => {
+    const none = { total: 5, present: 5, absent: 0, half_day: 0, leave: 0, ojt: 0, unmarked: 0 };
+    expect(summaryStatuses(['present', 'absent'], none)).toEqual(['present', 'absent']);
+    expect(summaryStatuses(['ojt', 'leave', 'present', 'absent', 'half_day'], none)).toEqual(['present', 'absent', 'half_day', 'leave', 'ojt']);
+    expect(summaryStatuses(['present', 'absent'], { ...none, present: 4, leave: 1 })).toEqual(['present', 'absent', 'leave']);
+  });
+  it('knows when a configuration has statuses that count toward Present', () => {
+    expect(contributesToPresent(['present', 'absent'])).toBe(false);
+    expect(contributesToPresent(['present', 'absent', 'leave'])).toBe(false);
+    expect(contributesToPresent(['present', 'absent', 'half_day'])).toBe(true);
+    expect(contributesToPresent(['present', 'absent', 'ojt'])).toBe(true);
   });
 });
 

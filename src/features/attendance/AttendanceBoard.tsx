@@ -7,14 +7,18 @@ import { Segmented } from '@/components/ui/Segmented';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
+import { StatusLine } from '@/components/ui/StatusLine';
 import { useI18n } from '@/hooks/i18n';
+import { useSession } from '@/hooks/session';
+import { toLocalDate } from '@/lib/time';
 import { PeriodList, SessionList, TradeRows } from './SessionList';
 import { useBoard } from './useBoard';
 import styles from './AttendanceBoard.module.css';
 
 /** The instructor/principal "which class?" block; the same component serves Home and the Attendance tab. */
 export function AttendanceBoard({ showGroupTitles = true }: { readonly showGroupTitles?: boolean }) {
-  const { t } = useI18n();
+  const { t, format } = useI18n();
+  const ctx = useSession();
   const toast = useToast();
   const board = useBoard();
   const [tradeId, setTradeId] = useState<string | null>(null);
@@ -27,11 +31,33 @@ export function AttendanceBoard({ showGroupTitles = true }: { readonly showGroup
       return (
         <TradeRows
           label={t('selection.trades')}
-          trades={data.trades.map((tr) => ({
-            id: tr.id,
-            name: tr.name,
-            meta: tr.progress ? t('selection.tradeSubmitted', { ...tr.progress, count: tr.progress.total }) : t('selection.tradeBatches', { count: tr.batches }),
-          }))}
+          trades={data.trades.map((tr) => {
+            const p = tr.progress;
+            if (!p) return { id: tr.id, name: tr.name, meta: t('selection.tradeBatches', { count: tr.batches }) };
+            const today = toLocalDate(ctx.clock.now());
+            const opens = p.nextOpen ? format.clockTime(today, p.nextOpen) : null;
+            const missing = p.total - p.done - p.later;
+            // The same denominator as Home's "4 of 17" (every trade session today), then the one thing to know next.
+            return {
+              id: tr.id,
+              name: tr.name,
+              meta: t('selection.tradeSubmitted', { ...p, count: p.total }),
+              state:
+                p.total > 0 && p.done === p.total ? (
+                  <StatusLine tone="success" icon="circle-check" nowrap>
+                    {t('principal.tradeAllSubmitted')}
+                  </StatusLine>
+                ) : missing > 0 ? (
+                  <StatusLine tone="warning" icon="alert" nowrap>
+                    {t('principal.tradeNotSubmitted', { count: missing })}
+                  </StatusLine>
+                ) : opens ? (
+                  <StatusLine tone="neutral" icon="clock" nowrap>
+                    {t('selection.opensAt', { time: opens })}
+                  </StatusLine>
+                ) : undefined,
+            };
+          })}
         />
       );
     case 'periods':

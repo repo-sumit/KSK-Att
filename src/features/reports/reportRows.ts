@@ -25,7 +25,7 @@ export interface ReportRow {
   readonly subtitle: string;
   readonly value: string;
   readonly tone: Tone;
-  readonly icon: IconName;
+  readonly icon?: IconName;
 }
 
 type T = I18n['t'];
@@ -44,8 +44,8 @@ export function rangeLabel(t: T, f: F, range: DateRange): string {
   }
 }
 
-const pctTone = (pct: number | null, threshold: number): Pick<ReportRow, 'tone' | 'icon'> =>
-  pct === null ? { tone: 'neutral', icon: 'circle' } : pct < threshold ? { tone: 'warning', icon: 'alert' } : { tone: 'success', icon: 'check' };
+/** Only an exception carries status colour, as on the Reports page (RPT-9): below the threshold is amber with its icon; anything else is a plain chip. */
+const pctTone = (pct: number | null, threshold: number): Pick<ReportRow, 'tone' | 'icon'> => (pct !== null && pct < threshold ? { tone: 'warning', icon: 'alert' } : { tone: 'neutral' });
 
 export function buildReport(t: T, f: F, ctx: SessionContext, data: ReportData, range: DateRange): { summary: string; rows: ReportRow[] } {
   const r = rangeLabel(t, f, range);

@@ -8,11 +8,12 @@ import { Button } from '@/components/ui/Button';
 import { DetailRows } from '@/components/ui/DetailRows';
 import { Latin } from '@/components/ui/Latin';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { StatTiles } from '@/components/ui/StatTiles';
+import { AttendanceSummary, summaryItems } from '@/components/ui/AttendanceSummary';
 import { useToast } from '@/components/ui/Toast';
 import { StatusLine } from '@/components/ui/StatusLine';
 import { ScreenLayout } from '@/components/shell/ScreenLayout';
 import { AppHeader } from '@/features/shell/AppHeader';
+import { countMarks } from '@/domain/marking';
 import type { StatusCode } from '@/domain/status';
 import { useI18n } from '@/hooks/i18n';
 import { useServices } from '@/hooks/services';
@@ -21,6 +22,7 @@ import { useQuery } from '@/hooks/useQuery';
 import { routes } from '@/lib/routes';
 import type { StaffDayRow } from '@/services/staff-attendance';
 import { ViewSwitch } from '../attendance/AttendanceTabScreen';
+import { summaryLabels } from '../common/labels';
 import styles from './Staff.module.css';
 
 /** PRD §18.3: every instructor plus the principal; self-marked rows are locked, the principal fills gaps. */
@@ -49,8 +51,9 @@ export function StaffScreen() {
     return trade ? t('role.withTrade', { role, trade }) : role;
   };
   const list = [...(rows ?? [])].sort((a, b) => Number(Boolean(a.record)) - Number(Boolean(b.record)));
-  const present = list.filter((r) => r.record?.status === 'present').length;
-  const unmarked = list.filter((r) => !r.record).length;
+  // The day as saved: staff, then each status the state enables, then who is still not marked.
+  const saved = countMarks(Object.fromEntries(list.map((r) => [r.member.id, { status: r.record?.status ?? null }])));
+  const summary = summaryLabels(t, format, 'staff');
   const changes = Object.keys(draft).length;
   const canMark = ctx.journey.staff.principalCanMark;
   const statuses = ctx.journey.staff.statusSet;
@@ -82,15 +85,7 @@ export function StaffScreen() {
       top={
         <div className={styles.top}>
           <ViewSwitch value="staff" onSwitch={(go) => (changes > 0 ? setLeaving(() => go) : go())} />
-          <StatTiles
-            size="md"
-            surface="plain"
-            tiles={[
-              { key: 'staff', label: t('staff.tileStaff'), value: String(list.length), tone: 'neutral' },
-              { key: 'present', label: t('status.present'), value: String(present), tone: 'success', icon: 'check' },
-              { key: 'unmarked', label: t('status.not_marked'), value: String(unmarked), tone: 'warning', icon: 'circle' },
-            ]}
-          />
+          <AttendanceSummary counts={saved} statuses={ctx.journey.staff.statusSet} labels={summary} showNotMarked />
         </div>
       }
       footer={
@@ -162,7 +157,9 @@ export function StaffScreen() {
         <DetailRows
           variant="hero"
           emphasis
-          rows={statuses.map((s) => ({ key: s, label: t(`status.${s}`), value: String(Object.values(draft).filter((v) => v === s).length), tone: s === 'present' ? 'success' : s === 'absent' ? 'error' : undefined }))}
+          rows={summaryItems(countMarks(Object.fromEntries(Object.entries(draft).map(([id, status]) => [id, { status }]))), statuses, summary)
+            .filter((item) => item.key !== 'total')
+            .map((item) => ({ key: item.key, label: item.label, value: format.number(item.value), tone: item.tone === 'neutral' ? ('default' as const) : item.tone }))}
         />
         {/* Name the people being marked Absent: the save can't be undone today. */}
         {draftNames('absent').length > 0 && (

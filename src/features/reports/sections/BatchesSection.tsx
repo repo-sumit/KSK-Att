@@ -1,6 +1,5 @@
 'use client';
-import { useId, useRef, useState } from 'react';
-import { Card } from '@/components/ui/Card';
+import { useRef, useState } from 'react';
 import { Disclosure } from '@/components/ui/Disclosure';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Latin } from '@/components/ui/Latin';
@@ -12,6 +11,7 @@ import { useJourney, useSession } from '@/hooks/session';
 import { useQuery } from '@/hooks/useQuery';
 import type { BatchOverview } from '@/services/reports';
 import { batchTitle } from '../../common/labels';
+import { TradeGroups } from '../../common/TradeGroups';
 import { Leaderboard } from './Leaderboard';
 import { PctBadge } from './PctBadge';
 import styles from '../Reports.module.css';
@@ -29,33 +29,18 @@ export function BatchesSection({ title }: { readonly title: string }) {
   const { reports } = useServices();
   const { data } = useQuery(`report-batches:${ctx.user.id}`, () => reports.batchOverview(ctx), TOPICS);
 
-  const body = (() => {
-    if (!data) return <Skeleton variant="rows" leading="none" count={2} label={t('common.loading')} />;
-    if (!data.batches.length) return <EmptyState icon="users" title={t('reports.noStudentData')} />;
-    const trades = ctx.data.trades.filter((tr) => data.batches.some((b) => b.trade.id === tr.id));
-    return trades.map((trade) => <TradeGroup key={trade.id} name={trade.name} items={data.batches.filter((b) => b.trade.id === trade.id)} threshold={data.threshold} />);
-  })();
-
   return (
     <Section id="batches" title={title} subtitle={t('reports.batchesSub', { days: j.reports.windowDays })}>
-      {body}
+      {!data ? (
+        <Skeleton variant="rows" leading="none" count={2} label={t('common.loading')} />
+      ) : !data.batches.length ? (
+        <EmptyState icon="users" title={t('reports.noStudentData')} />
+      ) : (
+        <TradeGroups trades={ctx.data.trades} items={data.batches} tradeId={(b) => b.trade.id} idPrefix="batches">
+          {(item) => <BatchRow key={item.batch.id} item={item} threshold={data.threshold} />}
+        </TradeGroups>
+      )}
     </Section>
-  );
-}
-
-function TradeGroup({ name, items, threshold }: { readonly name: string; readonly items: readonly BatchOverview[]; readonly threshold: number }) {
-  const headingId = useId();
-  return (
-    <div className={styles.group}>
-      <h3 id={headingId} className={styles.groupLabel}>
-        <Latin>{name}</Latin>
-      </h3>
-      <Card divided role="group" aria-labelledby={headingId}>
-        {items.map((item) => (
-          <BatchRow key={item.batch.id} item={item} threshold={threshold} />
-        ))}
-      </Card>
-    </div>
   );
 }
 
@@ -65,7 +50,9 @@ function BatchRow({ item, threshold }: { readonly item: BatchOverview; readonly 
   const row = useRef<HTMLDivElement>(null);
   const hide = () => {
     setOpen(false);
-    // Back to the row that was opened, not wherever the long list ended.
+    // Back to the row that was opened, not wherever the long list ended; focus goes with it
+    // (the Hide button it was on is gone), so a keyboard or screen reader user lands on the batch.
+    row.current?.querySelector('button')?.focus({ preventScroll: true });
     row.current?.scrollIntoView({ block: 'nearest' });
   };
   return (

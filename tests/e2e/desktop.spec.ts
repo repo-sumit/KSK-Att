@@ -91,6 +91,32 @@ test('the avatar is the right-most header control; the demo trigger sits immedia
   }
 });
 
+test('the demo trigger keeps its "Demo" label beside two destinations; 600–899px beside three it is icon only', async ({ page, consoleErrors }) => {
+  void consoleErrors;
+  const trigger = page.locator('header').getByRole('button', { name: 'Open demo controls' });
+  const label = trigger.getByText('Demo', { exact: true });
+  // Instructors (Home · Reports): the labelled pill fits beside the navigation at every width.
+  await preset(page, 'batch');
+  for (const width of [600, 768, 900]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(label, `instructor at ${width}`).toBeVisible();
+    expect((await trigger.boundingBox())!.width, `instructor at ${width}`).toBeGreaterThan(44);
+    await expectTriggerBesideAvatar(page, `instructor at ${width}`);
+    await expectNoOverflow(page);
+  }
+  // The principal (Home · Attendance · Reports): icon only until 900px, where the room is needed.
+  await preset(page, 'principal');
+  for (const width of [600, 768]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(label, `principal at ${width}`).toBeHidden();
+    expect((await trigger.boundingBox())!.width, `principal at ${width}`).toBeLessThanOrEqual(40);
+    await expectTriggerBesideAvatar(page, `principal at ${width}`);
+    await expectNoOverflow(page);
+  }
+  await page.setViewportSize({ width: 900, height: 900 });
+  await expect(label, 'principal at 900').toBeVisible();
+});
+
 test('screens without the app header: the demo trigger floats (top right on phones, bottom right from 600px)', async ({ page, consoleErrors }) => {
   void consoleErrors;
   await page.setViewportSize({ width: 360, height: 800 });
@@ -151,13 +177,27 @@ test('profile menu: a bottom sheet on phones, anchored under the avatar on deskt
   const a = (await avatar.boundingBox())!;
   const menu = await openProfileMenu(page);
   const m = (await menu.boundingBox())!;
-  expect(m.y).toBeGreaterThanOrEqual(a.y + a.height);
+  // Below the whole header (never over its bottom edge), right edge on the avatar's.
+  const header = (await page.locator('header').boundingBox())!;
+  expect(m.y).toBeGreaterThanOrEqual(header.y + header.height);
   expect(Math.abs(m.x + m.width - (a.x + a.width))).toBeLessThanOrEqual(2);
   await expect(menu.getByText('Rajesh Patil')).toBeVisible();
   await expect(menu.getByRole('button', { name: 'Logout' })).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(menu).toBeHidden();
   await expect(avatar).toBeFocused();
+
+  // The logout confirmation: its two actions side by side at the DS button width, never stretched across the sheet.
+  await (await openProfileMenu(page)).getByRole('button', { name: 'Logout' }).click();
+  const confirm = page.getByRole('dialog', { name: 'Log out?' });
+  const logout = (await confirm.getByRole('button', { name: 'Logout' }).boundingBox())!;
+  const cancel = (await confirm.getByRole('button', { name: 'Cancel' }).boundingBox())!;
+  expect(logout.width).toBeLessThanOrEqual(281);
+  expect(cancel.width).toBeLessThanOrEqual(281);
+  expect(Math.abs(logout.y - cancel.y)).toBeLessThanOrEqual(1);
+  expect(logout.x + logout.width).toBeLessThanOrEqual(cancel.x);
+  await confirm.getByRole('button', { name: 'Cancel' }).click();
+  await expect(confirm).toBeHidden();
 
   await page.setViewportSize({ width: 360, height: 800 });
   const sheet = await openProfileMenu(page);

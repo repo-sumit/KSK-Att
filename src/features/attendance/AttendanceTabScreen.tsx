@@ -10,8 +10,12 @@ import { routes } from '@/lib/routes';
 import { AttendanceBoard } from './AttendanceBoard';
 import styles from './AttendanceTab.module.css';
 
-/** Students / Staff switch for the institute view (only when staff attendance is on). */
-/** `onSwitch` lets a screen intercept the change (e.g. to protect unsaved staff marks). */
+/**
+ * Students / Staff switch for the institute view (only when staff attendance is on).
+ * `onSwitch` lets a screen intercept the change (e.g. to protect unsaved staff marks).
+ * Both screens use the reading column and the capped track (480px from 600px, at the
+ * column's start), so the switch keeps its place and size when it flips between them.
+ */
 export function ViewSwitch({ value, onSwitch }: { readonly value: 'students' | 'staff'; readonly onSwitch?: (go: () => void) => void }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -19,6 +23,7 @@ export function ViewSwitch({ value, onSwitch }: { readonly value: 'students' | '
     <Segmented
       label={t('principal.view')}
       fullWidth
+      capped
       value={value}
       onChange={(v) => {
         const go = () => router.replace(v === 'staff' ? routes.staff : routes.attendance);
@@ -55,6 +60,7 @@ export function AttendanceTabScreen() {
       top={j.staff.principalStaffView ? <div className={styles.switch}><ViewSwitch value="students" /></div> : undefined}
       area="attendance"
       bottomNav
+      width="reading"
     >
       <AttendanceBoard />
     </ScreenLayout>

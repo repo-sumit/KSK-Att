@@ -13,6 +13,8 @@ import { ScreenLayout } from '@/components/shell/ScreenLayout';
 import { AppHeader } from '@/features/shell/AppHeader';
 import { parseSessionKey, toSessionKey } from '@/domain/attendance';
 import { countMarks } from '@/domain/marking';
+import { AttendanceSummary } from '@/components/ui/AttendanceSummary';
+import { InlineNote } from '@/components/ui/InlineNote';
 import { useI18n } from '@/hooks/i18n';
 import { useServices } from '@/hooks/services';
 import { useSession } from '@/hooks/session';
@@ -20,8 +22,7 @@ import { useQuery } from '@/hooks/useQuery';
 import { cx } from '@/lib/cx';
 import { routes } from '@/lib/routes';
 import { addDays, toLocalDate } from '@/lib/time';
-import { batchTitle, batchWithTrade, markLabel, statusOf } from '../../common/labels';
-import { RosterSummary } from '../mark/RosterSummary';
+import { batchTitle, batchWithTrade, markLabel, statusOf, summaryLabels } from '../../common/labels';
 import { useSessionLabel } from '../useSessionLabel';
 import styles from './Record.module.css';
 import { useAttendanceRoot } from '../useAttendanceRoot';
@@ -111,11 +112,8 @@ export function RecordScreen() {
           <Banner layout="strip" tone={pending ? 'warning' : 'success'} icon={pending ? 'cloud-upload' : 'lock'}>
             <Latin>{status}</Latin>
           </Banner>
-          <RosterSummary counts={counts} size="md" variant="plain" />
-          <p className={styles.note}>
-            <Icon name="info" size={16} />
-            {note}
-          </p>
+          <AttendanceSummary counts={counts} statuses={ctx.journey.marking.statuses} labels={summaryLabels(t, format)} />
+          <InlineNote>{note}</InlineNote>
         </div>
       }
     >

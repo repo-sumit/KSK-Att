@@ -1,0 +1,122 @@
+/*
+ * The student lists an expanded batch or at-risk group opens onto (RPT-1/2):
+ * on the card's own white, rows inset 16 with dividers between them, one row
+ * anatomy for both (32px rank disc · name over days · tabular %).
+ */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  padding: var(--space-8) var(--space-16) var(--space-12);
+  background: var(--color-background-surface-raised);
+}
+.list {
+  display: flex;
+  flex-direction: column;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  min-height: var(--row-min-height-compact);
+  padding: var(--space-8) 0;
+}
+.row + .row {
+  border-top: var(--divider-thin) solid var(--color-border-subtle);
+}
+.rank {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-full);
+  background: var(--color-background-surface);
+  font: var(--type-label-small-strong);
+  letter-spacing: var(--ls-label-small);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+}
+.risk .rank {
+  background: var(--color-surface-warning-subtle);
+  color: var(--color-text-warning);
+}
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+}
+.name {
+  font: var(--type-title-small);
+  letter-spacing: var(--ls-title-small);
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+.sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-8);
+  font: var(--type-body-small);
+  letter-spacing: var(--ls-body-small);
+  color: var(--color-text-secondary);
+}
+.pct {
+  flex: none;
+  min-width: 48px;
+  text-align: right;
+  font: var(--type-title-small);
+  letter-spacing: var(--ls-title-small);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+.risk .pct {
+  color: var(--color-text-warning);
+}
+
+/* ---- The leaderboard's own controls ---- */
+/* Phones: the sort control across the panel. From 600px: a caption left, the sort right at its natural width. */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8) var(--space-16);
+  min-height: var(--touch-target-min);
+}
+/* Phones: the row just above already says how many students, so only the sort control shows. */
+.caption {
+  display: none;
+  flex: 1 1 auto;
+  font: var(--type-body-small);
+  letter-spacing: var(--ls-body-small);
+  color: var(--color-text-secondary);
+}
+/* Equal option widths at any track width: each option is as wide as the longest label. */
+.toolbar .sort {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+}
+@media (min-width: 600px) {
+  .caption {
+    display: block;
+  }
+  .toolbar .sort {
+    width: auto;
+  }
+}
+.empty {
+  padding: var(--space-8) 0;
+  font: var(--type-body-small);
+  letter-spacing: var(--ls-body-small);
+  color: var(--color-text-secondary);
+}
+/* A long list closes from its end, back to its batch. */
+.hide {
+  align-self: center;
+}

@@ -133,14 +133,14 @@
   }
   /*
    * Card screens (login, one-question steps): a centred form-width card on the
-   * muted page, the action directly under the content instead of at the
-   * bottom of a tall monitor.
+   * app's one page grey, the action directly under the content instead of at
+   * the bottom of a tall monitor.
    */
   .pageCard {
     align-items: center;
     justify-content: center;
     padding: var(--space-48) var(--page-margin);
-    background: var(--color-surface-muted);
+    background: var(--color-background-surface);
   }
   /* A problem or confirmation in the app: its one action sits under the message, not a monitor-height away. */
   .inlineFooter .main {
@@ -170,6 +170,26 @@
   }
   .card .footer {
     border-top: none;
+  }
+  /*
+   * footerLayout="row": two actions, or a message and its action, side by side
+   * and centred instead of stacked (Review, the roster). Each button keeps the
+   * DS standalone width; the band widens to the content column to hold them.
+   */
+  .footerRow .footer {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    column-gap: var(--space-16);
+    --gutter-footer: var(--gutter-inline);
+  }
+  .footerRow .footer > * {
+    flex: 0 1 var(--container-footer);
+    min-width: 0;
+  }
+  .footerRow .footer > p {
+    flex: 0 1 auto;
   }
 }
 

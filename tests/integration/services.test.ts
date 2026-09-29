@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createMockContainer, type AppContainer } from '@/services/container';
 import type { SessionContext } from '@/services/context';
+import { rankStandings } from '@/services/reports';
 import { DEFAULT_SIMULATION, StaticSimulationSource } from '@/services/simulation';
 import { MemoryStore } from '@/lib/kv-store';
 import { FixedClock, instantAt } from '@/lib/time';
@@ -268,6 +269,10 @@ describe('reports (PRD §19, D-053)', () => {
     expect(group.students.every((s) => s.atRisk && (s.pct ?? 100) < 75)).toBe(true);
     // Sorted lowest first; healthy students never appear here.
     expect(group.students.map((s) => s.pct)).toEqual([...group.students.map((s) => s.pct)].sort((a, b) => (a ?? 0) - (b ?? 0)));
+    // Each keeps the rank the batch's leaderboard gives them (RPT-1), so both lists number students alike.
+    const board = rankStandings((await env.app.services.reports.batchStudents(ctx, 'ele-s1u2')) ?? [], 'high_first');
+    const rankOf = new Map(board.map((r) => [r.standing.student.id, r.rank]));
+    expect(group.students.every((s) => s.rank !== null && s.rank === rankOf.get(s.student.id))).toBe(true);
   });
 
   it('a day counts once however many sessions it had; nobody is flagged on too few days', async () => {
@@ -314,6 +319,8 @@ describe('reports (PRD §19, D-053)', () => {
     expect(me.range).toMatchObject({ from: '2026-09-01', to: TODAY });
     expect(me.workingDays).toBeGreaterThan(15);
     expect(me.presentDays + me.absentDays).toBeLessThanOrEqual(me.workingDays);
+    // Present is counted by weight, so it always agrees with the percentage shown beside it.
+    expect(me.pct).toBe(Math.round((me.presentDays / me.workingDays) * 100));
     expect(me.trend.map((m) => m.month)).toEqual(['2026-07-01', '2026-08-01', '2026-09-01']);
     expect(me.trend.every((m) => m.pct !== null)).toBe(true);
   });

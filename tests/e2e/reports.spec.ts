@@ -13,7 +13,9 @@ test('reports: my attendance, my batches as a sortable leaderboard, at-risk stud
   for (const gone of ['Daily register', 'Student attendance %']) await expect(page.getByText(gone)).toHaveCount(0);
 
   const me = page.getByRole('region', { name: 'My attendance' });
-  await expect(me.getByText(/^Present: \d+ days?$/)).toBeVisible();
+  // "This month" is said once (the section), not again under the figure.
+  await expect(me.getByText('This month')).toHaveCount(1);
+  await expect(me.getByText(/^Present: [\d.]+ days?$/)).toBeVisible();
   await expect(me.getByText(/^Absent: \d+ days?$/)).toBeVisible();
   await expect(me.getByText('Last 3 months')).toBeVisible();
 
@@ -44,6 +46,8 @@ test('reports: my attendance, my batches as a sortable leaderboard, at-risk stud
   if ((await groups.count()) > 0) {
     await groups.first().click();
     for (const pct of await pcts(page, risk.locator('ul > li'))) expect(pct).toBeLessThan(75);
+    // Each at-risk student keeps their rank in the batch, as in the leaderboard (RPT-1).
+    for (const text of await risk.locator('ul > li').allInnerTexts()) expect(text).toMatch(/Rank \d+/);
   }
   // Already grouped by batch: there is no batch filter (D-063).
   await expect(risk.getByRole('combobox')).toHaveCount(0);
@@ -59,16 +63,40 @@ test('offline data: refresh one batch, then everything', async ({ page, consoleE
   await page.goto('/reports/offline');
   const stale = page.locator('main li').filter({ hasText: 'Fitter · Shift 1 · Unit 2' });
   await expect(stale).toContainText('Refresh needed');
+  // Updated on an earlier day: the date, not a time.
+  await expect(stale).toContainText(/Updated \d{1,2} [A-Z][a-z]{2}/);
   await stale.getByRole('button', { name: 'Refresh data for Fitter · Shift 1 · Unit 2' }).click();
   await expect(stale).toContainText('Updated just now');
   await expect(stale).toContainText('Ready offline');
   const fresh = page.locator('main li').filter({ hasText: 'COPA · Shift 1 · Unit 1' });
-  await expect(fresh).toContainText('Updated today · 7:45 AM');
+  // Two lines: the state beside the time it was updated (the date only on an earlier day).
+  await expect(fresh).toContainText('Ready offline');
+  await expect(fresh).toContainText('Updated 7:45 AM');
   await page.getByRole('button', { name: 'Refresh all data' }).click();
   await expect(page.getByRole('status').filter({ hasText: 'Downloaded data refreshed' })).toBeVisible();
   await expect(fresh).toContainText('Updated just now');
   await page.getByRole('link', { name: 'Download more batches' }).click();
   await page.waitForURL(/\/reports\/offline\/download$/);
+  // A batch already on the phone is a plain row that says so, not a ticked box; the rest can be chosen.
+  const held = page.locator('main li').filter({ hasText: 'Ready offline' });
+  await expect(held.first()).toBeVisible();
+  await expect(held.getByRole('checkbox')).toHaveCount(0);
+  await expect(page.getByRole('checkbox').first()).toHaveAttribute('aria-checked', 'false');
+});
+
+test('offline data: calm when synced, and no download action once every batch is on the phone', async ({ page, consoleErrors }) => {
+  void consoleErrors;
+  await preset(page, 'batch');
+  await page.goto('/reports/offline');
+  // A quiet confirmation that carries the end-of-day rule (RPT-4).
+  await expect(page.getByRole('status').filter({ hasText: 'All attendance synced' })).toContainText('flagged to the principal');
+  await expect(page.getByRole('button', { name: 'Refresh all data' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Download more batches' })).toHaveCount(0);
+  await page.goto('/reports/offline/download');
+  await expect(page.getByText('All your batches are on this phone')).toBeVisible();
+  await expect(page.getByRole('checkbox')).toHaveCount(0);
+  await page.getByRole('link', { name: 'Back to Offline data' }).click();
+  await page.waitForURL(/\/reports\/offline$/);
 });
 
 test('principal reports: the institute, every batch by trade, at-risk across the institute, the detail reports', async ({ page, consoleErrors }) => {
@@ -76,7 +104,10 @@ test('principal reports: the institute, every batch by trade, at-risk across the
   await preset(page, 'principal');
   await nav(page, 'Reports').click();
   await page.waitForURL(/\/reports$/);
-  await expect(page.getByRole('region', { name: 'Institute attendance' })).toContainText('417 students · 17 batches');
+  const institute = page.getByRole('region', { name: 'Institute attendance' });
+  await expect(institute).toContainText('417 students');
+  await expect(institute).toContainText('17 batches');
+  await expect(institute).toContainText('Staff attendance');
   const batches = page.getByRole('region', { name: 'Batch attendance' });
   await expect(batches.getByRole('button')).toHaveCount(17);
   await expect(batches.getByRole('heading', { name: 'Welder' })).toBeVisible();

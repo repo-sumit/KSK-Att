@@ -4,7 +4,6 @@ import { useToast } from '@/components/ui/Toast';
 import { useI18n } from '@/hooks/i18n';
 import { useServices } from '@/hooks/services';
 import { useSession } from '@/hooks/session';
-import { toLocalDate } from '@/lib/time';
 
 export type RefreshState = 'idle' | 'refreshing' | 'done';
 
@@ -49,16 +48,3 @@ export function useBatchRefresh(batchId: string) {
   return { state, refresh };
 }
 
-/** "Updated 7:45 AM" / "Updated 22 Sep · refresh needed" / "Refreshing student data…" / "Updated just now". */
-export function useUpdatedLabel() {
-  const { t, format } = useI18n();
-  const ctx = useSession();
-  const today = toLocalDate(ctx.clock.now());
-  return (state: RefreshState, pack: { readonly downloadedAt: string; readonly stale: boolean }) => {
-    if (state === 'refreshing') return t('batchData.refreshing');
-    if (state === 'done') return t('batchData.justNow');
-    const day = toLocalDate(new Date(pack.downloadedAt));
-    if (pack.stale) return t('batchData.stale', { date: format.dayMonth(day) });
-    return day === today ? t('batchData.updatedToday', { time: format.time(pack.downloadedAt) }) : t('batchData.updatedOn', { date: format.dayMonth(day) });
-  };
-}

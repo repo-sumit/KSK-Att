@@ -10,6 +10,14 @@
   display: block;
   height: 100%;
   border-radius: var(--radius-full);
-  background: var(--color-status-success);
   transition: width var(--motion-base) var(--motion-ease);
+}
+.success {
+  background: var(--color-status-success);
+}
+.info {
+  background: var(--color-status-info);
+}
+.brand {
+  background: var(--color-background-brand);
 }

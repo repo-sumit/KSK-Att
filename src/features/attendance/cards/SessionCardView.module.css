@@ -1,27 +1,36 @@
-.batch {
-  container-type: inline-size;
-  flex-direction: row;
+/*
+ * Class cards (D-069 round 3): one compact anatomy, no strips. The batch card
+ * is a single row: text on the left, the action or state on the right. The
+ * row wraps by content (the "sidebar" pattern), not a px breakpoint: the text
+ * keeps at least its natural width, and when both no longer fit (a 320px
+ * phone, large text, Marathi) the state drops under the title at full width.
+ */
+.card {
+  justify-content: center;
+}
+.row {
+  display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-12);
-  min-height: 72px;
+  gap: var(--space-8) var(--space-12);
 }
-.slot {
-  gap: var(--space-12);
-}
-.left {
+.text {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  flex: 1;
+  flex: 999 1 auto;
   min-width: 0;
 }
-.right {
-  flex: none;
+.trail {
+  flex: 1 1 auto;
   display: flex;
   justify-content: flex-end;
-  max-width: 50%;
-  margin-left: auto;
+}
+.trail > .cta {
+  width: 100%;
+}
+.slot {
+  gap: var(--space-12);
 }
 .title {
   font: var(--type-title-medium);
@@ -49,38 +58,16 @@
 .timeNow {
   color: var(--color-text-brand);
 }
-.status {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-4);
-  font: var(--type-label-small);
-  letter-spacing: var(--ls-label-small);
-  color: var(--color-text-secondary);
-  text-align: right;
-}
-.slot .status {
-  gap: var(--space-8);
-  text-align: left;
-}
-.statusError { color: var(--color-text-error); }
-.statusWarning { color: var(--color-text-warning); }
-.statusSuccess {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-4);
-  color: var(--color-text-success);
-  font-weight: var(--font-weight-semibold);
-}
+/* Submitted: the state over its time + View, right-aligned; on a slot's own line they spread across it. */
 .submitted {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: var(--space-4);
-  font: var(--type-label-small);
-  letter-spacing: var(--ls-label-small);
 }
 .slot .submitted {
   flex-direction: row;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
 }
@@ -88,16 +75,18 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
+  font: var(--type-label-small-strong);
+  letter-spacing: var(--ls-label-small);
   color: var(--color-text-brand);
-  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
 }
-/* Visual button inside a card that is itself the link. */
+/* A visual button inside a card that is itself the link (the whole card is the tap target). */
 .cta {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 36px;
-  padding: 0 var(--space-12);
+  min-height: var(--control-height-sm);
+  padding: 0 var(--space-16);
   border-radius: var(--radius-full);
   background: var(--color-interactive-primary);
   color: var(--color-text-on-brand);
@@ -108,48 +97,4 @@
 .ctaFull {
   width: 100%;
   min-height: var(--touch-target-min);
-}
-
-/* Narrow phones (≈320px): the action or status moves under the title, as on the prototype's timetable card. */
-@container (max-width: 280px) {
-  .batch > .left,
-  .batch > .right {
-    flex-basis: 100%;
-    max-width: 100%;
-  }
-  .batch > .right {
-    justify-content: flex-start;
-  }
-  .batch > .right > .cta {
-    width: 100%;
-    min-height: var(--touch-target-min);
-  }
-  .batch .submitted {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-  }
-}
-
-/* A downloaded batch: the card and its "Updated · Refresh data" strip read as one card (D-055). */
-.joined {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  border: var(--border-selected) solid transparent;
-  border-radius: var(--radius-lg);
-  background: var(--color-background-surface-raised);
-  box-shadow: var(--shadow-card);
-  overflow: hidden;
-}
-.joinedHighlight {
-  border-color: var(--color-border-focus);
-}
-.joined > .joinedCard {
-  /* The card body fills a stretched grid cell, so strips in one row line up at the foot. */
-  flex: 1 1 auto;
-  border: none;
-  border-radius: var(--radius-none);
-  box-shadow: none;
 }

@@ -1,14 +1,14 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/icons/Icon';
-import { Latin } from '@/components/ui/Latin';
-import { Section } from '@/components/ui/Section';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { useToast } from '@/components/ui/Toast';
 import { ScreenLayout } from '@/components/shell/ScreenLayout';
 import { AppHeader } from '@/features/shell/AppHeader';
+import type { Batch } from '@/domain/entities';
 import { useI18n } from '@/hooks/i18n';
 import { useServices } from '@/hooks/services';
 import { useSession } from '@/hooks/session';
@@ -16,9 +16,15 @@ import { useQuery } from '@/hooks/useQuery';
 import { cx } from '@/lib/cx';
 import { routes } from '@/lib/routes';
 import { batchTitle } from '../common/labels';
+import { TradeGroups } from '../common/TradeGroups';
 import styles from './Download.module.css';
 
-/** Choose batches to keep on the phone; only batches the user can mark online are offered (PRD §20.2). */
+/**
+ * Choose batches to keep on the phone; only batches the user can mark online
+ * are offered (PRD §20.2). A batch already on the phone is a plain row that
+ * says so, not a ticked box (RPT-3); with nothing left to add, the screen says
+ * so and leads back.
+ */
 export function DownloadScreen() {
   const { t } = useI18n();
   const router = useRouter();
@@ -37,6 +43,8 @@ export function DownloadScreen() {
     if (!enabled) router.replace(fallback);
   }, [enabled, fallback, router]);
   const max = ctx.journey.offline.maxBatches;
+  const full = max !== null && have.size >= max;
+  const left = batches.some((b) => !have.has(b.id));
 
   const toggle = (id: string) =>
     setChosen((prev) => {
@@ -56,7 +64,31 @@ export function DownloadScreen() {
     if (result.ok) router.replace(routes.offline);
   };
 
+  const row = (batch: Batch) => {
+    if (have.has(batch.id))
+      return (
+        <li key={batch.id} className={styles.row}>
+          {/* The success mark stands where the box would be; the words beside it stay quiet, so five held rows are not five green lines. */}
+          <Icon name="circle-check" size={24} className={styles.held} />
+          <span className={styles.label}>{batchTitle(t, batch)}</span>
+          <span className={styles.heldNote}>{t('offline.ready')}</span>
+        </li>
+      );
+    const on = chosen.has(batch.id);
+    return (
+      <li key={batch.id}>
+        <button type="button" role="checkbox" aria-checked={on} className={cx(styles.row, styles.choice, on && styles.on)} onClick={() => toggle(batch.id)}>
+          <span className={cx(styles.box, on && styles.boxOn)} aria-hidden="true">
+            {on && <Icon name="check" size={16} strokeWidth={3} />}
+          </span>
+          <span className={styles.label}>{batchTitle(t, batch)}</span>
+        </button>
+      </li>
+    );
+  };
+
   if (!enabled) return null;
+  const trades = ctx.access.tradeIds.flatMap((id) => ctx.data.trades.filter((tr) => tr.id === id));
   return (
     <ScreenLayout
       width="reading"
@@ -70,32 +102,23 @@ export function DownloadScreen() {
         ) : undefined
       }
     >
-      {ctx.access.tradeIds.map((tradeId) => {
-        const trade = ctx.data.trades.find((x) => x.id === tradeId);
-        const list = batches.filter((b) => b.tradeId === tradeId);
-        if (!trade || !list.length) return null;
-        return (
-          <Section key={tradeId} id={`dl-${tradeId}`} variant="label" title={<Latin>{trade.name}</Latin>}>
-            <ul className={styles.list}>
-              {list.map((batch) => {
-                const done = have.has(batch.id);
-                const on = chosen.has(batch.id);
-                return (
-                  <li key={batch.id}>
-                    <button type="button" role="checkbox" aria-checked={done || on} aria-disabled={done || undefined} className={cx(styles.row, on && styles.on)} onClick={() => !done && toggle(batch.id)}>
-                      <span className={cx(styles.box, (on || done) && styles.boxOn)} aria-hidden="true">
-                        {(on || done) && <Icon name="check" size={16} strokeWidth={3} />}
-                      </span>
-                      <span className={styles.label}>{batchTitle(t, batch)}</span>
-                      {done && <Badge tone="success">{t('offline.alreadyDownloaded')}</Badge>}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </Section>
-        );
-      })}
+      {!held ? (
+        <Skeleton variant="rows" leading="none" count={3} label={t('common.loading')} />
+      ) : !left || full ? (
+        <EmptyState
+          icon={left ? 'hard-drive' : 'circle-check'}
+          title={left ? t('offline.maxReached', { max: max ?? 0 }) : t('offline.allOnPhone')}
+          action={
+            <Button variant="secondary" size="md" leadingIcon="arrow-left" href={routes.offline}>
+              {t('offline.backToOffline')}
+            </Button>
+          }
+        />
+      ) : (
+        <TradeGroups trades={trades} items={batches} tradeId={(b) => b.tradeId} idPrefix="dl" as="ul" level={2}>
+          {row}
+        </TradeGroups>
+      )}
     </ScreenLayout>
   );
 }

@@ -1,0 +1,120 @@
+/* My attendance / Institute attendance (RPT-6): the card measures itself, so the layout follows its width, not the viewport's. */
+.card {
+  container-type: inline-size;
+}
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-12);
+}
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-8) var(--space-24);
+}
+/* Two headline figures of equal weight (institute, staff): two equal columns. */
+.pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+}
+.figure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.value {
+  font: var(--type-heading-medium);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+.label {
+  font: var(--type-label-small);
+  letter-spacing: var(--ls-label-small);
+  color: var(--color-text-secondary);
+  text-wrap: pretty;
+}
+.empty {
+  font: var(--type-body-medium);
+  letter-spacing: var(--ls-body-medium);
+  color: var(--color-text-secondary);
+}
+.facts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.fact {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  font: var(--type-label-medium);
+  letter-spacing: var(--ls-label-medium);
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.success {
+  color: var(--color-icon-success);
+}
+.error {
+  color: var(--color-icon-error);
+}
+.muted {
+  color: var(--color-icon-secondary);
+}
+
+/* Phones: the trend under the headline, after a divider. */
+.trend {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  min-width: 0;
+  padding-top: var(--space-12);
+  border-top: var(--divider-thin) solid var(--color-border-subtle);
+}
+.trendTitle {
+  font: var(--type-label-small-strong);
+  letter-spacing: var(--ls-label-small);
+  color: var(--color-text-secondary);
+}
+.trendList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+.trendRow {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 48px;
+  align-items: center;
+  gap: var(--space-12);
+  font: var(--type-label-small);
+  letter-spacing: var(--ls-label-small);
+}
+.trendMonth {
+  color: var(--color-text-secondary);
+}
+.trendPct {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-semibold);
+}
+.trendNow .trendMonth {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* A wide card: the headline left, the trend right (each half), split by a vertical divider. */
+@container (min-width: 560px) {
+  .withTrend {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: center;
+    gap: var(--space-24);
+  }
+  .withTrend > .trend {
+    padding: 0 0 0 var(--space-24);
+    border-top: none;
+    border-left: var(--divider-thin) solid var(--color-border-subtle);
+  }
+}

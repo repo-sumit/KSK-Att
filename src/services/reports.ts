@@ -1,7 +1,8 @@
 /**
  * ReportService — in-app reports computed from attendance records (PRD §19).
  * Returns structured data; screens format it in the user's language. Scope
- * follows the mapping model (§19.1); percentages count present = 1, half = 0.5.
+ * follows the mapping model (§19.1); every Present figure and percentage counts
+ * each status by its presence weight (present and OJT 1, half day ½).
  *
  * The Reports page (D-053) reads this month's overview: my attendance, my
  * batches with each batch's students, and the at-risk list. Staff attendance
@@ -33,7 +34,7 @@ export interface StudentStanding {
   readonly student: Student;
   /** Rounded for display; never shows the threshold itself for a student who is below it. */
   readonly pct: number | null;
-  /** Present = 1, half day = 0.5; a day of several sessions gives partial credit. */
+  /** By presence weight (present and OJT 1, half day ½); a day of several sessions gives partial credit. */
   readonly daysPresent: number;
   readonly daysMarked: number;
   /** Below the threshold on the unrounded figure, with at least report.atRiskMinDays marked days. */
@@ -59,6 +60,7 @@ export interface MonthStat {
 
 export interface MyAttendanceSummary {
   readonly range: DateRange;
+  /** By presence weight (a half day counts ½), so it agrees with the percentage. */
   readonly presentDays: number;
   readonly absentDays: number;
   readonly workingDays: number;
@@ -67,11 +69,24 @@ export interface MyAttendanceSummary {
   readonly trend: readonly MonthStat[];
 }
 
+export type LeaderboardSort = 'high_first' | 'low_first';
+
+/** A student with their leaderboard position in the batch (1 = best attendance; null = no marks yet). */
+export interface RankedStanding {
+  readonly standing: StudentStanding;
+  readonly rank: number | null;
+}
+
+/** An at-risk student, with the position the batch's leaderboard gives them (so both lists read the same). */
+export interface AtRiskStudent extends StudentStanding {
+  readonly rank: number | null;
+}
+
 export interface AtRiskGroup {
   readonly batch: Batch;
   readonly trade: Trade;
-  /** Only students below the threshold, lowest first. */
-  readonly students: readonly StudentStanding[];
+  /** Only students below the threshold, lowest first (the batch leaderboard's lowest-first order). */
+  readonly students: readonly AtRiskStudent[];
 }
 
 export interface AtRiskReport {
@@ -99,6 +114,7 @@ export type DetailBlock = (typeof DETAIL_BLOCKS)[number];
 export const isDetailBlock = (block: string): block is DetailBlock => (DETAIL_BLOCKS as readonly string[]).includes(block);
 
 export type ReportData =
+  /** present is by weight (a half day counts ½), as in every Present figure. */
   | { readonly block: 'staff_summary'; readonly staff: ReadonlyArray<{ member: StaffMember; present: number; workingDays: number }>; readonly pct: number | null }
   | { readonly block: 'correction_log'; readonly entries: readonly CorrectionLogEntry[] };
 
@@ -114,6 +130,23 @@ const average = (standings: readonly StudentStanding[]) => {
 /** Rounded for display, but a figure below the threshold never rounds up to it ("74.6%" shows as 74, not 75 ⚠). */
 const shown = (raw: number | null, threshold: number) => (raw === null ? null : raw < threshold ? Math.min(Math.round(raw), threshold - 1) : Math.round(raw));
 type Rows = ReadonlyArray<{ readonly sub: AttendanceSubmission; readonly marks: Readonly<Record<string, Mark>> }>;
+
+/**
+ * Leaderboard positions (brief §7: "1. Amit 94% · 2. Sneha 88%"): 1 is the best
+ * attendance; equal percentages keep a stable order (more days present, then
+ * name) instead of a column of repeated 1s. A student keeps their position when
+ * the list is shown lowest first. Students with no marks yet come last, unranked.
+ * The batch leaderboard and the at-risk list both number students this way.
+ */
+export function rankStandings(standings: readonly StudentStanding[], sort: LeaderboardSort): RankedStanding[] {
+  const byName = (a: StudentStanding, b: StudentStanding) => a.student.name.localeCompare(b.student.name);
+  const scored = standings.filter((s) => s.pct !== null);
+  const best = [...scored].sort((a, b) => (b.pct ?? 0) - (a.pct ?? 0) || b.daysPresent - a.daysPresent || byName(a, b));
+  const rank = new Map(best.map((s, i) => [s.student.id, i + 1]));
+  const ordered = sort === 'high_first' ? best : [...best].reverse();
+  const unscored = standings.filter((s) => s.pct === null).sort(byName);
+  return [...ordered.map((standing) => ({ standing, rank: rank.get(standing.student.id) ?? null })), ...unscored.map((standing) => ({ standing, rank: null }))];
+}
 
 export class ReportService {
   constructor(
@@ -224,7 +257,7 @@ export class ReportService {
     }
     return {
       range,
-      presentDays: records.filter((r) => r.status === 'present').length,
+      presentDays: weight(records),
       absentDays: records.filter((r) => r.status === 'absent').length,
       workingDays: records.length,
       pct: pct(weight(records), records.length),
@@ -259,7 +292,10 @@ export class ReportService {
     return this.standings(ctx, batch, rows);
   }
 
-  /** Students below the threshold (report.eligibilityThresholdPct unless given), grouped by batch. */
+  /**
+   * Students below the threshold (report.eligibilityThresholdPct unless given), grouped by batch,
+   * each with their position in the batch's leaderboard.
+   */
   async atRisk(ctx: SessionContext, options: { readonly threshold?: number; readonly batchId?: string } = {}): Promise<AtRiskReport> {
     await this.delay(350);
     const range = this.recentWindow(ctx);
@@ -269,13 +305,13 @@ export class ReportService {
     const batches = options.batchId ? scope.filter((b) => b.id === options.batchId) : scope;
     const rows = await this.submissions(ctx, batches.map((b) => b.id), range);
     const groups = batches
-      .map((batch) => ({
-        batch,
-        trade: this.trade(ctx, batch),
-        students: this.standings(at, batch, rows)
-          .filter((s) => s.atRisk)
-          .sort((a, b) => (a.pct ?? 0) - (b.pct ?? 0) || a.student.name.localeCompare(b.student.name)),
-      }))
+      .map((batch) => {
+        // The leaderboard's lowest-first order, so the ranks read down (31, 30, 29…) as they do there.
+        const students = rankStandings(this.standings(at, batch, rows), 'low_first')
+          .filter((r) => r.standing.atRisk)
+          .map((r) => ({ ...r.standing, rank: r.rank }));
+        return { batch, trade: this.trade(ctx, batch), students };
+      })
       .filter((g) => g.students.length > 0);
     return { range, threshold, groups, batchesChecked: batches.length };
   }
@@ -305,7 +341,7 @@ export class ReportService {
         const records = await this.staff.listBetween(people.map((p) => p.id), range.from, range.to);
         const staff = people.map((member) => {
           const mine = records.filter((r) => r.staffId === member.id);
-          return { member, present: mine.filter((r) => r.status === 'present').length, workingDays: mine.length };
+          return { member, present: mine.reduce((a, r) => a + presenceWeight({ status: r.status }), 0), workingDays: mine.length };
         });
         const present = staff.reduce((a, s) => a + s.present, 0);
         const days = staff.reduce((a, s) => a + s.workingDays, 0);

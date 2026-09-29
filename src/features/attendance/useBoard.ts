@@ -2,7 +2,9 @@
 import { useServices } from '@/hooks/services';
 import { useSession } from '@/hooks/session';
 import { useQuery } from '@/hooks/useQuery';
+import type { LocalTime } from '@/lib/time';
 import type { BatchGroup, SessionCard } from '@/services/attendance';
+import { sessionProgress } from '@/services/session-progress';
 
 const TOPICS = ['attendance', 'corrections', 'offline', 'packs'] as const;
 
@@ -10,8 +12,11 @@ export interface TradeSummary {
   readonly id: string;
   readonly name: string;
   readonly batches: number;
-  /** Institute view: submitted / opened sessions today. */
-  readonly progress?: { readonly done: number; readonly total: number };
+  /**
+   * Institute view: sessions submitted of all today's sessions (the principal Home's
+   * denominator, sessionProgress), and how many open later and when.
+   */
+  readonly progress?: { readonly done: number; readonly total: number; readonly later: number; readonly nextOpen?: LocalTime };
 }
 
 export type Board =
@@ -45,11 +50,9 @@ export function useBoard() {
         case 'institute': {
           const trades = await Promise.all(
             ctx.access.tradeIds.map(async (id) => {
-              const cards = (await attendance.boardForTrade(ctx, id)).filter((c) => !c.address.subjectId);
-              const opened = cards.filter((c) => c.status !== 'future');
-              const done = cards.filter((c) => c.status === 'submitted').length;
+              const p = sessionProgress(await attendance.boardForTrade(ctx, id));
               const trade = ctx.data.trades.find((x) => x.id === id);
-              return { id, name: trade?.name ?? id, batches: cards.length, progress: { done, total: opened.length || cards.length } };
+              return { id, name: trade?.name ?? id, batches: p.total, progress: { done: p.submitted, total: p.total, later: p.later, nextOpen: p.nextOpen } };
             }),
           );
           return { kind: 'trades', trades };

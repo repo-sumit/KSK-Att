@@ -21,6 +21,14 @@ test('offline: mark against a downloaded roster, lock locally, then sync when ba
   const card = page.getByRole('region', { name: 'Sync pending' });
   await expect(card).toContainText('1 attendance record waiting');
   await expect(card).toContainText('It will sync when you’re back online');
+  // Offline data says it once: the card lists the waiting record, with the end-of-day rule (RPT-4).
+  await page.goto('/reports/offline');
+  const full = page.getByRole('region', { name: 'Sync pending' });
+  await expect(full.getByRole('listitem')).toHaveCount(1);
+  await expect(full.getByRole('listitem')).toContainText('Electrician · Shift 1 · Unit 2');
+  await expect(full).toContainText('flagged to the principal');
+  await expect(page.getByRole('heading', { name: 'Waiting to sync' })).toHaveCount(0);
+  await page.goBack();
   await demo(page, "setNetwork('online')");
   await expect(page.getByText('All attendance synced')).toBeVisible();
   await expect(page.getByText('1 attendance record waiting')).toHaveCount(0);

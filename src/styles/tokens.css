@@ -229,7 +229,14 @@
   --header-height: 60px;
   --header-height-wide: 64px;
   --row-min-height: 64px;
+  --row-min-height-compact: 56px; /* single-line rows: leaderboard, needs attention, downloads */
   --cta-height: 56px;
+  --control-height-sm: 36px; /* compact pills inside a larger tap area (card actions, header demo trigger, segmented sm) */
+  --roll-col: 20px; /* the roll-number column of every roster row, so follow-ups align under the name */
+  --summary-tile-max: 136px; /* one attendance-summary tile on wide screens: a number and its label, never an empty slab (D-069) */
+  --overlay-width-menu: 360px; /* the profile menu anchored under the avatar (600px and up) */
+  --overlay-width-drawer: 380px; /* the demo drawer on the right (600px and up) */
+  --toast-max-width: 360px;
 
   /* ---- Layering ---- */
   --z-header: 10;

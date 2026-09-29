@@ -36,6 +36,8 @@ interface ScreenLayoutProps {
   readonly card?: boolean;
   /** Tablet and desktop: the footer follows the content instead of docking at the bottom edge (short screens inside the app). */
   readonly inlineFooter?: boolean;
+  /** Tablet and desktop: the footer's items sit side by side, centred (two actions, or a message and its action); phones stay stacked. */
+  readonly footerLayout?: 'stack' | 'row';
   readonly children: ReactNode;
 }
 
@@ -48,12 +50,12 @@ interface ScreenLayoutProps {
  * screen; from the SwiftChat medium breakpoint up it still fills the viewport,
  * and content keeps a readable column (`width`) inside the grid margins.
  */
-export function ScreenLayout({ header, banner = true, top, footer, area, bottomNav = false, guardNavigation, surface = 'app', padding = 'page', width = 'wide', card = false, inlineFooter = false, children }: ScreenLayoutProps) {
+export function ScreenLayout({ header, banner = true, top, footer, area, bottomNav = false, guardNavigation, surface = 'app', padding = 'page', width = 'wide', card = false, inlineFooter = false, footerLayout = 'stack', children }: ScreenLayoutProps) {
   return (
     <AreaContext.Provider value={area}>
       <NavigationGuardContext.Provider value={guardNavigation}>
         <div className={cx(styles.page, card && styles.pageCard)}>
-          <div className={cx(styles.frame, styles[surface], styles[`w-${card ? 'form' : width}`], card && styles.card, inlineFooter && styles.inlineFooter)}>
+          <div className={cx(styles.frame, styles[surface], styles[`w-${card ? 'form' : width}`], card && styles.card, inlineFooter && styles.inlineFooter, footerLayout === 'row' && styles.footerRow)}>
             {header}
             {banner && (
               // Always in the DOM, so screen readers announce going offline (a live region that arrives with its text is often missed).

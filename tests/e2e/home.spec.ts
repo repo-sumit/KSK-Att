@@ -28,26 +28,26 @@ test('Home is today’s work: notices, classes, my attendance; no Attendance tab
   await expect(banner).toBeFocused();
 });
 
-test('refresh one downloaded batch from its card: “Updated just now”, the other card untouched', async ({ page, consoleErrors }) => {
+test('Home is today’s work only: no data refresh on the batch cards, which stay one compact row', async ({ page, consoleErrors }) => {
   void consoleErrors;
   await preset(page, 'batch');
-  const refresh = page.getByRole('button', { name: 'Refresh data for Electrician · Shift 1 · Unit 2' });
-  const other = page.getByRole('button', { name: 'Refresh data for Electrician · Shift 2 · Unit 2' });
-  await expect(refresh).toBeVisible();
-  const strip = refresh.locator('..');
-  const otherStrip = other.locator('..');
-  await expect(strip).toContainText('Updated 7:45 AM');
-  await refresh.click();
-  await expect(strip).toContainText('Updated just now');
-  await expect(otherStrip).toContainText('Updated 7:45 AM');
-  // The card itself still opens the roster.
-  await expect(page.locator('main').getByRole('link', { name: /Shift 1 · Unit 2/ })).toContainText('Mark attendance');
-
-  // Offline: nothing to refresh from, and the app says so.
-  await demo(page, "setNetwork('offline')");
-  await other.click();
-  await expect(page.getByRole('status').filter({ hasText: 'Connect to the internet to refresh' })).toBeVisible();
-  await expect(otherStrip).toContainText('Updated 7:45 AM');
+  const main = page.locator('main');
+  const open = main.getByRole('link', { name: /Shift 1 · Unit 2/ });
+  await expect(open).toContainText('Mark attendance');
+  // Offline data is managed from Reports, never from Home (round 3).
+  await expect(main.getByRole('button', { name: /Refresh data/ })).toHaveCount(0);
+  await expect(main.getByText(/^Updated /)).toHaveCount(0);
+  for (const width of [320, 360, 412, 768, 1280]) {
+    await page.setViewportSize({ width, height: 800 });
+    for (const card of await main.getByRole('link', { name: /Shift \d · Unit \d/ }).all()) {
+      const box = (await card.boundingBox())!;
+      const title = (await card.getByText(/^Shift \d · Unit \d$/).boundingBox())!;
+      const state = (await card.locator('span').filter({ hasText: /Mark attendance|Opens at|Submitted/ }).last().boundingBox())!;
+      // The state sits beside the title or wraps under it, never over it; the card has no empty band.
+      expect(state.x >= title.x + title.width || state.y >= title.y + title.height).toBe(true);
+      expect(box.height).toBeLessThanOrEqual(width >= 360 ? 80 : 120);
+    }
+  }
 });
 
 test('the principal keeps the Attendance tab and sees every notice for the institute', async ({ page, consoleErrors }) => {

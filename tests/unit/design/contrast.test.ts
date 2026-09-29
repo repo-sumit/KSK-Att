@@ -51,7 +51,7 @@ const TEXT_PAIRS: ReadonlyArray<[string, string]> = [
   ['color-text-warning', 'color-status-warning-subtle'],
   // Camera screens: step count, hints and the prototype note on the dark surface.
   ['color-camera-text-secondary', 'color-background-inverse'],
-  // Batch "Updated · Refresh data" strip and the expanded leaderboard panel (muted surface).
+  // Muted fills: pressed rows, the login detail inset, locked pills.
   ['color-text-primary', 'color-surface-muted'],
   ['color-text-secondary', 'color-surface-muted'],
   ['color-text-warning', 'color-surface-muted'],
@@ -67,6 +67,12 @@ const TEXT_PAIRS: ReadonlyArray<[string, string]> = [
   // Sync pending card (D-064): title and body on the soft warning surface.
   ['color-text-primary', 'color-surface-warning-subtle'],
   ['color-text-primary', 'color-surface-success-subtle'],
+  // Secondary lines inside tinted cards (Sync pending, a synced banner's end-of-day rule).
+  ['color-text-secondary', 'color-surface-success-subtle'],
+  ['color-text-secondary', 'color-surface-warning-subtle'],
+  // Attendance summary tiles (D-069): OJT on its brand fill; the closing warning on the white band.
+  ['color-text-brand-subdued', 'color-surface-brand-subtle'],
+  ['color-text-warning', 'color-background-surface-raised'],
 ];
 
 describe('text contrast meets WCAG AA (4.5:1)', () => {

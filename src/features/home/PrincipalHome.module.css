@@ -47,7 +47,7 @@
   flex-direction: column;
   gap: var(--space-8);
 }
-/* DS: standalone buttons stay 280px on tablets and desktops instead of stretching. */
+/* DS: side by side at the standalone button width on tablets and desktops (as sheet actions), never stretched; long labels wrap to a stack. */
 @media (min-width: 600px) {
   .actions {
     flex-direction: row;
@@ -57,7 +57,7 @@
   }
   .actions > a,
   .actions > button {
-    flex: 0 1 280px;
+    flex: 0 1 var(--container-footer);
   }
 }
 .nowrap {

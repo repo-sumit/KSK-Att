@@ -1,31 +1,35 @@
-.list {
-  display: flex;
-  flex-direction: column;
-  border-radius: var(--radius-lg);
-  background: var(--color-background-surface-raised);
-  box-shadow: var(--shadow-card);
-  overflow: hidden;
-}
-.list li + li {
-  border-top: var(--divider-thin) solid var(--color-border-subtle);
-}
+/* Download batches (RPT-3): rows in the shared divided list card, one per batch, under its trade. */
 .row {
   display: flex;
   align-items: center;
   gap: var(--space-12);
   width: 100%;
-  min-height: 56px;
+  min-height: var(--row-min-height-compact);
   padding: var(--space-12) var(--space-16);
+  color: var(--color-text-primary);
+}
+/* A batch that can still be downloaded: the whole row is the checkbox. */
+.choice {
   border: none;
   background: transparent;
-  color: var(--color-text-primary);
   text-align: left;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) ease;
 }
-.row[aria-disabled='true'] {
-  cursor: default;
+.choice:active {
+  background: var(--color-surface-pressed);
 }
+.choice:focus-visible {
+  outline-offset: -2px;
+}
+@media (hover: hover) {
+  .choice:not(.on):hover {
+    background: var(--color-surface-muted);
+  }
+}
+/* Chosen: the brand tint that matches the filled box (not the green "selected card"). */
 .on {
-  background: var(--color-card-selected-bg);
+  background: var(--color-surface-brand-subtle);
 }
 .box {
   display: inline-flex;
@@ -42,8 +46,20 @@
   background: var(--color-interactive-primary);
   border-color: var(--color-interactive-primary);
 }
+/* Already on the phone: no box, the success mark in its place, so labels line up with the choices. */
+.held {
+  color: var(--color-icon-success);
+}
+.heldNote {
+  flex: none;
+  font: var(--type-label-small);
+  letter-spacing: var(--ls-label-small);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
 .label {
   flex: 1;
+  min-width: 0;
   font: var(--type-title-small);
   letter-spacing: var(--ls-title-small);
 }

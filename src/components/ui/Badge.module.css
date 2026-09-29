@@ -7,11 +7,14 @@
   white-space: nowrap;
   flex: none;
 }
+/* Counts and percentages in a column of badges line up (set after the font shorthand, which resets it). */
 .sm {
   font: var(--type-caption);
   letter-spacing: var(--ls-caption);
+  font-variant-numeric: tabular-nums;
 }
 .md {
   font: var(--type-label-small);
   letter-spacing: var(--ls-label-small);
+  font-variant-numeric: tabular-nums;
 }

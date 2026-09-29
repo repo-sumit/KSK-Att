@@ -6,7 +6,7 @@
  */
 import type { AccessScope, SelectionMode } from '@/domain/access';
 import type { StaffMember } from '@/domain/entities';
-import { selectableStatuses } from '@/domain/marking';
+import { enabledStatuses, selectableStatuses } from '@/domain/marking';
 import type { StatusCode } from '@/domain/status';
 import type { AppConfiguration, DateRangeKind, DefaultStatus, Language, MarkingFrequency, ReportBlock } from './types';
 
@@ -42,6 +42,8 @@ export interface Journey {
     readonly defaultStatus: DefaultStatus;
     /** Statuses the instructor can tap, in order. Always starts with present, absent. */
     readonly selectable: readonly StatusCode[];
+    /** Every status configuration enables, in order (OJT included): one summary tile each (D-069). */
+    readonly statuses: readonly StatusCode[];
     readonly halfDayHalves: boolean;
     readonly leaveDateRange: boolean;
     readonly ojtVisible: boolean;
@@ -120,6 +122,7 @@ export function deriveJourney(config: AppConfiguration, user: StaffMember, acces
       twiceShape: config.marking.twiceShape,
       defaultStatus: config.marking.defaultStatus,
       selectable: selectableStatuses(config.marking),
+      statuses: enabledStatuses(config.marking),
       halfDayHalves: config.marking.halfDayHalves && config.marking.statusSet.includes('half_day'),
       leaveDateRange: config.marking.leaveDateRange && config.marking.statusSet.includes('leave'),
       ojtVisible: config.marking.statusSet.includes('ojt'),

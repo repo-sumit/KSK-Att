@@ -28,23 +28,16 @@
   letter-spacing: var(--ls-body-medium);
   color: var(--color-text-secondary);
 }
-.group {
-  display: flex;
-  flex-direction: column;
-  border-radius: var(--radius-lg);
-  background: var(--color-background-surface-raised);
-  box-shadow: var(--shadow-card);
-  overflow: hidden;
-}
 .groupTitle {
   display: flex;
   align-items: center;
   gap: var(--space-8);
   padding: var(--space-12) var(--space-16);
-  border-bottom: var(--divider-thin) solid var(--color-border-subtle);
   font: var(--type-title-small);
   letter-spacing: var(--ls-title-small);
 }
+.success { color: var(--color-text-success); }
+.neutral { color: var(--color-text-primary); }
 .error { color: var(--color-text-error); }
 .warning { color: var(--color-text-warning); }
 .info { color: var(--color-text-info); }
@@ -59,7 +52,7 @@
   border-top: var(--divider-thin) solid var(--color-border-subtle);
 }
 .roll {
-  width: 20px;
+  width: var(--roll-col);
   flex: none;
   font: var(--type-caption);
   letter-spacing: var(--ls-caption);
@@ -69,7 +62,21 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  flex: 1;
   min-width: 0;
+}
+.sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* The submit sheet: how Present was counted, under the numbers it explains. */
+.breakdown {
+  margin-top: var(--space-8);
+  font: var(--type-label-small);
+  letter-spacing: var(--ls-label-small);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
 }
 .name {
   font: var(--type-title-small);

@@ -85,3 +85,22 @@
 .locked .end {
   color: inherit;
 }
+
+/*
+ * Narrow roster rows (a 320px phone): a slightly slimmer control gives the name
+ * column back 14px. The longest labels still fit (Half day, अर्धा दिवस, अनुपस्थित).
+ */
+@container (max-width: 340px) {
+  .field {
+    width: 8.5em;
+  }
+  .pill {
+    padding: 0 calc(var(--space-8) + 16px) 0 calc(var(--space-8) + 16px + var(--space-4));
+  }
+  .lead {
+    left: var(--space-8);
+  }
+  .end {
+    right: var(--space-8);
+  }
+}

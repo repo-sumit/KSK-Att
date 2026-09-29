@@ -6,13 +6,6 @@
   background: var(--color-background-surface-raised);
   border-bottom: var(--divider-thin) solid var(--color-border-subtle);
 }
-.note {
-  display: flex;
-  gap: var(--space-8);
-  font: var(--type-body-small);
-  letter-spacing: var(--ls-body-small);
-  color: var(--color-text-secondary);
-}
 .list {
   display: flex;
   flex-direction: column;
@@ -35,7 +28,7 @@ a.item:focus-visible {
   outline-offset: -2px;
 }
 .roll {
-  width: 20px;
+  width: var(--roll-col);
   flex: none;
   font: var(--type-caption);
   letter-spacing: var(--ls-caption);
@@ -72,8 +65,8 @@ a.item:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: var(--control-height-sm);
+  height: var(--control-height-sm);
   flex: none;
   border-radius: var(--radius-full);
   background: var(--color-surface-brand-subtle);

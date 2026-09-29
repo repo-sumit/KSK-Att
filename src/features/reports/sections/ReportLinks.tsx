@@ -51,7 +51,6 @@ export function OfflineEntry() {
             title={t('offline.onPhone', { count: rows.length })}
             subtitle={subtitle}
             trailing="chevron"
-            minHeight={72}
           />
         </List>
       )}
@@ -77,7 +76,6 @@ export function MoreReports() {
             title={t(DETAIL_META[block].title)}
             subtitle={t(DETAIL_META[block].desc)}
             trailing="chevron"
-            minHeight={72}
           />
         ))}
       </List>

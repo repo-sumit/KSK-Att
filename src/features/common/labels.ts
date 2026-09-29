@@ -4,10 +4,11 @@
  */
 import type { Correction, CorrectionReasonCode, MarkingSlot } from '@/domain/attendance';
 import type { Batch, StaffMember, Trade } from '@/domain/entities';
-import type { Mark } from '@/domain/status';
+import { STATUS_ORDER, STATUS_REGISTRY, type Mark, type StatusCode } from '@/domain/status';
 import type { I18n } from '@/i18n';
 import type { SessionCard } from '@/services/attendance';
 import type { StatusLike } from '@/components/ui/status-style';
+import type { AttendanceSummaryLabels, SummaryItem } from '@/components/ui/AttendanceSummary';
 import { minutesOfDay, parseTime, toLocalDate } from '@/lib/time';
 
 type T = I18n['t'];
@@ -25,7 +26,7 @@ export function slotLabel(t: T, slot: MarkingSlot, twiceShape: 'halves' | 'signi
       return null;
     case 'half':
       if (twiceShape === 'signin_signout') return slot.part === 1 ? t('session.signIn') : t('session.signOut');
-      return slot.part === 1 ? t('session.halfMorning') : t('session.halfAfternoon');
+      return slot.part === 1 ? t('session.halfFirst') : t('session.halfSecond');
     case 'period':
       return t('session.period', { n: slot.periodNo });
   }
@@ -101,4 +102,47 @@ const DESIGNATIONS: Readonly<Record<string, 'designation.craftInstructor' | 'des
 export function designationLabel(t: T, raw: string): string | null {
   const key = DESIGNATIONS[raw];
   return key ? t(key) : null;
+}
+
+/** Every status name in the viewer's language (the summary, the status selects). */
+export function statusNames(t: T): Record<StatusCode, string> {
+  return Object.fromEntries(STATUS_ORDER.map((code) => [code, t(STATUS_REGISTRY[code].labelKey)])) as Record<StatusCode, string>;
+}
+
+/** A presence weight as people read it: ½ for a half day, otherwise the number. */
+const weightText = (f: F, weight: number) => (weight === 0.5 ? '½' : f.number(weight));
+
+/** Labels for AttendanceSummary (D-069): the group total ('Students' or 'Staff') and the Present breakdown. */
+export function summaryLabels(t: T, f: F, group: 'students' | 'staff' = 'students'): AttendanceSummaryLabels {
+  const status = statusNames(t);
+  return {
+    total: t(group === 'staff' ? 'staff.tileStaff' : 'roster.tileStudents'),
+    status,
+    notMarked: t('status.not_marked'),
+    number: (n) => f.number(n),
+    breakdown: ({ total, terms, statuses }) => {
+      if (terms.some((term) => term.status !== 'present')) {
+        const parts = terms.map((term) =>
+          term.status === 'present'
+            ? f.number(term.count)
+            : term.weight === 1
+              ? t('summary.term', { count: f.number(term.count), status: status[term.status] })
+              : t('summary.termWeighted', { count: f.number(term.count), status: status[term.status], weight: weightText(f, term.weight) }),
+        );
+        return t('summary.presentIs', { present: status.present, total: f.number(total), terms: parts.join(' + ') });
+      }
+      const rule = statuses
+        .filter((code) => code !== 'present' && STATUS_REGISTRY[code].presenceWeight > 0)
+        .map((code) => t('summary.rulePart', { status: status[code], weight: weightText(f, STATUS_REGISTRY[code].presenceWeight) }));
+      return t('summary.rule', { present: status.present, parts: rule.join(', ') });
+    },
+  };
+}
+
+/** One line of the same numbers for running text: "27 Present · 1 Absent · 2 Half day" (the total and zero counts left out). */
+export function summaryLine(t: T, f: F, items: readonly SummaryItem[]): string {
+  return items
+    .filter((item) => item.key !== 'total' && (item.value > 0 || item.key === 'present' || item.key === 'absent'))
+    .map((item) => t('summary.item', { count: f.number(item.value), status: item.label }))
+    .join(' · ');
 }

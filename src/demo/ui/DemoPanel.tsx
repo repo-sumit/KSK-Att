@@ -17,6 +17,28 @@ import { useDemoState } from './useDemoState';
 import styles from './DemoPanel.module.css';
 
 /**
+ * DEMO ONLY. The title bar's subtitle: the visible "not part of the product"
+ * cue (D-047: visibly temporary tooling) and who is signed in, network, language.
+ */
+export function DemoStatus({ demo }: { readonly demo: DemoAdapters }) {
+  const state = useDemoState(demo);
+  const { state: session } = useSessionState();
+  const { language } = useI18n();
+  const signedIn = session.status === 'ready' ? PERSONAS.find((p) => p.staffId === session.ctx.user.id) : undefined;
+  return (
+    <>
+      <Badge tone="warning" className={styles.cue}>
+        DEMO — not part of the product
+      </Badge>
+      <span>
+        {signedIn ? `${signedIn.title} · ` : 'Signed out · '}
+        {state.simulation.online ? 'Online' : 'Offline'} · {language === 'mr' ? <span lang="mr">मराठी</span> : 'English'}
+      </span>
+    </>
+  );
+}
+
+/**
  * DEMO ONLY — presenter controls. Never part of the instructor product (English only on purpose).
  * Order follows how a demo is run: pick a story (presets), or pick who logs in
  * (quick login); everything else waits under Advanced.
@@ -28,7 +50,6 @@ export function DemoPanel({ demo, controller, onDone }: { readonly demo: DemoAda
   const { language } = useI18n();
   const ctx = session.status === 'ready' ? session.ctx : null;
   const config = ctx?.config ?? configuration.base();
-  const signedIn = PERSONAS.find((p) => p.staffId === ctx?.user.id);
   const [confirmReset, setConfirmReset] = useState(false);
   const { data: enrolled } = useQuery(`demo-face:${ctx?.user.id}`, () => (ctx ? faceMatch.isEnrolled(ctx.user.id) : Promise.resolve(true)), ['face']);
   const run = (p: Promise<void> | void) => {
@@ -37,14 +58,6 @@ export function DemoPanel({ demo, controller, onDone }: { readonly demo: DemoAda
 
   return (
     <div className={styles.panel} lang="en">
-      <div className={styles.head}>
-        <Badge tone="warning">DEMO — not part of the product</Badge>
-        <p className={styles.state}>
-          {signedIn ? `${signedIn.title} · ` : 'Signed out · '}
-          {state.simulation.online ? 'Online' : 'Offline'} · {language === 'mr' ? 'मराठी' : 'English'}
-        </p>
-      </div>
-
       <section className={styles.section} aria-labelledby="demo-presets">
         <h3 id="demo-presets" className={styles.sectionTitle}>Quick presets</h3>
         <div className={styles.presets}>
@@ -59,25 +72,25 @@ export function DemoPanel({ demo, controller, onDone }: { readonly demo: DemoAda
 
       <section className={styles.section} aria-labelledby="demo-login">
         <h3 id="demo-login" className={styles.sectionTitle}>Quick login</h3>
-        <p className={styles.hint}>
-          {state.skipLogin
-            ? 'Signs straight in as this person (Skip login is on under Advanced).'
-            : 'Opens the login screens. Pick this person under "Use demo account" there (or type the Trainer ID shown here): nothing is filled until you do.'}
-        </p>
-        <ul className={styles.personas}>
-          {PERSONAS.map((p) => (
-            <li key={p.id}>
-              <button type="button" className={cx(styles.persona, state.persona === p.id && styles.active)} onClick={() => run(controller.quickLogin(p.id))}>
-                <span className={styles.personaText}>
-                  <span className={styles.presetTitle}>{p.title}</span>
-                  <span className={styles.presetLine}>
-                    {p.name} · {p.trainerId}
+        <p className={styles.hint}>{state.skipLogin ? 'Signs straight in (Skip login is on).' : 'Opens login: pick them under “Use demo account”.'}</p>
+        {/* One divided list; the persona in play is marked (check, brand tint, aria-current). */}
+        <ul className={styles.personas} aria-labelledby="demo-login">
+          {PERSONAS.map((p) => {
+            const current = state.persona === p.id;
+            return (
+              <li key={p.id} className={styles.personaItem}>
+                <button type="button" className={cx(styles.persona, current && styles.current)} aria-current={current ? 'true' : undefined} onClick={() => run(controller.quickLogin(p.id))}>
+                  <span className={styles.personaText}>
+                    <span className={styles.presetTitle}>{p.title}</span>
+                    <span className={styles.presetLine}>
+                      {p.name} · {p.trainerId}
+                    </span>
                   </span>
-                </span>
-                <Icon name={state.skipLogin ? 'log-in' : 'arrow-right'} size={18} className={styles.personaIcon} />
-              </button>
-            </li>
-          ))}
+                  <Icon name={current ? 'check' : state.skipLogin ? 'log-in' : 'arrow-right'} size={20} className={styles.personaIcon} />
+                </button>
+              </li>
+            );
+          })}
         </ul>
       </section>
 

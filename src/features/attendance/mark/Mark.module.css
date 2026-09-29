@@ -1,3 +1,4 @@
+/* The fixed band above the roster: white, full bleed, its content on the reading column. */
 .summary {
   display: flex;
   flex-direction: column;
@@ -6,30 +7,51 @@
   background: var(--color-background-surface-raised);
   border-bottom: var(--divider-thin) solid var(--color-border-subtle);
 }
-.summaryPlain {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-12);
-}
 .meta {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-8);
+  column-gap: var(--space-4);
   font: var(--type-label-small);
   letter-spacing: var(--ls-label-small);
   color: var(--color-text-secondary);
 }
-.extra {
-  font: var(--type-label-small);
-  letter-spacing: var(--ls-label-small);
-  color: var(--color-text-secondary);
+.meta > svg {
+  flex: none;
+  margin-right: var(--space-4);
 }
+/* Each part stays whole ("Closes at 2:00 PM" never splits); the dot joins it to the one before. */
+.metaPart {
+  white-space: nowrap;
+}
+.metaPart + .metaPart::before {
+  content: '·';
+  margin-right: var(--space-4);
+}
+.closes {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+.closingSoon {
+  color: var(--color-text-warning);
+  font-weight: var(--font-weight-semibold);
+}
+/* "Monday, 28 September" where it fits, "Mon, 28 Sep" on narrow phones, so the line stays one line. */
+.short {
+  display: none;
+}
+@container (max-width: 399px) {
+  .long {
+    display: none;
+  }
+  .short {
+    display: inline;
+  }
+}
+/* The hint opens the list as a quiet line on white, aligned with the roll numbers. */
 .hint {
-  padding: var(--space-12) var(--space-16);
-  background: var(--color-hero-banner);
-  font: var(--type-body-small);
-  letter-spacing: var(--ls-body-small);
-  color: var(--color-text-secondary);
+  padding: var(--space-12) var(--space-16) var(--space-4);
 }
 .list {
   display: flex;
@@ -40,8 +62,11 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-4);
-  font: var(--type-label-small);
+  font: var(--type-label-small-strong);
   letter-spacing: var(--ls-label-small);
-  color: var(--color-text-error);
+  color: var(--color-text-warning);
   text-align: center;
+}
+.block > svg {
+  flex: none;
 }

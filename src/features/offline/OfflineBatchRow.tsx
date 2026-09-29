@@ -19,8 +19,9 @@ interface OfflineBatchRowProps {
 }
 
 /**
- * One downloaded batch (brief §5): name, when it was updated, its state
- * (ready offline / refresh needed / waiting to sync) and its own refresh.
+ * One downloaded batch (brief §5) in two lines (RPT-5): its name, then its
+ * state (ready offline / refresh needed / waiting to sync) beside when it was
+ * updated (the time today, the date on an earlier day), and its own refresh.
  */
 export function OfflineBatchRow({ row, all, canRefresh }: OfflineBatchRowProps) {
   const { t, format } = useI18n();
@@ -37,7 +38,7 @@ export function OfflineBatchRow({ row, all, canRefresh }: OfflineBatchRowProps) 
         ? t('batchData.justNow')
         : day === toLocalDate(ctx.clock.now())
           ? t('offline.updatedToday', { time: format.time(row.pack.downloadedAt) })
-          : t('offline.updatedOn', { date: format.dayMonth(day), time: format.time(row.pack.downloadedAt) });
+          : t('offline.updatedOn', { date: format.dayMonth(day) });
   const stale = row.stale && state === 'idle';
   const status = row.pendingSync
     ? { tone: 'warning' as const, icon: 'cloud-upload' as const, text: t('offline.waitingRow', { count: row.pendingSync }) }
@@ -51,17 +52,20 @@ export function OfflineBatchRow({ row, all, canRefresh }: OfflineBatchRowProps) 
         <span className={styles.packTitle}>
           <BatchLabel trade={row.trade} batch={row.batch} />
         </span>
-        {/* Its own refresh is announced here; a refresh-all is announced once, by its toast. */}
-        <span className={styles.packMeta} role="status" aria-live={own === 'idle' && all !== 'idle' ? 'off' : undefined}>
-          <span key={state} className={styles.settle}>
-            {updated}
+        <span className={styles.packMeta}>
+          <StatusLine tone={status.tone} icon={status.icon}>
+            {status.text}
+          </StatusLine>
+          {/* Its own refresh is announced here; a refresh-all is announced once, by its toast. */}
+          <span role="status" aria-live={own === 'idle' && all !== 'idle' ? 'off' : undefined}>
+            <span key={state} className={styles.settle}>
+              {updated}
+            </span>
           </span>
         </span>
-        <StatusLine tone={status.tone} icon={status.icon}>
-          {status.text}
-        </StatusLine>
       </span>
       {canRefresh && (
+        // Not IconButton: the kit's has no brand tone or busy state yet (the icon spins while refreshing).
         <button type="button" className={styles.packRefresh} onClick={() => void refresh()} aria-disabled={state === 'refreshing' || undefined} aria-label={t('batchData.refreshFor', { batch: label })}>
           <Icon name="refresh" size={20} className={state === 'refreshing' ? styles.spin : undefined} />
         </button>

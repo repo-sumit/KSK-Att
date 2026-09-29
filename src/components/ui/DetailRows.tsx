@@ -6,7 +6,7 @@ export interface DetailRow {
   readonly key: string;
   readonly label: ReactNode;
   readonly value: ReactNode;
-  readonly tone?: 'default' | 'success' | 'error' | 'warning' | 'info';
+  readonly tone?: 'default' | 'success' | 'error' | 'warning' | 'info' | 'brand';
 }
 
 interface DetailRowsProps {

@@ -115,3 +115,38 @@ export function isMarkAllowed(mark: Mark, marking: MarkingConfig): boolean {
 export function presenceWeight(mark: Mark): number {
   return mark.status ? STATUS_REGISTRY[mark.status].presenceWeight : 0;
 }
+
+/**
+ * Statuses a summary shows, in registry order: the ones configuration enables
+ * (present and absent always) plus any other that has marks, so an older record
+ * never hides a status it used.
+ */
+export function summaryStatuses(enabled: readonly StatusCode[], counts: MarkCounts): StatusCode[] {
+  const shown = new Set<StatusCode>(['present', 'absent', ...enabled]);
+  return STATUS_ORDER.filter((code) => shown.has(code) || counts[code] > 0);
+}
+
+export interface PresentTerm {
+  readonly status: StatusCode;
+  readonly count: number;
+  readonly weight: number;
+}
+
+/** What makes up Present, in registry order: every status with marks and a presence weight (24 present, 2 OJT × 1, 2 half days × ½). */
+export function presentTerms(counts: MarkCounts): PresentTerm[] {
+  return STATUS_ORDER.filter((code) => counts[code] > 0 && STATUS_REGISTRY[code].presenceWeight > 0).map((code) => ({ status: code, count: counts[code], weight: STATUS_REGISTRY[code].presenceWeight }));
+}
+
+/**
+ * Present as every summary shows it (owner, D-069): each status counted by its
+ * presence weight, the same weights attendance percentages use. 24 present +
+ * 2 half days + 2 OJT = 24 + 1 + 2 = 27. Leave and absent add nothing.
+ */
+export function effectivePresent(counts: MarkCounts): number {
+  return presentTerms(counts).reduce((sum, term) => sum + term.count * term.weight, 0);
+}
+
+/** Statuses other than present that can count toward Present under this configuration (half day, OJT): the summary keeps a line for how. */
+export function contributesToPresent(statuses: readonly StatusCode[]): boolean {
+  return statuses.some((code) => code !== 'present' && STATUS_REGISTRY[code].presenceWeight > 0);
+}

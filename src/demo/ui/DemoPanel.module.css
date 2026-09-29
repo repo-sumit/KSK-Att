@@ -4,13 +4,10 @@
   gap: var(--space-24);
   padding: var(--space-16) var(--space-16) calc(var(--space-32) + env(safe-area-inset-bottom));
 }
-.head {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-8);
+/* The title bar's "not part of the product" badge keeps its own width in the subtitle column. */
+.cue {
+  align-self: flex-start;
 }
-.state,
 .hint {
   font: var(--type-body-small);
   letter-spacing: var(--ls-body-small);
@@ -21,10 +18,10 @@
   flex-direction: column;
   gap: var(--space-12);
 }
+/* Sentence case, like the product's group labels (Section variant="label"). */
 .sectionTitle {
-  font: var(--type-caption-strong);
-  letter-spacing: var(--ls-caption);
-  text-transform: uppercase;
+  font: var(--type-title-small);
+  letter-spacing: var(--ls-title-small);
   color: var(--color-text-secondary);
 }
 .presets {
@@ -32,8 +29,11 @@
   grid-template-columns: 1fr 1fr;
   gap: var(--space-8);
 }
-.preset,
-.persona {
+/* An odd last preset takes the whole row instead of leaving half of it empty. */
+.presets > :last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+.preset {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -64,15 +64,39 @@
   letter-spacing: var(--ls-caption);
   color: var(--color-text-secondary);
 }
+/* Personas: one bordered list with dividers (not a stack of separate tiles). */
 .personas {
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
+  border: var(--divider-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.personaItem + .personaItem {
+  border-top: var(--divider-thin) solid var(--color-border-subtle);
 }
 .persona {
-  flex-direction: row;
+  display: flex;
   align-items: center;
   gap: var(--space-8);
+  width: 100%;
+  min-height: var(--row-min-height-compact);
+  padding: var(--space-8) var(--space-12);
+  border: none;
+  background: var(--color-background-surface-raised);
+  color: var(--color-text-primary);
+  text-align: left;
+  transition: background-color var(--motion-fast) ease;
+}
+.persona:focus-visible {
+  outline-offset: -2px;
+}
+/* The persona in play: brand tint and a check (the list border no longer carries the state). */
+.current {
+  background: var(--color-surface-brand-subtle);
+}
+.current .personaIcon {
+  color: var(--color-icon-brand);
 }
 .personaText {
   display: flex;

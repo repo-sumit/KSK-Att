@@ -82,4 +82,8 @@
   .gridList > .item + .item {
     border-top: none;
   }
+  /* One item takes the whole row rather than leaving half of it empty. */
+  .gridList > .item:only-child {
+    grid-column: 1 / -1;
+  }
 }

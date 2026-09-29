@@ -3,10 +3,17 @@
   padding: var(--space-4);
   border-radius: var(--radius-full);
   background: var(--color-background-surface);
+  /* A hairline keeps the track visible on the grey page as well as on white. */
+  box-shadow: inset 0 0 0 var(--divider-thin) var(--color-border-subtle);
 }
 .full {
   display: flex;
   width: 100%;
+}
+@media (min-width: 600px) {
+  .capped {
+    max-width: var(--container-form);
+  }
 }
 .full .option {
   flex: 1;
@@ -18,7 +25,7 @@
   display: flex;
   align-items: stretch;
   justify-content: center;
-  min-height: 36px;
+  min-height: var(--control-height-sm);
   padding: 0;
   border: none;
   border-radius: var(--radius-full);

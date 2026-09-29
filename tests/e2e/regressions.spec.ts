@@ -91,6 +91,8 @@ test('motion really runs: CSS Modules keyframes resolve (refresh spin, skeleton 
   await preset(page, 'batch');
   // Real speed, so the refresh lasts long enough to look at.
   await demo(page, 'setSimulation({ speed: 1 })');
+  // Refreshing a downloaded list lives on Offline data under Reports (D-071).
+  await page.goto('/reports/offline');
   await page.getByRole('button', { name: 'Refresh data for Electrician · Shift 1 · Unit 2' }).click();
   await expect(page.getByText('Refreshing student data…')).toBeVisible();
   expect(await page.evaluate(() => document.getAnimations().length)).toBeGreaterThan(0);

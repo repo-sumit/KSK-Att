@@ -4,7 +4,6 @@ import { ScreenLayout } from '@/components/shell/ScreenLayout';
 import { AppHeader } from '@/features/shell/AppHeader';
 import { useI18n } from '@/hooks/i18n';
 import { useSession } from '@/hooks/session';
-import { cx } from '@/lib/cx';
 import { toLocalDate } from '@/lib/time';
 import { AnnouncementBanner } from '../announcements/AnnouncementBanner';
 import { AttendanceBoard } from '../attendance/AttendanceBoard';
@@ -37,7 +36,7 @@ export function InstructorHome() {
         );
       case 'timetable':
         return (
-          <Section id="today" title={t('home.timetable')} subtitle={format.longDate(today)}>
+          <Section id="today" title={t('home.timetable')}>
             <AttendanceBoard />
           </Section>
         );
@@ -62,22 +61,14 @@ export function InstructorHome() {
       <SyncPendingCard />
       <AnnouncementBanner />
       {access}
-      {/* Wide screens: two things side by side (one column on phones), never a lone half-width card. */}
-      {j.tradeWideView && j.staff.selfCard ? (
-        <>
-          <div className={styles.pair}>
-            <TradeOverviewCard />
-            <MyAttendanceCard />
-          </div>
-          <SubmittedToday />
-        </>
-      ) : (
-        <div className={cx(styles.pair, styles.loose)}>
+      {/* Wide screens: the two cards side by side (one column on phones); a lone card takes the whole row. */}
+      {(j.tradeWideView || j.staff.selfCard) && (
+        <div className={styles.pair}>
           {j.tradeWideView && <TradeOverviewCard />}
           {j.staff.selfCard && <MyAttendanceCard />}
-          <SubmittedToday />
         </div>
       )}
+      <SubmittedToday />
     </ScreenLayout>
   );
 }

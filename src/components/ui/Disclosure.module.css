@@ -39,6 +39,10 @@
 .open > .button .chevron {
   transform: rotate(180deg);
 }
+/* Open: one full-bleed divider under the summary; the panel sits on the same white surface, set apart by it, not by a tint. */
+.open > .button {
+  border-bottom: var(--divider-thin) solid var(--color-border-subtle);
+}
 .panel {
   display: grid;
   grid-template-rows: 1fr;

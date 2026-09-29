@@ -1,8 +1,16 @@
+/* A batch with several marks today (twice daily, periods, subjects): its header, then one card per mark, across the whole row. */
 .group {
+  grid-column: 1 / -1;
   display: flex;
   flex-direction: column;
   gap: var(--space-8);
   padding-top: var(--space-4);
+}
+.groupCards {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-12);
+  align-items: start;
 }
 .groupHead {
   display: flex;
@@ -11,8 +19,8 @@
   gap: var(--space-8);
 }
 .groupTitle {
-  font: var(--type-title-medium);
-  letter-spacing: var(--ls-title-medium);
+  font: var(--type-title-small);
+  letter-spacing: var(--ls-title-small);
 }
 .groupMeta {
   font: var(--type-body-small);
@@ -27,10 +35,20 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: var(--space-12);
+  /* Each card keeps its own height: a short card beside a taller one never grows an empty middle. */
+  align-items: start;
 }
 @container (min-width: 640px) {
-  .list {
+  .list,
+  .groupCards {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     column-gap: var(--page-gutter);
   }
+}
+/* A principal's trade row: its count, then where it stands. */
+.tradeMeta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
 }

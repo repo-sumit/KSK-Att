@@ -9,7 +9,8 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  background: var(--color-surface-muted);
+  /* The one page grey, the same as every app screen (surface-muted is for small in-card fills). */
+  background: var(--color-background-surface);
 }
 
 body {
@@ -18,7 +19,7 @@ body {
   font: var(--type-body-medium);
   letter-spacing: var(--ls-body-medium);
   color: var(--color-text-primary);
-  background: var(--color-surface-muted);
+  background: var(--color-background-surface);
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
 }

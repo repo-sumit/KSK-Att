@@ -10,5 +10,6 @@ export function statusIcon(status: StatusLike): IconName {
 }
 
 export function statusTone(status: StatusLike): Tone {
-  return status === 'not_marked' ? 'neutral' : STATUS_REGISTRY[status].tone;
+  // Not marked is work still to do: warning, as the DS status table says (D-069).
+  return status === 'not_marked' ? 'warning' : STATUS_REGISTRY[status].tone;
 }

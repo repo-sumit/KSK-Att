@@ -83,6 +83,17 @@
   border-radius: var(--radius-lg);
   background: var(--color-background-surface-raised);
 }
+/* In the tablet/desktop login card: a borderless muted inset, not a second outlined card inside the card. */
+@media (min-width: 600px) {
+  .card {
+    border-color: transparent;
+    background: var(--color-surface-muted);
+  }
+  /* The icon well stays visible on the muted fill. */
+  .card .well {
+    background: var(--color-background-surface-raised);
+  }
+}
 .cardColumn {
   flex-direction: column;
   align-items: stretch;

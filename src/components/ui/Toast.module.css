@@ -14,7 +14,7 @@
 }
 .toast {
   width: 100%;
-  max-width: 360px;
+  max-width: var(--toast-max-width);
   padding: var(--space-12) var(--space-16);
   border-radius: var(--radius-lg);
   background: var(--color-background-inverse);

@@ -6,7 +6,8 @@ test('principal corrects today’s attendance with a reason; the audit log recor
   await expect(page.getByRole('link', { name: /Student attendance/ }).first()).toBeVisible();
   await nav(page, 'Attendance').click();
   await page.getByRole('link', { name: /Electrician/ }).click();
-  await page.getByRole('link', { name: /Shift 1 · Unit 1/ }).click();
+  // Shift 1 · Unit 1 has two marks today (the trade and Employability Skills): open the trade's.
+  await page.getByRole('link', { name: /Shift 1 · Unit 1 · Electrician/ }).click();
   await page.waitForURL(/\/attendance\/record/);
   await expect(page.getByText(/Tap a student to correct/)).toBeVisible();
   await page.getByRole('link', { name: /Rahul Kumar/ }).click();
@@ -47,4 +48,27 @@ test('principal marks staff who have not self-verified; self-verified rows are l
   await page.getByRole('dialog').getByRole('button', { name: 'Save 1 change' }).click();
   await expect(page.getByText('Staff attendance saved')).toBeVisible();
   await expect(sanjay.getByText('Marked by principal')).toBeVisible();
+});
+
+test('principal Home and the Attendance tab count batches one way; both attention rows name two, then "and N more"', async ({ page, consoleErrors }) => {
+  void consoleErrors;
+  await preset(page, 'principal');
+  const card = page.getByRole('link', { name: /Student attendance/ }).first();
+  await expect(card).toContainText(/\d+ of \d+/);
+  const [, done, total] = (await card.textContent())!.match(/(\d+) of (\d+)/)!.map(Number);
+  // One truncation rule for both rows (no ellipsis, no full staff list).
+  for (const name of [/batches not submitted/, /staff not marked/]) {
+    const row = page.getByRole('link', { name });
+    if (await row.count()) await expect(row).not.toContainText('…');
+  }
+  await expect(page.getByRole('link', { name: /staff not marked/ })).toContainText(/, .+ and \d+ more/);
+
+  await nav(page, 'Attendance').click();
+  await page.waitForURL(/\/attendance$/);
+  const rows = page.getByRole('list', { name: 'Trades' }).getByRole('link');
+  await expect(rows.first()).toContainText(/of \d+ batch/);
+  // The trade rows add up to Home's "done of total": the same denominator (every batch today, opened or not).
+  const counts = (await rows.allTextContents()).map((s) => s.match(/(\d+) of (\d+)/)!.slice(1).map(Number));
+  expect(counts.reduce((a, [d]) => a + d, 0)).toBe(done);
+  expect(counts.reduce((a, [, n]) => a + n, 0)).toBe(total);
 });

@@ -12,9 +12,10 @@ interface CardProps {
   /** A list card: rows edge to edge, one divider between children, no padding (batch lists, at-risk groups, offline batches). */
   readonly divided?: boolean;
   readonly className?: string;
-  readonly as?: 'div' | 'section' | 'li';
+  readonly as?: 'div' | 'section' | 'li' | 'ul';
   readonly role?: 'group';
   readonly 'aria-labelledby'?: string;
+  readonly 'aria-label'?: string;
 }
 
 /** DS content card: surfaceRaised, radius lg, card shadow. */

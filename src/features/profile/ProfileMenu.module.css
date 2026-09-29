@@ -14,40 +14,12 @@
   box-shadow: 0 0 0 var(--divider-medium) var(--color-border-brand);
 }
 
-/* Phones: a bottom sheet, like every other sheet in the app. */
-.menu {
-  position: fixed;
-  inset: auto 0 0 0;
-  width: 100%;
-  max-width: 100%;
-  max-height: 90dvh;
-  margin: 0;
-  padding: 0;
-  border: none;
-  border-radius: var(--radius-xl) var(--radius-xl) var(--radius-none) var(--radius-none);
-  background: var(--color-background-surface-raised);
-  box-shadow: var(--shadow-overlay);
-  color: var(--color-text-primary);
-  overflow-y: auto;
-}
-.menu[open] {
-  animation: ksk-sheet-in var(--motion-base) var(--motion-ease);
-}
-.menu::backdrop {
-  background: var(--color-scrim);
-}
+/* The dialog is the shared overlay surface (BottomSheet's sheetSurface('anchored')): a sheet on phones, a menu under the avatar from 600px. */
 .panel {
   display: flex;
   flex-direction: column;
   gap: var(--space-16);
-  padding: var(--space-8) var(--space-16) calc(var(--space-24) + env(safe-area-inset-bottom));
-}
-.grabber {
-  align-self: center;
-  width: 40px;
-  height: 4px;
-  border-radius: var(--radius-full);
-  background: var(--color-border-default);
+  padding: var(--space-8) var(--space-16) calc(var(--space-16) + env(safe-area-inset-bottom));
 }
 .identity {
   display: flex;
@@ -86,47 +58,19 @@
 .nowrap {
   white-space: nowrap;
 }
+/* The settings run flush inside the sheet or menu, one divider above and between rows (never a card inside the card). */
 .list {
+  margin: 0 calc(-1 * var(--space-16));
+  border-top: var(--divider-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-none);
   box-shadow: none;
-  border: var(--divider-thin) solid var(--color-border-subtle);
 }
 .icon {
   color: var(--color-icon-secondary);
 }
 
-/* Tablets and desktops: a menu anchored under the avatar (right edges aligned); the page stays visible. */
 @media (min-width: 600px) {
-  .menu {
-    inset: var(--menu-top, var(--space-64)) var(--menu-right, var(--space-16)) auto auto;
-    width: 360px;
-    max-height: calc(100dvh - var(--menu-top, var(--space-64)) - var(--space-16));
-    border: var(--divider-thin) solid var(--color-border-subtle);
-    border-radius: var(--radius-lg);
-  }
-  .menu[open] {
-    animation: none;
-  }
-  .menu::backdrop {
-    background: transparent;
-  }
-  .grabber {
-    display: none;
-  }
   .panel {
-    padding: var(--space-16);
-  }
-}
-
-/*
- * Keyframes live in the module that uses them: CSS Modules scope animation names per
- * file, so a keyframe defined elsewhere (e.g. globals.css) would never match. The global
- * prefers-reduced-motion rule still collapses them all.
- */
-@keyframes ksk-sheet-in {
-  from {
-    transform: translateY(100%);
-  }
-  to {
-    transform: translateY(0);
+    padding: var(--space-16) var(--space-16) var(--space-8);
   }
 }

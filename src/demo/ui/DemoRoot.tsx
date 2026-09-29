@@ -2,13 +2,14 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { SheetTitleBar, sheetSurface } from '@/components/ui/BottomSheet';
 import { Icon } from '@/components/ui/icons/Icon';
 import { useHeaderToolSlot } from '@/components/shell/ToolSlot';
 import { useContainer } from '@/hooks/services';
 import { cx } from '@/lib/cx';
 import type { DemoAdapters } from '../adapters';
 import { DemoController } from '../controller';
-import { DemoPanel } from './DemoPanel';
+import { DemoPanel, DemoStatus } from './DemoPanel';
 import styles from './DemoRoot.module.css';
 
 declare global {
@@ -55,7 +56,7 @@ export function DemoRoot({ demo, children }: { readonly demo: DemoAdapters; read
   /** Whichever trigger is mounted (in the header slot or floating): focus comes back to it. */
   const trigger = useRef<HTMLButtonElement>(null);
   const triggerFocused = useRef(false);
-  const title = useRef<HTMLParagraphElement>(null);
+  const title = useRef<HTMLHeadingElement>(null);
   /** Opened with show() (drawer, no native Esc) rather than showModal() (sheet). `:modal` isn't in older WebViews. */
   const drawer = useRef(false);
   const titleId = useId();
@@ -89,7 +90,8 @@ export function DemoRoot({ demo, children }: { readonly demo: DemoAdapters; read
     const d = dialog.current;
     if (!open || !drawer.current || !d) return;
     const header = document.querySelector('header');
-    const place = () => d.style.setProperty('--demo-drawer-top', header ? `${Math.round(header.getBoundingClientRect().bottom) + 8}px` : '');
+    // The shared drawer placement adds the gap below it.
+    const place = () => d.style.setProperty('--overlay-top', header ? `${Math.round(header.getBoundingClientRect().bottom)}px` : '');
     place();
     const observer = header ? new ResizeObserver(place) : null;
     if (header) observer?.observe(header);
@@ -131,6 +133,8 @@ export function DemoRoot({ demo, children }: { readonly demo: DemoAdapters; read
       onBlur={() => (triggerFocused.current = false)}
       aria-label="Open demo controls"
       aria-expanded={open}
+      // Presenter tooling is English only (like the panel): Latin face and an English voice in Marathi too.
+      lang="en"
     >
       <Icon name="sliders" size={16} />
       <span className={styles.triggerText}>Demo</span>
@@ -143,8 +147,9 @@ export function DemoRoot({ demo, children }: { readonly demo: DemoAdapters; read
       {slot ? createPortal(button, slot) : button}
       <dialog
         ref={dialog}
-        className={styles.panel}
+        className={cx(sheetSurface('drawer'), styles.panel)}
         aria-labelledby={titleId}
+        lang="en"
         onClose={() => {
           setOpen(false);
           // Every way of closing (×, Esc, a preset) hands focus back to the trigger.
@@ -152,14 +157,7 @@ export function DemoRoot({ demo, children }: { readonly demo: DemoAdapters; read
         }}
         onClick={(e) => e.target === dialog.current && close()}
       >
-        <div className={styles.panelBar}>
-          <p ref={title} id={titleId} className={styles.panelTitle} tabIndex={-1}>
-            Demo controls
-          </p>
-          <button type="button" className={styles.close} onClick={close} aria-label="Close demo controls">
-            <Icon name="x" size={20} />
-          </button>
-        </div>
+        <SheetTitleBar id={titleId} titleRef={title} title="Demo controls" subtitle={open && <DemoStatus demo={demo} />} closeLabel="Close demo controls" onClose={close} />
         {/* Mounted only while open: nothing of the panel is in the page (or the accessibility tree) when collapsed. */}
         {open && <DemoPanel demo={demo} controller={controller} onDone={close} />}
       </dialog>

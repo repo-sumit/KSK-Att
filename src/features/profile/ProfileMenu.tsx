@@ -2,7 +2,7 @@
 import { useRouter } from 'next/navigation';
 import { useContext, useEffect, useId, useRef, useState } from 'react';
 import { Avatar } from '@/components/ui/Avatar';
-import { BottomSheet } from '@/components/ui/BottomSheet';
+import { BottomSheet, SheetGrabber, sheetSurface } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/icons/Icon';
 import { Latin } from '@/components/ui/Latin';
@@ -48,9 +48,11 @@ export function ProfileMenu() {
     const d = dialog.current;
     const r = trigger.current?.getBoundingClientRect();
     if (!d || !r) return;
-    // Anchor for the tablet/desktop menu; the phone sheet ignores it.
-    d.style.setProperty('--menu-top', `${Math.round(r.bottom + 8)}px`);
-    d.style.setProperty('--menu-right', `${Math.round(window.innerWidth - r.right)}px`);
+    // Anchor for the tablet/desktop menu (the phone sheet ignores it): below the whole header, so it
+    // never covers the header's bottom edge, with its right edge on the avatar's.
+    const header = trigger.current?.closest('header')?.getBoundingClientRect();
+    d.style.setProperty('--overlay-top', `${Math.round(header?.bottom ?? r.bottom)}px`);
+    d.style.setProperty('--overlay-right', `${Math.round(window.innerWidth - r.right)}px`);
     setOpen(true);
     d.showModal();
   };
@@ -71,7 +73,7 @@ export function ProfileMenu() {
       </button>
       <dialog
         ref={dialog}
-        className={styles.menu}
+        className={sheetSurface('anchored')}
         aria-label={t('a11y.profile')}
         onClose={() => setOpen(false)}
         onClick={(e) => e.target === dialog.current && close()}
@@ -125,7 +127,7 @@ function MenuContent({ onClose, onLogout, guarded }: MenuContentProps) {
 
   return (
     <div className={styles.panel}>
-      <span className={styles.grabber} aria-hidden="true" />
+      <SheetGrabber />
       <div className={styles.identity}>
         <Avatar name={ctx.user.name} size={48} />
         <div className={styles.who}>

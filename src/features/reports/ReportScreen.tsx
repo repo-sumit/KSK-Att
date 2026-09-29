@@ -93,7 +93,7 @@ export function ReportScreen() {
           {built.rows.length === 0 ? (
             <EmptyState icon="chart" title={t('reports.noData')} />
           ) : (
-            <ul className={styles.rows}>
+            <Card as="ul" divided className={styles.rows}>
               {built.rows.map((row) => (
                 <li key={row.id} className={styles.row}>
                   <span className={styles.text}>
@@ -105,7 +105,7 @@ export function ReportScreen() {
                   </Badge>
                 </li>
               ))}
-            </ul>
+            </Card>
           )}
           {j.pdfDownload && (
             <Button variant="ghost" size="md" leadingIcon="printer" onClick={print} className={styles.print}>

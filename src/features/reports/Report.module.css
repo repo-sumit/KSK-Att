@@ -26,23 +26,13 @@
   font: var(--type-label-medium);
   min-width: 0;
 }
-.rows {
-  display: flex;
-  flex-direction: column;
-  border-radius: var(--radius-lg);
-  background: var(--color-background-surface-raised);
-  box-shadow: var(--shadow-card);
-  overflow: hidden;
-}
+/* One row in the shared divided list card (Card as="ul" divided; .rows only restyles it for print). */
 .row {
   display: flex;
   align-items: center;
   gap: var(--space-12);
   min-height: var(--row-min-height);
   padding: var(--space-12) var(--space-16);
-}
-.row + .row {
-  border-top: var(--divider-thin) solid var(--color-border-subtle);
 }
 .text {
   display: flex;
@@ -89,8 +79,9 @@
     width: 50%;
     font: var(--type-label-small);
   }
+  /* !important: over the card's own shadow, whichever stylesheet loads last. */
   .rows {
-    box-shadow: none;
+    box-shadow: none !important;
     border: var(--divider-thin) solid var(--color-border-default);
   }
 }

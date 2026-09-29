@@ -1,0 +1,13 @@
+.note {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-8);
+  font: var(--type-body-small);
+  letter-spacing: var(--ls-body-small);
+  color: var(--color-text-secondary);
+  text-wrap: pretty;
+}
+/* 16px icon on a 16px (English) line: it sits on the first line whatever the wrap. */
+.note > svg {
+  flex: none;
+}

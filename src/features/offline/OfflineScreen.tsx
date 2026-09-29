@@ -1,12 +1,10 @@
 'use client';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Banner } from '@/components/ui/Banner';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Icon } from '@/components/ui/icons/Icon';
-import { List, ListRow } from '@/components/ui/ListRow';
 import { Section } from '@/components/ui/Section';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useToast } from '@/components/ui/Toast';
@@ -28,10 +26,11 @@ import styles from './Offline.module.css';
 
 /**
  * Offline data = "what is on this phone, and is it synced?" (PRD §20, D-056):
- * sync first (the Sync pending card, or "All attendance synced"), what is
- * waiting to sync, then each downloaded batch with its own refresh, and one
- * action group under the list: Refresh all data, Download more batches
- * (D-065). Reached from Reports.
+ * sync first (the Sync pending card listing what is waiting, or a calm "All
+ * attendance synced"), each with the end-of-day rule, then each downloaded
+ * batch with its own refresh, and one action group under the list: Refresh
+ * all data, and Download more batches while any are left (D-065, RPT-3/4).
+ * Reached from Reports.
  */
 export function OfflineScreen() {
   const { t, format } = useI18n();
@@ -54,7 +53,7 @@ export function OfflineScreen() {
   const today = toLocalDate(ctx.clock.now());
 
   const when = (iso: string) => (toLocalDate(new Date(iso)) === today ? t('offline.todayAt', { time: format.time(iso) }) : `${format.dayMonth(toLocalDate(new Date(iso)))}, ${format.time(iso)}`);
-  const pendingLabel = (label: string, kind: string) => {
+  const pendingLabel = (label: string, kind: string): ReactNode => {
     if (kind === 'staff_attendance') return t('offline.selfRecord');
     const address = parseSessionKey(label);
     const batch = ctx.data.batches.find((b) => b.id === address?.batchId);
@@ -76,33 +75,23 @@ export function OfflineScreen() {
   const ordered = rows ? [...rows].sort((a, b) => rank(a) - rank(b)) : undefined;
   // The card owns "waiting / syncing / synced just now"; with nothing waiting, one calm line says so.
   const synced = !status.pending && status.phase !== 'syncing' && status.phase !== 'synced';
+  const eod = t('offline.eodNote', { time: format.clockTime(today, ctx.config.offline.eodTriggerTime) });
+  // Offer more only while a batch the user can mark is not on the phone and the limit allows it.
+  const held = new Set(rows?.map((r) => r.batch.id));
+  const more = !!rows && packs.downloadable(ctx).some((b) => !held.has(b.id)) && (j.maxBatches === null || rows.length < j.maxBatches);
   if (!j.enabled) return null;
 
   return (
     <ScreenLayout width="reading" area="reports" banner="offline" header={<AppHeader back="back" title={t('offline.title')} backHref={routes.reports} />}>
-      <div className={styles.syncBlock}>
-        <SyncPendingCard />
-        {synced && (
-          <Banner tone="success" icon="circle-check" strong live>
-            {t('offline.allSynced')}
-          </Banner>
-        )}
-        <p className={styles.inst}>{t('offline.eodNote', { time: format.clockTime(today, ctx.config.offline.eodTriggerTime) })}</p>
-      </div>
-      {pending && pending.length > 0 && (
-        <Section id="pending" variant="label" title={t('offline.pendingList')}>
-          <List>
-            {pending.map((item) => (
-              <ListRow
-                key={item.id}
-                leading={<Icon name="cloud-upload" size={20} className={styles.warn} />}
-                title={pendingLabel(item.label, item.kind)}
-                subtitle={when(item.enqueuedAt)}
-                minHeight={56}
-              />
-            ))}
-          </List>
-        </Section>
+      <SyncPendingCard items={pending?.map((item) => ({ id: item.id, label: pendingLabel(item.label, item.kind), when: when(item.enqueuedAt) }))} note={eod} />
+      {synced && (
+        // A calm confirmation, not the loudest thing on the screen; the rule it answers to sits inside it.
+        <Banner tone="success" icon="circle-check" live>
+          <span className={styles.syncedText}>
+            <span>{t('offline.allSynced')}</span>
+            <span className={styles.syncedNote}>{eod}</span>
+          </span>
+        </Banner>
       )}
       <Section id="packs" variant="label" title={t('offline.downloaded')}>
         {!ordered ? (
@@ -124,17 +113,21 @@ export function OfflineScreen() {
                 <OfflineBatchRow key={row.batch.id} row={row} all={all} canRefresh={j.manualRefresh} />
               ))}
             </ul>
-            {/* One action group, the list's own width: refresh everything (outlined), or add batches (text). */}
-            <div className={styles.actions}>
-              {j.manualRefresh && (
-                <Button variant="secondary" size="md" fullWidth leadingIcon="refresh" loading={all === 'refreshing'} onClick={() => void refreshAll()}>
-                  {all === 'refreshing' ? t('offline.refreshingAll') : t('offline.refreshAll')}
-                </Button>
-              )}
-              <Button variant="ghost" size="md" fullWidth leadingIcon="download" href={routes.offlineDownload}>
-                {t('offline.downloadMore')}
-              </Button>
-            </div>
+            {/* One action group under the list: refresh everything (outlined), add batches (text) while any are left. */}
+            {(j.manualRefresh || more) && (
+              <div className={styles.actions}>
+                {j.manualRefresh && (
+                  <Button variant="secondary" size="md" leadingIcon="refresh" loading={all === 'refreshing'} onClick={() => void refreshAll()}>
+                    {all === 'refreshing' ? t('offline.refreshingAll') : t('offline.refreshAll')}
+                  </Button>
+                )}
+                {more && (
+                  <Button variant="ghost" size="md" leadingIcon="download" href={routes.offlineDownload}>
+                    {t('offline.downloadMore')}
+                  </Button>
+                )}
+              </div>
+            )}
           </Card>
         )}
       </Section>

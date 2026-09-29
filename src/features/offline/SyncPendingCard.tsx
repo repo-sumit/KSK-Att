@@ -1,5 +1,5 @@
 'use client';
-import { useId, useState } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/icons/Icon';
 import { useToast } from '@/components/ui/Toast';
@@ -9,6 +9,19 @@ import { useSyncStatus } from '@/hooks/useSync';
 import { cx } from '@/lib/cx';
 import styles from './SyncPending.module.css';
 
+export interface SyncPendingItem {
+  readonly id: string;
+  readonly label: ReactNode;
+  readonly when: string;
+}
+
+interface SyncPendingCardProps {
+  /** The records waiting to sync (Offline data only): batch and when it was locked. */
+  readonly items?: readonly SyncPendingItem[];
+  /** A line under the list (the end-of-day rule). */
+  readonly note?: string;
+}
+
 /**
  * "Sync pending" (D-064): attendance locked on this phone that the server does
  * not have yet, with one obvious action, Sync now. Only there while something
@@ -16,8 +29,10 @@ import styles from './SyncPending.module.css';
  * that is all synced. States: waiting (why: offline, or auto-sync failed at a
  * time) · syncing · couldn't sync (after a Sync now) · all synced.
  * Home and Offline data show it; the connectivity bar leaves sync to it there.
+ * Offline data also lists the waiting records inside it, with the end-of-day
+ * rule they are measured against (RPT-4); Home keeps the compact card.
  */
-export function SyncPendingCard() {
+export function SyncPendingCard({ items, note }: SyncPendingCardProps) {
   const { t, format } = useI18n();
   const toast = useToast();
   const { sync } = useServices();
@@ -48,9 +63,10 @@ export function SyncPendingCard() {
             meta: !status.online ? t('syncCard.offlineMeta') : failure ? t(failure.trigger === 'auto' ? 'syncCard.autoFailed' : 'syncCard.triedAt', { time }) : t('syncCard.savedHere'),
           };
 
+  const details = !done && !!items?.length;
   return (
     <section className={cx(styles.card, view.tone)} aria-labelledby={titleId}>
-      <div className={styles.inner}>
+      <div className={cx(styles.inner, details && styles.hasDetails)}>
         <span className={styles.lead} aria-hidden="true">
           {view.icon}
         </span>
@@ -62,6 +78,19 @@ export function SyncPendingCard() {
           {view.body && <p className={styles.body}>{view.body}</p>}
           {view.meta && <p className={styles.meta}>{view.meta}</p>}
         </div>
+        {details && (
+          <div className={styles.details}>
+            <ul className={styles.items}>
+              {items.map((item) => (
+                <li key={item.id} className={styles.item}>
+                  <span className={styles.itemLabel}>{item.label}</span>
+                  <span className={styles.itemWhen}>{item.when}</span>
+                </li>
+              ))}
+            </ul>
+            {note && <p className={styles.note}>{note}</p>}
+          </div>
+        )}
         {!done && (
           <div className={styles.action}>
             <Button

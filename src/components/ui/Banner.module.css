@@ -47,7 +47,7 @@
 }
 .bar .action {
   position: relative;
-  min-height: 36px;
+  min-height: var(--control-height-sm);
   margin: calc(var(--space-4) * -1) 0;
 }
 .bar .action::after {

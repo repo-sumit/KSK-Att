@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { rankStandings } from '@/features/reports/sections/Leaderboard';
-import type { StudentStanding } from '@/services/reports';
+import { rankStandings, type StudentStanding } from '@/services/reports';
 import { endOfMonth, shiftMonth } from '@/lib/time';
 
 const s = (name: string, pct: number | null): StudentStanding => ({

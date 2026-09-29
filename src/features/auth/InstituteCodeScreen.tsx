@@ -63,7 +63,10 @@ export function InstituteCodeScreen() {
         <div className={styles.lockup}>
           <Image src="/branding/ksk-emblem.png" alt={t('app.emblemAlt')} width={72} height={72} className={styles.emblem} priority />
           <div className={styles.lockupText}>
-            <p className={styles.brandName}>{t('app.name')}</p>
+            {/* The brand stays English in Marathi (D-035): lang on the element, so its face and line height are Latin. */}
+            <p className={styles.brandName} lang="en">
+              {t('app.name')}
+            </p>
             <p className={styles.brandState}>{t('app.state')}</p>
           </div>
         </div>

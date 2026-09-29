@@ -47,6 +47,12 @@
 .summary {
   gap: var(--space-12);
   padding: var(--space-16);
+}
+/* Only the placeholders pulse, as in the rows variant: the card keeps a solid surface like every other card. */
+.summary .figure,
+.summary .line,
+.summary .lineShort,
+.summary .bar {
   animation: ksk-shimmer 1.2s ease-in-out infinite;
 }
 .summaryTop {

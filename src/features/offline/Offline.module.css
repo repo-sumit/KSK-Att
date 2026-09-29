@@ -1,16 +1,16 @@
 /* Offline data (D-056). */
-.inst {
+
+/* "All attendance synced", with the end-of-day rule under it as secondary text (RPT-4). */
+.syncedText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.syncedNote {
   font: var(--type-body-small);
   letter-spacing: var(--ls-body-small);
   color: var(--color-text-secondary);
-}
-.warn { color: var(--color-icon-warning); }
-
-/* Sync state first: the card (or "all synced"), then the end-of-day rule it relates to. */
-.syncBlock {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
+  text-wrap: pretty;
 }
 
 /* ---- Downloaded batches: one row each, with its own refresh (D-055), and the list's actions (D-065) ---- */
@@ -22,24 +22,33 @@
   display: flex;
   flex-direction: column;
 }
-/* The action group belongs to the list: same width, one divider above. Outlined first, text second. */
+/*
+ * The action group belongs to the list: one divider above. Outlined first, text second.
+ * Phones: stacked, full width. From a 520px list: side by side and centred, each at the
+ * DS standalone width (280px), never stretched across the card (RPT-5).
+ */
 .actions {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: var(--space-4);
   padding: var(--space-12) var(--space-16) var(--space-16);
 }
 @container (min-width: 520px) {
   .actions {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: var(--space-12);
+  }
+  .actions > * {
+    width: min(100%, var(--container-footer));
   }
 }
 .pack {
   display: flex;
   align-items: center;
   gap: var(--space-12);
-  min-height: 80px;
+  min-height: var(--row-min-height);
   padding: var(--space-12) var(--space-8) var(--space-12) var(--space-16);
 }
 .pack + .pack {
@@ -52,7 +61,7 @@
 .packText {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-2);
   flex: 1;
   min-width: 0;
 }
@@ -60,7 +69,12 @@
   font: var(--type-title-small);
   letter-spacing: var(--ls-title-small);
 }
+/* Two lines: the title, then the state and when it was updated on one wrapping line. */
 .packMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-8);
   font: var(--type-body-small);
   letter-spacing: var(--ls-body-small);
   color: var(--color-text-secondary);

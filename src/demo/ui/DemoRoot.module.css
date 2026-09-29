@@ -13,7 +13,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-4);
-  min-height: 36px;
+  min-height: var(--control-height-sm);
   padding: 0 var(--space-12) 0 var(--space-8);
   border: var(--divider-thin) solid var(--color-status-warning);
   border-radius: var(--radius-full);
@@ -23,7 +23,7 @@
   letter-spacing: var(--ls-label-small);
   white-space: nowrap;
 }
-/* The visible pill is 36px; the real hit area reaches the 44px minimum. */
+/* The visible pill is the compact control height (36px); the real hit area reaches the 44px minimum. */
 .trigger::after {
   content: '';
   position: absolute;
@@ -42,7 +42,7 @@
 /* Icon only (its aria-label still says "Open demo controls"): phone task screens, so the screen title keeps its room… */
 @media (max-width: 599px) {
   header[data-mode='task'] .inHeader {
-    width: 36px;
+    width: var(--control-height-sm);
     padding: 0;
   }
   header[data-mode='task'] .inHeader .triggerText {
@@ -56,20 +56,24 @@
     padding: 0 var(--space-8) 0 var(--space-4);
   }
 }
-/* …tablets up to 900px, where the navigation needs the room (the principal's three destinations)… */
+/*
+ * …tablets up to 900px when the header carries three destinations (the
+ * principal: AppHeader sets data-nav-tabs), where the navigation needs the
+ * room; with two (instructors) the labelled pill fits beside them…
+ */
 @media (min-width: 600px) and (max-width: 899px) {
-  .inHeader {
-    width: 36px;
+  header[data-nav-tabs='3'] .inHeader {
+    width: var(--control-height-sm);
     padding: 0;
   }
-  .inHeader .triggerText {
+  header[data-nav-tabs='3'] .inHeader .triggerText {
     display: none;
   }
 }
 /* …and every narrow phone. */
 @media (max-width: 359px) {
   .trigger {
-    width: 36px;
+    width: var(--control-height-sm);
     padding: 0;
   }
   .triggerText {
@@ -77,58 +81,16 @@
   }
 }
 
-/* Phones: a modal bottom sheet, up to 90% of the screen, scrolling inside. */
+/*
+ * The panel is the shared overlay surface (BottomSheet's sheetSurface('drawer')):
+ * a modal bottom sheet on phones, a non-modal drawer on the viewport's right
+ * edge, below the header, from 600px. Only what the demo adds lives here.
+ */
 .panel {
-  position: fixed;
-  inset: auto 0 0 0;
+  /* Non-modal from 600px (show(), not the top layer): above the app and the floating trigger. */
   z-index: calc(var(--z-demo) + 1);
-  width: 100%;
-  max-width: 100%;
-  max-height: 90dvh;
-  margin: 0;
-  padding: 0;
-  border: none;
-  border-radius: var(--radius-xl) var(--radius-xl) var(--radius-none) var(--radius-none);
-  background: var(--color-background-surface-raised);
-  box-shadow: var(--shadow-overlay);
-  color: var(--color-text-primary);
-  overflow-y: auto;
   /* One wide control must never make the whole panel pan sideways. */
   overflow-x: hidden;
-  overscroll-behavior: contain;
-}
-.panel::backdrop {
-  background: var(--color-scrim);
-}
-.panelBar {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
-  padding: var(--space-8) var(--space-8) var(--space-8) var(--space-16);
-  border-bottom: var(--divider-thin) solid var(--color-border-subtle);
-  background: var(--color-background-surface-raised);
-}
-.panelTitle {
-  font: var(--type-title-large);
-  letter-spacing: var(--ls-title-large);
-}
-.panelTitle:focus {
-  outline: none;
-}
-.close {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--touch-target-min);
-  height: var(--touch-target-min);
-  border: none;
-  border-radius: var(--radius-full);
-  background: transparent;
-  color: var(--color-icon-primary);
 }
 
 /*
@@ -155,7 +117,7 @@
   }
 }
 
-/* Tablets and desktops: a floating trigger sits bottom right; the panel is a drawer on the right (the trigger's side) that overlays the app. */
+/* Tablets and desktops: a floating trigger sits bottom right (the drawer opens on its side). */
 @media (min-width: 600px) {
   .floating {
     top: auto;
@@ -166,15 +128,6 @@
   }
   .floating::after {
     content: none;
-  }
-  .panel {
-    /* Below the whole app header (DemoRoot measures it: task screens add a back + title row), on the trigger's side, so back, title, navigation and avatar stay usable. */
-    inset: var(--demo-drawer-top, calc(env(safe-area-inset-top) + var(--header-height-wide) + var(--space-8))) var(--space-16) var(--space-16) auto;
-    width: 380px;
-    max-height: none;
-    height: auto;
-    border: var(--divider-thin) solid var(--color-border-subtle);
-    border-radius: var(--radius-xl);
   }
 }
 

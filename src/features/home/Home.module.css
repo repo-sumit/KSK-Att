@@ -14,14 +14,17 @@
 }
 .cardRow {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-12);
+  gap: var(--space-8) var(--space-12);
 }
+/* The text keeps room for its title; a status chip that no longer fits beside it moves to its own line. */
 .cardText {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: var(--space-4);
-  flex: 1;
+  flex: 999 1 10em;
   min-width: 0;
 }
 .cardTitle {
@@ -45,25 +48,6 @@
   letter-spacing: var(--ls-body-medium);
   color: var(--color-text-secondary);
 }
-.recentList {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
-}
-.recentRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-12);
-  padding: var(--space-12) var(--space-16);
-  border-radius: var(--radius-lg);
-  background: var(--color-background-surface-raised);
-  box-shadow: var(--shadow-card);
-  color: var(--color-text-primary);
-}
-.recentName {
-  font: var(--type-title-small);
-  letter-spacing: var(--ls-title-small);
-}
 .iconSuccess { color: var(--color-icon-success); }
 .iconWarning { color: var(--color-icon-warning); }
 /* A count and its word ("2 Absent") or a time and its label never split across lines. */
@@ -79,17 +63,7 @@
 .pair {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-12);
-}
-.recent {
-  container-type: inline-size;
-}
-@container (min-width: 640px) {
-  .recentList {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: var(--page-gutter);
-  }
+  gap: var(--space-24);
 }
 @media (min-width: 720px) {
   .pair {
@@ -97,17 +71,7 @@
     column-gap: var(--page-gutter);
     align-items: stretch;
   }
-  .pair > * {
-    height: 100%;
-  }
-  /* A card beside a list (Submitted today) keeps its own height. */
-  .loose {
-    align-items: start;
-  }
-  .loose > * {
-    height: auto;
-  }
-  /* A lone item (no second thing today) takes the full width rather than leaving half the row empty. */
+  /* A lone card takes the full width rather than leaving half the row empty. */
   .pair > :only-child {
     grid-column: 1 / -1;
   }

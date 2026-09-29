@@ -66,6 +66,67 @@
 .action {
   grid-column: 1 / -1;
 }
+/* Offline data: the waiting records and the end-of-day rule, across the card, before the action on phones. */
+.hasDetails {
+  grid-template-areas:
+    'lead text'
+    'details details'
+    'action action';
+}
+.hasDetails > .lead {
+  grid-area: lead;
+}
+.hasDetails > .text {
+  grid-area: text;
+}
+.hasDetails > .details {
+  grid-area: details;
+}
+.hasDetails > .action {
+  grid-area: action;
+}
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  min-width: 0;
+}
+/* A compact list on the card's tint: white, one divider between records. */
+.items {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-md);
+  background: var(--color-background-surface-raised);
+}
+.item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-12);
+  padding: var(--space-8) var(--space-12);
+}
+.item + .item {
+  border-top: var(--divider-thin) solid var(--color-border-subtle);
+}
+.itemLabel {
+  min-width: 0;
+  font: var(--type-label-medium);
+  letter-spacing: var(--ls-label-medium);
+  color: var(--color-text-primary);
+}
+.itemWhen {
+  font: var(--type-body-small);
+  letter-spacing: var(--ls-body-small);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+.note {
+  font: var(--type-body-small);
+  letter-spacing: var(--ls-body-small);
+  color: var(--color-text-secondary);
+  text-wrap: pretty;
+}
 /* A wide card (tablets, desktops, or a roomy phone column): the button beside the text. */
 @container (min-width: 520px) {
   .inner {
@@ -75,6 +136,11 @@
   .action {
     grid-column: auto;
     min-width: 200px;
+  }
+  .hasDetails {
+    grid-template-areas:
+      'lead text action'
+      'details details details';
   }
 }
 

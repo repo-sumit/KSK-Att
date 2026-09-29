@@ -1,56 +1,80 @@
 'use client';
+import { useMemo, type ReactNode } from 'react';
+import { AttendanceSummary } from '@/components/ui/AttendanceSummary';
 import { Banner } from '@/components/ui/Banner';
 import { Icon } from '@/components/ui/icons/Icon';
-import { StatTiles } from '@/components/ui/StatTiles';
 import type { MarkCounts } from '@/domain/marking';
+import type { StatusCode } from '@/domain/status';
 import { useI18n } from '@/hooks/i18n';
+import { cx } from '@/lib/cx';
+import { summaryLabels } from '../../common/labels';
 import styles from './Mark.module.css';
 
-interface RosterSummaryProps {
-  /** Omit to show only the totals. */
-  readonly meta?: string;
-  /** Formatted close time when the window closes within minutes: "Attendance closes at 11:00 AM. Submit now." */
-  readonly closingAt?: string;
-  /** strip: fixed white band above the roster · plain: tiles inside page content. */
-  readonly variant?: 'strip' | 'plain';
-  readonly counts: MarkCounts;
-  readonly staleSince?: string;
-  readonly surface?: 'hero' | 'raised';
-  readonly size?: 'lg' | 'md';
+export interface RosterContext {
+  /** Slot, period or subject name, when the batch has more than one mark today. */
+  readonly label?: string | null;
+  /** Daily marks: the date, long where it fits and short on narrow phones. */
+  readonly date?: { readonly long: string; readonly short: string };
+  /** When marking closes ("2:00 PM"), or the slot's window for periods and halves. */
+  readonly closesAt?: string | null;
+  readonly range?: string | null;
+  /** The window closes within minutes: the closing time turns into the warning, in place. */
+  readonly closingSoon?: boolean;
 }
 
-/** Running totals, always visible above the list: "30 students · 28 present · 2 absent". */
-export function RosterSummary({ meta, counts, staleSince, closingAt, surface = 'hero', size = 'lg', variant = 'strip' }: RosterSummaryProps) {
-  const { t } = useI18n();
-  const extra = [
-    counts.half_day ? t('roster.extraHalf', { count: counts.half_day }) : null,
-    counts.leave ? t('roster.extraLeave', { count: counts.leave }) : null,
-    counts.ojt ? t('roster.extraOjt', { count: counts.ojt }) : null,
-    counts.unmarked ? t('roster.extraUnmarked', { count: counts.unmarked }) : null,
-  ].filter(Boolean);
+interface RosterSummaryProps {
+  readonly context: RosterContext;
+  readonly counts: MarkCounts;
+  readonly statuses: readonly StatusCode[];
+  readonly showNotMarked?: boolean;
+  readonly staleSince?: string;
+}
+
+/**
+ * The band above the roster (always visible): when this mark is for and when
+ * it closes, beside the running totals on wide screens and above them on
+ * phones. Everything in it holds its place while the instructor marks, so the
+ * list never jumps under a finger: the closing warning replaces the closing
+ * time in the same line instead of adding a banner.
+ */
+export function RosterSummary({ context, counts, statuses, showNotMarked, staleSince }: RosterSummaryProps) {
+  const { t, format } = useI18n();
+  const labels = useMemo(() => summaryLabels(t, format), [t, format]);
+  const parts: ReactNode[] = [];
+  if (context.label) parts.push(<span key="label">{context.label}</span>);
+  if (context.date)
+    parts.push(
+      <span key="date">
+        <span className={styles.long}>{context.date.long}</span>
+        <span className={styles.short}>{context.date.short}</span>
+      </span>,
+    );
+  if (context.range) parts.push(<span key="range">{context.range}</span>);
+  const closing = context.closesAt ? (
+    // One stable live region: its words change when the window is about to close.
+    <span key="closes" role="status" className={cx(styles.closes, context.closingSoon && styles.closingSoon)}>
+      {context.closingSoon && <Icon name="alert" size={14} />}
+      {t(context.closingSoon ? 'roster.closesSoon' : 'roster.closesAt', { time: context.closesAt })}
+    </span>
+  ) : null;
   return (
-    <div className={variant === 'strip' ? styles.summary : styles.summaryPlain}>
-      {meta && (
-        <p className={styles.meta}>
-          <Icon name="clock" size={14} />
-          <span>{meta}</span>
-        </p>
-      )}
-      <StatTiles
-        size={size}
-        surface={surface}
-        tiles={[
-          { key: 'total', label: t('roster.tileStudents'), value: String(counts.total), tone: 'neutral' },
-          { key: 'present', label: t('status.present'), value: String(counts.present), tone: 'success', icon: 'check' },
-          { key: 'absent', label: t('status.absent'), value: String(counts.absent), tone: 'error', icon: 'x' },
-        ]}
+    <div className={styles.summary}>
+      <AttendanceSummary
+        counts={counts}
+        statuses={statuses}
+        labels={labels}
+        showNotMarked={showNotMarked}
+        lead={
+          <p className={styles.meta}>
+            <Icon name="clock" size={14} />
+            {[...parts, closing].filter(Boolean).map((part, i) => (
+              <span key={i} className={styles.metaPart}>
+                {part}
+              </span>
+            ))}
+          </p>
+        }
       />
-      {extra.length > 0 && <p className={styles.extra}>{extra.join(' · ')}</p>}
-      {closingAt && (
-        <Banner tone="warning" icon="clock" live>
-          {t('roster.closingSoon', { time: closingAt })}
-        </Banner>
-      )}
       {staleSince && (
         <Banner tone="warning" icon="alert">
           {t('roster.stale', { date: staleSince })}
