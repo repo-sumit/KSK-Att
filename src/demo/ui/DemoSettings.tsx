@@ -1,5 +1,6 @@
 'use client';
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
+import { Icon } from '@/components/ui/icons/Icon';
 import { Segmented } from '@/components/ui/Segmented';
 import type { AppConfiguration } from '@/config/types';
 import type { StatusCode } from '@/domain/status';
@@ -21,6 +22,28 @@ export function Choice<V extends string>({ label, value, options, onChange }: { 
     <Row label={label}>
       <Segmented label={label} size="sm" fullWidth value={value} onChange={onChange} options={options.map(([v, l]) => ({ value: v, label: l, lang: l === 'मराठी' ? 'mr' : undefined }))} />
     </Row>
+  );
+}
+
+/** A native select, for options too long to share a segmented track at 320px. */
+export function Select<V extends string>({ label, value, options, onChange }: { label: string; value: V; options: ReadonlyArray<readonly [V, string]>; onChange: (v: V) => void }) {
+  const id = useId();
+  return (
+    <div className={styles.row}>
+      <label htmlFor={id} className={styles.rowLabel}>
+        {label}
+      </label>
+      <span className={styles.selectField}>
+        <select id={id} className={styles.select} value={value} onChange={(e) => onChange(e.target.value as V)}>
+          {options.map(([v, l]) => (
+            <option key={v} value={v}>
+              {l}
+            </option>
+          ))}
+        </select>
+        <Icon name="chevron-down" size={20} className={styles.selectIcon} />
+      </span>
+    </div>
   );
 }
 
@@ -125,6 +148,23 @@ export function DemoSettings({ config, state, controller: c, faceEnrolled, langu
           <>
             <Choice label="Self attendance" value={onOff(config.staff.selfMarking)} options={ON_OFF} onChange={(v) => c.setConfig({ staff: { selfMarking: v === 'on' } })} />
             <Choice label="Principal marks staff" value={onOff(config.staff.principalMarking)} options={ON_OFF} onChange={(v) => c.setConfig({ staff: { principalMarking: v === 'on' } })} />
+          </>
+        )}
+      </section>
+
+      <section className={styles.section}>
+        <h3 className={styles.sectionTitle}>Voice</h3>
+        {/* Only voice.enabled and the voice model: never limits or marking styles, which have their own validation rules. */}
+        <Choice label="Voice mode" value={onOff(config.voice.enabled)} options={ON_OFF} onChange={(v) => c.setConfig({ voice: { enabled: v === 'on' } })} />
+        {config.voice.enabled && (
+          <>
+            <Select
+              label="Voice model"
+              value={sim.voice}
+              options={[['live', 'Live (Gemini)'], ['scripted', 'Scripted (no mic, no network)']]}
+              onChange={(v) => c.setSimulation({ voice: v })}
+            />
+            <p className={styles.hint}>Used from the next Voice mode start. Live needs a microphone and the server’s Gemini key.</p>
           </>
         )}
       </section>

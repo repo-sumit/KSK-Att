@@ -33,6 +33,8 @@ export const MAHARASHTRA: StateConfiguration = {
     announcements: { enabled: true },
     // Latin digits in Marathi: decided with the product owner (docs/DECISIONS.md D-012).
     i18n: { languages: ['en', 'mr'], defaultLanguage: 'en', userSwitch: true, fallback: 'en', numerals: 'latin' },
+    // Voice stays off at the state floor: an institute layer (voice.enabled is overridable) or a demo preset switches it on.
+    voice: { ...PRODUCT_DEFAULTS.voice, languages: ['en', 'mr'] },
   },
-  overridableKeys: ['time.shiftWindows', 'verification.fenceRadiusM'],
+  overridableKeys: ['time.shiftWindows', 'verification.fenceRadiusM', 'voice.enabled'],
 };

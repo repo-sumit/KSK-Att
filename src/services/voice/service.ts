@@ -1,0 +1,128 @@
+/**
+ * VoiceService: the one entry point the UI calls for Voice mode (voice design §5, D-085). `plan` says whether voice
+ * exists for a session; `start` (synchronous, from the Voice mode click) builds the flow plan, the executor, the
+ * Live setup, the usage caps and the VoiceSession, then starts it. Scripted mode (demo and E2E) swaps in the
+ * ScriptedLiveTransport and SilentAudio; live mode loads the Gemini transport with import() only when it is needed,
+ * so the SDK never reaches the first-load bundle.
+ */
+import type { Language } from '@/config/types';
+import { compileFlowPlan, type FlowPlan } from '@/domain/voice/plan';
+import { toLocalDate } from '@/lib/time';
+import type { Clock } from '@/lib/time';
+import type { VoiceUsageRepository } from '@/repositories/interfaces';
+import type { AttendanceService } from '../attendance';
+import type { ConnectivityService } from '../connectivity';
+import type { SessionContext } from '../context';
+import type { MarkingDraftService } from '../marking-draft';
+import type { SimulationSource } from '../simulation';
+import { ScriptedLiveTransport, SilentAudio } from '../simulated/voice';
+import type { VerificationService } from '../verification';
+import type { ActionBus } from './action-bus';
+import { voiceDebug } from './debug';
+import { createBrowserAudio } from './audio/browser-audio';
+import { createExecutor } from './executor';
+import { fetchLiveToken } from './live/token-client';
+import type { LiveSetup } from './live/transport';
+import { buildSystemPrompt, SPEECH_LANGUAGE } from './prompt';
+import { VoiceSession } from './session';
+import { buildTools } from './tools';
+import { VoiceUsage } from './usage';
+
+export interface VoiceServiceDeps {
+  readonly attendance: AttendanceService;
+  readonly verification: VerificationService;
+  readonly drafts: MarkingDraftService;
+  readonly bus: ActionBus;
+  readonly usageRepo: VoiceUsageRepository;
+  readonly connectivity: ConnectivityService;
+  readonly simulation: SimulationSource;
+  readonly clock: Clock;
+}
+
+const MODEL = 'gemini-3.8-live';
+
+const TODAY_TEXT = new Intl.DateTimeFormat('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' });
+
+export class VoiceService {
+  /** The demo/E2E driver; used for new sessions while simulation.voice === 'scripted'. */
+  readonly scripted = new ScriptedLiveTransport();
+  private session: VoiceSession | null = null;
+
+  constructor(private readonly deps: VoiceServiceDeps) {}
+
+  /** The flow plan for this session, or null when voice does not exist for it. */
+  plan(ctx: SessionContext, screenLanguage: Language): FlowPlan | null {
+    return compileFlowPlan(ctx, screenLanguage);
+  }
+
+  /** The session started last while it is running (the screen sync reaches `onScreen` through it); null before a start and once it has ended. */
+  current(): VoiceSession | null {
+    return this.session?.getState().status === 'ended' ? null : this.session;
+  }
+
+  /** Call synchronously from the Voice mode click: builds plan, executor and session, then session.start(). Null when plan() is null. */
+  start(ctx: SessionContext, screenLanguage: Language): VoiceSession | null {
+    const plan = this.plan(ctx, screenLanguage);
+    if (!plan) return null;
+    const { deps, scripted } = this;
+    this.session?.stop();
+
+    // The executor is built first, so it reads the live counters of the session created next, never a snapshot.
+    const holder: { session?: VoiceSession } = {};
+    const executor = createExecutor({
+      ctx,
+      plan,
+      attendance: deps.attendance,
+      verification: deps.verification,
+      drafts: deps.drafts,
+      bus: deps.bus,
+      isOnline: () => deps.connectivity.isOnline(),
+      nowMs: () => performance.now(),
+      speechSeq: () => holder.session?.speechSeq() ?? 0,
+      turnSeq: () => holder.session?.turnSeq() ?? 0,
+      spokeAtTurn: () => holder.session?.spokeAtTurn() ?? 0,
+      generation: () => holder.session?.generation() ?? 0,
+      entropy: () => crypto.getRandomValues(new Uint32Array(1))[0] / 2 ** 32,
+    });
+
+    const who = { trainerFirstName: ctx.user.name.trim().split(/\s+/)[0] ?? '', instituteName: ctx.institute.shortName, todayText: TODAY_TEXT.format(deps.clock.now()) };
+    const setup = async (handle?: string): Promise<LiveSetup> => ({
+      model: MODEL,
+      systemInstruction: buildSystemPrompt(plan, who),
+      tools: buildTools(plan),
+      voiceName: ctx.journey.voice.voiceName,
+      resumeHandle: handle,
+    });
+    const usage = new VoiceUsage({
+      repo: deps.usageRepo,
+      staffId: ctx.user.id,
+      today: () => toLocalDate(deps.clock.now()),
+      limits: ctx.journey.voice.limits,
+    });
+    const common = {
+      executor,
+      setup,
+      usage,
+      drafts: deps.drafts,
+      verification: deps.verification,
+      bus: deps.bus,
+      isOnline: () => deps.connectivity.isOnline(),
+      onOnlineChange: (listener: (online: boolean) => void) => deps.connectivity.subscribe(listener),
+      languageName: SPEECH_LANGUAGE[plan.openingLanguage],
+      log: voiceDebug,
+      token: () => fetchLiveToken(),
+    };
+
+    const session =
+      deps.simulation.get().voice === 'scripted'
+        ? new VoiceSession({ ...common, transport: async () => scripted, audio: () => new SilentAudio(scripted) })
+        : new VoiceSession({
+            ...common,
+            transport: () => import('./live/gemini').then((m) => m.geminiTransport),
+            audio: createBrowserAudio,
+          });
+    holder.session = this.session = session;
+    session.start();
+    return session;
+  }
+}

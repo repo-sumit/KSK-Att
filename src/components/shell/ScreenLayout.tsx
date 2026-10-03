@@ -12,6 +12,12 @@ const AreaContext = createContext<NavTab | undefined>(undefined);
 /** The app area the current screen belongs to (the header navigation marks it current). */
 export const useScreenArea = () => useContext(AreaContext);
 
+/**
+ * Extra content at the top of every screen's dock, above the footer and the bottom navigation, so it never
+ * covers a row (the voice dock while Voice mode is on). Provided above the screens; null renders nothing.
+ */
+export const DockExtension = createContext<ReactNode>(null);
+
 interface ScreenLayoutProps {
   readonly header?: ReactNode;
   /** Show the offline / sync banner under the header. 'offline': only the offline notice (the screen shows sync itself, D-064). */
@@ -51,6 +57,7 @@ interface ScreenLayoutProps {
  * and content keeps a readable column (`width`) inside the grid margins.
  */
 export function ScreenLayout({ header, banner = true, top, footer, area, bottomNav = false, guardNavigation, surface = 'app', padding = 'page', width = 'wide', card = false, inlineFooter = false, footerLayout = 'stack', children }: ScreenLayoutProps) {
+  const extension = useContext(DockExtension);
   return (
     <AreaContext.Provider value={area}>
       <NavigationGuardContext.Provider value={guardNavigation}>
@@ -68,7 +75,9 @@ export function ScreenLayout({ header, banner = true, top, footer, area, bottomN
               {children}
             </main>
             <div className={styles.dock}>
+              {/* The toast anchor has no height: the extension is still the dock's top, and a toast floats above it. */}
               <ToastViewport />
+              {extension}
               {footer && <div className={styles.footer}>{footer}</div>}
               {bottomNav && area && <AppBottomNav active={area} />}
             </div>

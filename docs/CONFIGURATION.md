@@ -14,7 +14,7 @@ PRODUCT_DEFAULTS (src/config/defaults.ts)
   → deriveJourney (src/config/journey.ts)                     the only input screens use
 ```
 
-Maharashtra opens two keys to narrower scopes: `time.shiftWindows` and `verification.fenceRadiusM`. `ConfigurationService.resolveFor(institute, staffId)` returns the resolved configuration for a session. When the configuration changes, the session reloads, verification passes are cleared, and every screen re-renders from the new journey.
+Maharashtra opens three keys to narrower scopes: `time.shiftWindows`, `verification.fenceRadiusM` and `voice.enabled`. `ConfigurationService.resolveFor(institute, staffId)` returns the resolved configuration for a session. When the configuration changes, the session reloads, verification passes are cleared, and every screen re-renders from the new journey.
 
 To add a state, create `src/config/states/<state>.ts` with a `StateConfiguration` (base = `PRODUCT_DEFAULTS` plus that state's sheet), load its master data, and deploy. No screen changes are needed.
 
@@ -131,6 +131,24 @@ The principal never works offline (`journey.offline.enabled` is false for the pr
 | `fallback` (i18n.fallback)                | `en`      | A missing translation shows the English string, never a blank                  |
 | `numerals`                                | `'latin'` | `latin`: 0–9 in every language (D-012). `locale`: Devanagari digits in Marathi |
 
+## Voice: `voice` (extension, D-078–D-089, D-113, D-117, D-119)
+
+Voice mode lets an instructor mark a batch by speaking, in English or Marathi. It is offered on the instructor Home only (D-087), taps keep working at every moment, and where it is off it is absent, not hidden. The design is in `docs/voice/2026-10-02-voice-mode-design.md` (§6).
+
+| Option                                                      | MH                              | Values → what the user sees                                                                                                                                                                                                      |
+| ----------------------------------------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `enabled` (voice.enabled)                                   | `false` (institute-overridable) | `true`: a **Voice mode** control on the instructor Home (D-087). `false`: no Voice mode anywhere. The demo presets switch it on. The principal's institute Home never has it, whatever this says                                 |
+| `languages` (voice.languages)                               | en, mr (product default `en`)   | Languages the agent speaks. Must be a non-empty subset of `i18n.languages` (D-080). If the set is empty or not a subset, the journey fails closed: voice is absent                                                                             |
+| `defaultLanguage` (voice.default_language)                  | `en`                            | Opening language when the screen language is not one of `voice.languages`. Must be one of `voice.languages`; if it is not, the journey fails closed and voice is absent                                                                                                                                   |
+| `markingStyle` (voice.marking_style)                        | `auto`                          | `auto`: marking by exception when the default status is Present, otherwise roll call. `roll_call`: the agent reads every name. `exceptions`: the agent asks only who is not present, and needs `marking.defaultStatus` = present; with any other default voice starts a roll call anyway (D-117) |
+| `voiceName` (voice.voice_name)                              | `Kore`                          | The Gemini prebuilt voice the trainer hears (to be chosen by the listening spike)                                                                                                                                                |
+| `maxMinutesPerSession` (voice.max_minutes_per_session)      | `20`                            | Cumulative across reconnects; then the agent says goodbye and voice stops. A positive whole number                                                                                                                               |
+| `idleTimeoutSeconds` (voice.idle_timeout_seconds)           | `120`                           | No trainer speech, tap, screen or verification signal and no tool call for this long ends voice mode; Use screen on a visible page holds the clock, a page hidden for 20 s pauses and keeps it running (D-119, D-120). A whole number, at least 30                                                                                                                                    |
+| `dailyMinutesPerTrainer` (voice.daily_minutes_per_trainer)  | `60`                            | Voice mode refuses to start past this, and stops at it. A positive whole number                                                                                                                                                  |
+| `transcriptRetentionDays` (voice.transcript_retention_days) | `0`                             | `0`: captions, and what was heard for each voice mark, stay in memory only and are never stored (the saved draft keeps only who marked and when, D-113). Above `0`: the saved draft also keeps what was heard (at most 160 characters); captions are still never stored, and no deletion after that many days is built. A whole number, 0 or more                                                                                                                                                |
+
+Maharashtra opens one voice key to narrower scopes: `voice.enabled`. The languages, marking style, voice and limits come from the state floor. `journey.voice` is `{ enabled, languages, defaultLanguage, markingStyle, voiceName, limits: { sessionMinutes, idleSeconds, dailyMinutes } }`, and `enabled` is true only when `voice.enabled` is on, the user has the instructor Home, and the language guard holds: `voice.languages` is a non-empty subset of `i18n.languages` **and** `voice.defaultLanguage` is one of `voice.languages`. `validateConfiguration` reports a broken language set (`voice_languages`, `voice_default_language`), but it runs in tests and tooling, not at runtime, so `deriveJourney` repeats the check and fails closed: a configuration with `defaultLanguage: 'en'` and `languages: ['mr']` gets no Voice mode rather than an agent that opens in a language it may not speak (`tests/unit/config/voice-config.test.ts`). Only the language guard is repeated at runtime. A sheet with `markingStyle: 'exceptions'` and a default other than Present starts a roll call (`compileFlowPlan`, D-117), and an out-of-range limit runs as configured, so each state sheet must pass `validateConfiguration` in its tests. Not configurable (fixed in code): confirmation before submit and before bulk marking, verification before names, no location override.
+
 ## Validation rules (`src/config/validate.ts`)
 
 These are errors:
@@ -147,6 +165,10 @@ These are errors:
 - `staff_no_path`: staff attendance is on but both capture paths are off.
 - `threshold_range`: the at-risk threshold is outside 1–100.
 - `trend_months`: the trend is not a whole number of months from 0 to 12.
+- `voice_languages`: the voice languages are empty, or include a language that is not in `i18n.languages`.
+- `voice_default_language`: the voice default language is not one of the voice languages.
+- `voice_marking_style`: voice marks by exception but the default status is not Present.
+- `voice_limits`: a voice limit is not a positive whole number, the idle timeout is under 30 seconds, or the transcript retention is not a whole number of days (0 or more).
 
 These are warnings:
 

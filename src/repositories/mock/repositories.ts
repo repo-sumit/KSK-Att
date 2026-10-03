@@ -21,8 +21,9 @@ import type {
   StaffAttendanceRepository,
   SubmissionQuery,
   VerificationRepository,
+  VoiceUsageRepository,
 } from '../interfaces';
-import { MockDatabase, staffKey } from './database';
+import { MockDatabase, staffKey, voiceUsageKey } from './database';
 import type { EventBus } from '@/lib/events';
 import type { KeyValueStore } from '@/lib/kv-store';
 import type { Language } from '@/config/types';
@@ -310,6 +311,19 @@ export class MockSessionRepository implements SessionRepository {
   }
   async clear() {
     this.db.write('session', null, 'session');
+  }
+}
+
+/** Voice seconds per trainer per IST day. Written without a bus topic: nothing on screen lists it. */
+export class MockVoiceUsageRepository implements VoiceUsageRepository {
+  constructor(private readonly db: MockDatabase) {}
+  async get(staffId: string, date: LocalDate) {
+    return this.db.read('voiceUsage')[voiceUsageKey(staffId, date)] ?? 0;
+  }
+  async add(staffId: string, date: LocalDate, seconds: number) {
+    if (!Number.isFinite(seconds) || seconds <= 0) return;
+    const key = voiceUsageKey(staffId, date);
+    this.db.update('voiceUsage', (all) => ({ ...all, [key]: (all[key] ?? 0) + seconds }));
   }
 }
 

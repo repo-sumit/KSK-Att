@@ -160,6 +160,30 @@ export interface I18nConfig {
   readonly numerals: 'locale' | 'latin';
 }
 
+export type VoiceMarkingStyle = 'auto' | 'roll_call' | 'exceptions';
+
+/** Voice mode (extension of the PRD registry, docs/voice design §6). */
+export interface VoiceConfig {
+  /** voice.enabled */
+  readonly enabled: boolean;
+  /** voice.languages — a non-empty subset of i18n.languages (D-080). */
+  readonly languages: readonly Language[];
+  /** voice.default_language — opening language when the screen language is not a voice language. */
+  readonly defaultLanguage: Language;
+  /** voice.marking_style — auto: by exception when the default status is Present, else roll call. */
+  readonly markingStyle: VoiceMarkingStyle;
+  /** voice.voice_name — Gemini prebuilt voice. */
+  readonly voiceName: string;
+  /** voice.max_minutes_per_session — cumulative across reconnects. */
+  readonly maxMinutesPerSession: number;
+  /** voice.idle_timeout_seconds */
+  readonly idleTimeoutSeconds: number;
+  /** voice.daily_minutes_per_trainer */
+  readonly dailyMinutesPerTrainer: number;
+  /** voice.transcript_retention_days — 0: captions stay in memory and are never stored. */
+  readonly transcriptRetentionDays: number;
+}
+
 export interface AppConfiguration {
   readonly identity: IdentityConfig;
   readonly mapping: MappingConfig;
@@ -171,6 +195,7 @@ export interface AppConfiguration {
   readonly offline: OfflineConfig;
   readonly announcements: AnnouncementsConfig;
   readonly i18n: I18nConfig;
+  readonly voice: VoiceConfig;
 }
 
 type DeepPartial<T> = { -readonly [K in keyof T]?: T[K] extends readonly unknown[] ? T[K] : T[K] extends object ? DeepPartial<T[K]> : T[K] };

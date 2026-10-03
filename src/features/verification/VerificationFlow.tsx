@@ -8,6 +8,7 @@ import { AppHeader } from '@/features/shell/AppHeader';
 import { useI18n } from '@/hooks/i18n';
 import { useServices } from '@/hooks/services';
 import { useSession } from '@/hooks/session';
+import { useVoiceBusEvent } from '@/hooks/useVoiceBus';
 import { FaceCheck } from '../face/FaceCheck';
 import { PermissionPrimer } from '../feedback/PermissionPrimer';
 import { DistanceChip, ProblemScreen } from '../feedback/ProblemScreen';
@@ -35,6 +36,10 @@ export function VerificationFlow({ purpose, area, subtitle, passedSubtitle, onPa
   const { faceCapture, faceMatch } = useServices();
   const flow = useVerification(purpose, onPassed);
   const { phase } = flow;
+  // Voice mode's "check again": the same retry as this screen's own button, only where the screen offers one.
+  useVoiceBusEvent('verify_retry', (e) => {
+    if (purpose.kind === 'session' && purpose.key === e.sessionKey && phase.kind === 'problem' && phase.retry !== 'none') flow.retry();
+  });
   const j = ctx.journey.verification;
   const help = { label: t('common.needHelp'), onPress: () => toast.show(t(ctx.journey.homeVariant === 'institute' ? 'common.helpToastPrincipal' : 'common.helpToast')) };
   const header = <AppHeader title={t('verify.title')} subtitle={subtitle} back="close" onBack={onExit} />;

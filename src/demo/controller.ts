@@ -9,11 +9,12 @@ import { initialMarks } from '@/domain/marking';
 import { createId } from '@/lib/ids';
 import { toLocalDate, type LocalTime } from '@/lib/time';
 import type { AppContainer } from '@/services/container';
-import { DEFAULT_SIMULATION, type SimulationState } from '@/services/simulation';
+import type { SimulationState } from '@/services/simulation';
 import type { DemoAdapters } from './adapters';
 import { personaById, type PersonaId } from './personas';
 import { PRESETS, type DemoPreset } from './presets';
-import { DEFAULT_DEMO_TIME } from './state';
+import { applyPresetState } from './state';
+import { createVoicePuppet, type VoicePuppet } from './voice-puppet';
 
 export type NetworkMode = 'online' | 'offline' | 'pending';
 const INSTITUTE_ID = 'inst-27410';
@@ -29,26 +30,23 @@ export function prepareScenario(app: AppContainer, demo: DemoAdapters, presetId:
   const preset = PRESETS.find((p) => p.id === presetId);
   if (!preset) return null;
   const persona = personaById(preset.persona);
-  demo.repo.update((s) => ({
-    ...s,
-    presetId: preset.id,
-    persona: preset.persona,
-    config: preset.config,
-    // Speed and the camera choice belong to the presenting machine (e.g. a laptop without a camera), not to the story.
-    simulation: { ...DEFAULT_SIMULATION, speed: s.simulation.speed, camera: s.simulation.camera, liveness: s.simulation.liveness, ...preset.simulation },
-    clock: { mode: 'fixed', time: DEFAULT_DEMO_TIME },
-  }));
+  demo.repo.update((s) => applyPresetState(s, preset));
   app.mockDatabase.clearPasses();
   app.mockDatabase.setFaceEnrolled(persona.staffId, !preset.firstTime, app.clock.now().toISOString());
   return preset;
 }
 
 export class DemoController {
+  /** `window.__kskDemo.voice`: plays the scripted voice model's side (E2E, demos without a microphone). */
+  readonly voice: VoicePuppet;
+
   constructor(
     private readonly app: AppContainer,
     private readonly demo: DemoAdapters,
     private readonly navigate: (href: string) => void,
-  ) {}
+  ) {
+    this.voice = createVoicePuppet(app.services.voice);
+  }
 
   private now() {
     return this.app.clock.now();

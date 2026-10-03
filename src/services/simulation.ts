@@ -17,6 +17,9 @@ export type CameraSource = 'device' | 'simulated';
 /** auto: on-device face detection, guided captures if it can't start · guided: skip detection. */
 export type LivenessSetting = 'auto' | 'guided';
 
+/** live: the real Gemini Live session · scripted: the demo/E2E driver (no network, no microphone). */
+export type VoiceSource = 'live' | 'scripted';
+
 export interface SimulationState {
   readonly location: LocationOutcome;
   /** Distance reported when the outcome is "outside". */
@@ -29,6 +32,8 @@ export interface SimulationState {
   readonly liveness: LivenessSetting;
   readonly permissions: { readonly location: PermissionState; readonly camera: PermissionState };
   readonly online: boolean;
+  /** Voice mode: the real Gemini Live session or the scripted driver. Read when a session starts. */
+  readonly voice: VoiceSource;
   readonly nextSyncFails: boolean;
   /** 1 = realistic pacing, 0 = instant (automated tests). */
   readonly speed: number;
@@ -43,6 +48,7 @@ export const DEFAULT_SIMULATION: SimulationState = {
   liveness: 'auto',
   permissions: { location: 'granted', camera: 'granted' },
   online: true,
+  voice: 'live',
   nextSyncFails: false,
   speed: 1,
 };

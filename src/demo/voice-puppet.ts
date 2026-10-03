@@ -1,0 +1,44 @@
+/**
+ * DEMO ONLY. Drives the scripted voice model (`services.voice.scripted`) from the browser:
+ * `window.__kskDemo.voice` plays the model's side for E2E tests and for a demo without a
+ * microphone or network. Sessions use the scripted transport only while the demo's
+ * "Voice model" is Scripted (simulation.voice). Nothing here reaches Google.
+ */
+import type { MicError } from '@/services/voice/audio/types';
+import type { LiveEvent, LiveToolResponse } from '@/services/voice/live/transport';
+import type { VoiceService } from '@/services/voice/service';
+import type { ToolResult } from '@/services/voice/tools';
+
+export interface VoicePuppet {
+  /** The model calls a tool; resolves with the app's response to it. */
+  toolCall(name: string, args?: Record<string, unknown>): Promise<ToolResult>;
+  /** The trainer finishes saying `text` (a finished input transcription). */
+  speak(text: string): void;
+  /** One raw server event (captions, interruption, turn complete...). */
+  emit(event: Partial<LiveEvent>): void;
+  /** Every text the app has sent to the model (kickoff, [APP] events, typed text), oldest first. */
+  texts(): string[];
+  /** Every tool response the app has sent, oldest first. */
+  responses(): LiveToolResponse[];
+  /** The connection drops (default: abnormal close, 1006). */
+  drop(code?: number): void;
+  /** The server announces it will close in `ms` (the session swaps connections). */
+  goAway(ms: number): void;
+  /** The next Voice mode start finds the microphone unavailable with `error`. */
+  denyMic(error?: MicError): void;
+}
+
+export function createVoicePuppet(voice: VoiceService): VoicePuppet {
+  const scripted = voice.scripted;
+  return {
+    toolCall: (name, args = {}) => scripted.toolCall(name, args),
+    speak: (text) => scripted.speak(text),
+    emit: (event) => scripted.emit(event),
+    // Copies: the page reads the record, it never rewrites it.
+    texts: () => [...scripted.texts],
+    responses: () => [...scripted.toolResponses],
+    drop: (code) => scripted.drop(code),
+    goAway: (ms) => scripted.goAway(ms),
+    denyMic: (error = 'permission_denied') => scripted.denyNextMic(error),
+  };
+}

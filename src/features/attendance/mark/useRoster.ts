@@ -1,66 +1,54 @@
 'use client';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { completenessIssues, countMarks } from '@/domain/marking';
 import type { Mark, StatusCode } from '@/domain/status';
 import { useServices } from '@/hooks/services';
 import { useSession } from '@/hooks/session';
 import { routes } from '@/lib/routes';
 import type { RosterData } from '@/services/attendance';
-import { markReducer } from './markReducer';
 
-const DRAFT_DEBOUNCE_MS = 300;
+const NO_MARKS: Readonly<Record<string, Mark>> = {};
 
-/** Roster state: one reducer, stable callbacks, a debounced draft that survives a dropped connection (PRD §16.1). */
+/**
+ * Roster state on the live draft (D-084): taps and voice write the same draft, every change is saved
+ * at once (it survives a dropped connection, PRD §16.1), and each row keeps its object unless it changed.
+ */
 export function useRoster(key: string) {
   const ctx = useSession();
-  const { attendance } = useServices();
+  const { attendance, drafts } = useServices();
   const router = useRouter();
   const [roster, setRoster] = useState<RosterData | null>(null);
-  const [marks, dispatch] = useReducer(markReducer, {});
   const [attention, setAttention] = useState(false);
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const pendingSave = useRef<(() => void) | null>(null);
-  const loaded = useRef(false);
 
   useEffect(() => {
     let alive = true;
     void attendance.openRoster(ctx, key).then((result) => {
       if (!alive) return;
       if (!result.ok) {
+        // submitted elsewhere: a live draft of it is stale (a voice code bound to it must not survive)
+        if (result.error === 'already_submitted') drafts.close(key, { kind: 'closed', via: 'system' });
         router.replace(result.error === 'already_submitted' ? routes.record(key) : routes.open(key));
         return;
       }
-      loaded.current = true;
+      // openRoster already merged the saved draft; the same configuration keeps the live one (no reverted taps).
+      drafts.open(ctx, result.value);
       setRoster(result.value);
-      dispatch({ type: 'reset', marks: result.value.marks });
     });
     return () => {
       alive = false;
     };
-    // Load once per session key; configuration changes arrive as a new session (and a reload).
-  }, [attendance, ctx, key, router]);
+  }, [attendance, drafts, ctx, key, router]);
 
-  // Debounced draft persistence; never blocks a tap.
-  useEffect(() => {
-    if (!loaded.current || !roster) return;
-    const save = () => {
-      pendingSave.current = null;
-      void attendance.saveDraft(ctx, key, marks);
-    };
-    pendingSave.current = save;
-    clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(save, DRAFT_DEBOUNCE_MS);
-    return () => clearTimeout(saveTimer.current);
-  }, [marks, roster, attendance, ctx, key]);
-  // Leaving the roster within the debounce (one click on the header navigation) still keeps the last taps.
-  useEffect(() => {
-    const pending = pendingSave;
-    return () => pending.current?.();
-  }, []);
+  const snapshot = useSyncExternalStore(
+    useCallback((onChange: () => void) => drafts.subscribe(key, onChange), [drafts, key]),
+    () => drafts.get(key),
+    () => undefined,
+  );
+  const marks = snapshot?.marks ?? NO_MARKS;
 
-  const onStatus = useCallback((id: string, status: StatusCode) => dispatch({ type: 'status', id, status }), []);
-  const onDetail = useCallback((id: string, mark: Mark) => dispatch({ type: 'detail', id, mark }), []);
+  const onStatus = useCallback((id: string, status: StatusCode) => void drafts.setMark(key, id, { status }, { via: 'tap' }), [drafts, key]);
+  const onDetail = useCallback((id: string, mark: Mark) => void drafts.setMark(key, id, mark, { via: 'tap' }), [drafts, key]);
 
   const counts = useMemo(() => countMarks(marks), [marks]);
   const issues = useMemo(() => completenessIssues(marks, ctx.config.marking), [marks, ctx.config.marking]);
@@ -77,11 +65,9 @@ export function useRoster(key: string) {
       requestAnimationFrame(() => (row?.querySelector<HTMLElement>('[data-needs] [role="radio"]') ?? row?.querySelector<HTMLElement>('select'))?.focus({ preventScroll: true }));
       return;
     }
-    clearTimeout(saveTimer.current);
-    pendingSave.current = null;
-    await attendance.saveDraft(ctx, key, marks);
+    await drafts.flush(key);
     router.push(routes.review(key));
-  }, [issues, attendance, ctx, key, marks, router]);
+  }, [issues, drafts, key, router]);
 
   return { roster, marks, counts, issues, attention, onStatus, onDetail, goToReview };
 }

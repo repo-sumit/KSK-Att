@@ -12,6 +12,7 @@ import { effectivePresent } from '@/domain/marking';
 import { LEAVE_TYPES } from '@/domain/status';
 import { useI18n } from '@/hooks/i18n';
 import { useSession } from '@/hooks/session';
+import { useVoiceFocus } from '@/hooks/voice';
 import { addDays, toLocalDate } from '@/lib/time';
 import { batchTitle, closingSoon, statusNames } from '../../common/labels';
 import { useSessionLabel } from '../useSessionLabel';
@@ -29,6 +30,7 @@ export function MarkScreen() {
   const label = useSessionLabel();
   const key = useSearchParams().get('s') ?? '';
   const { roster, marks, counts, issues, attention, onStatus, onDetail, goToReview } = useRoster(key);
+  const voiceFocus = useVoiceFocus(key);
   const m = ctx.journey.marking;
 
   const labels = useMemo<RowLabels>(() => {
@@ -136,6 +138,8 @@ export function MarkScreen() {
             leaveTypes={LEAVE_TYPES}
             leaveRange={leaveRange}
             attention={attention && incomplete.has(student.id)}
+            current={voiceFocus?.studentId === student.id}
+            focusSeq={voiceFocus?.studentId === student.id ? voiceFocus.seq : undefined}
             labels={labels}
             onStatus={onStatus}
             onDetail={onDetail}

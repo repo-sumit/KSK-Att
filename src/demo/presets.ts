@@ -2,7 +2,7 @@
  * DEMO ONLY. Quick presets from the brief (§9): each sets a persona, the
  * configuration story it demonstrates, simulated outcomes, and where to start.
  * Each `line` fits two lines of a 360px panel tile (never clamped): the geo-fence,
- * face and Present-default settings shared by every preset are left out. "geo‑fence"
+ * face, Present-default and Voice mode settings shared by every preset are left out. "geo‑fence"
  * uses a non-breaking hyphen (U+2011) so a 320px tile never splits it.
  */
 import type { ConfigLayer } from '@/config/types';
@@ -21,7 +21,16 @@ export interface DemoPreset {
   readonly start: 'home' | 'login';
 }
 
-const STRICT: ConfigLayer = { verification: { geoMode: 'fencing', face: true }, marking: { defaultStatus: 'present' } };
+/**
+ * The version of the presets' configuration. A browser keeps the configuration of the preset it applied (in the demo
+ * state, `ksk-demo:v1`), so a change to any preset's `config`, `simulation` or story must bump this number: a stored
+ * preset from an older version is re-applied when the demo starts (state.ts `upgradeDemoState`). History: 1 = the
+ * original presets (no Voice mode); 2 = Voice mode on in every preset.
+ */
+export const PRESETS_VERSION = 2;
+
+/** Voice mode is on in every story (it exists only on instructor homes, so the principal never shows it). */
+const STRICT: ConfigLayer = { verification: { geoMode: 'fencing', face: true }, marking: { defaultStatus: 'present' }, voice: { enabled: true } };
 
 export const PRESETS: readonly DemoPreset[] = [
   { id: 'open', title: 'Open instructor', line: 'Any trade · geo\u2011fence · face', persona: 'open', config: STRICT, start: 'home' },

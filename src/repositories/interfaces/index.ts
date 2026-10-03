@@ -127,6 +127,13 @@ export interface SyncGateway {
   pushStaffRecord(record: StaffAttendanceRecord): Promise<Result<{ serverTimestamp: string }, 'network' | 'rejected'>>;
 }
 
+/** Voice minutes used per trainer per IST day (D-089 daily cap). */
+export interface VoiceUsageRepository {
+  /** Seconds of voice used by this staff member on this IST date. */
+  get(staffId: string, date: LocalDate): Promise<number>;
+  add(staffId: string, date: LocalDate, seconds: number): Promise<void>;
+}
+
 export interface Repositories {
   readonly masterData: MasterDataRepository;
   readonly attendance: AttendanceRepository;
@@ -140,4 +147,5 @@ export interface Repositories {
   readonly session: SessionRepository;
   readonly preferences: PreferencesRepository;
   readonly syncGateway: SyncGateway;
+  readonly voiceUsage: VoiceUsageRepository;
 }

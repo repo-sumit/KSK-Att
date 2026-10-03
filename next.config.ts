@@ -16,9 +16,10 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        // Camera (face check) and location (geo-fence) are used by this origin only; nothing else is.
+        // Camera (face check), location (geo-fence) and microphone (voice mode, D-078) are used by this origin only;
+        // nothing else is.
         source: '/:path*',
-        headers: [{ key: 'Permissions-Policy', value: 'camera=(self), geolocation=(self), microphone=()' }],
+        headers: [{ key: 'Permissions-Policy', value: 'camera=(self), geolocation=(self), microphone=(self)' }],
       },
       {
         // Versioned paths (public/vendor/mediapipe/<version>/, public/models/<name>): safe to cache for a year.

@@ -17,7 +17,8 @@ import type { Batch, Student, Trade } from '@/domain/entities';
 import { countMarks, initialMarks, isMarkAllowed, type MarkCounts } from '@/domain/marking';
 import { checkSubmission, type SubmitError } from '@/domain/rules';
 import { sameSlot, slotsForBatch, windowState, type ScheduledSlot, type WindowState } from '@/domain/schedule';
-import type { Mark } from '@/domain/status';
+import { marksEqual, type Mark } from '@/domain/status';
+import type { MarkSource } from '@/domain/voice/types';
 import { createId } from '@/lib/ids';
 import { err, ok, type Result } from '@/lib/result';
 import { addDays, compareDates, toLocalDate, type LocalDate } from '@/lib/time';
@@ -71,6 +72,8 @@ export interface RosterData {
   readonly card: SessionCard;
   readonly students: readonly Student[];
   readonly marks: Record<string, Mark>;
+  /** Who made each saved trainer mark that is still valid (D-084); defaults and presets have none. */
+  readonly sources?: Readonly<Record<string, MarkSource>>;
   /** Offline with a pack past its refresh interval: still usable, flagged (PRD §20.3). */
   readonly packStale: boolean;
   readonly packDownloadedAt?: string;
@@ -289,15 +292,30 @@ export class AttendanceService {
     });
     // A draft survives reloads; rows no longer valid under the current configuration fall back to the default.
     const marks: Record<string, Mark> = {};
+    const sources: Record<string, MarkSource> = {};
     for (const s of students) {
       const saved = draft?.marks[s.id];
-      marks[s.id] = saved && (saved.status === null || isMarkAllowed(saved, ctx.config.marking)) && fresh[s.id].status !== 'ojt' ? saved : fresh[s.id];
+      const keep = saved && (saved.status === null || isMarkAllowed(saved, ctx.config.marking)) && fresh[s.id].status !== 'ojt';
+      marks[s.id] = keep ? saved : fresh[s.id];
+      const source = keep ? draft?.sources?.[s.id] : undefined;
+      if (source) sources[s.id] = source;
     }
-    return ok({ card, students, marks, packStale: Boolean(pack && !this.deps.isOnline() && this.deps.isPackStale(pack.downloadedAt)), packDownloadedAt: pack?.downloadedAt });
+    return ok({ card, students, marks, sources, packStale: Boolean(pack && !this.deps.isOnline() && this.deps.isPackStale(pack.downloadedAt)), packDownloadedAt: pack?.downloadedAt });
   }
 
+  /**
+   * Writes a device draft of `marks` directly. Only tests call it: the screens and voice save through
+   * MarkingDraftService, which records who made each mark. It keeps the stored draft's source wherever that
+   * student's mark is unchanged (a voice or tap mark stays the trainer's); a changed mark has no known source.
+   */
   async saveDraft(ctx: SessionContext, key: SessionKey, marks: Readonly<Record<string, Mark>>): Promise<void> {
-    await this.deps.attendance.saveDraft({ sessionKey: key, marks, updatedAt: ctx.clock.now().toISOString() });
+    const stored = await this.deps.attendance.getDraft(key);
+    const sources: Record<string, MarkSource> = {};
+    for (const [id, source] of Object.entries(stored?.sources ?? {})) {
+      const before = stored?.marks[id];
+      if (before && marks[id] && marksEqual(before, marks[id])) sources[id] = source;
+    }
+    await this.deps.attendance.saveDraft({ sessionKey: key, marks, sources, updatedAt: ctx.clock.now().toISOString() });
   }
 
   async submit(ctx: SessionContext, key: SessionKey, marks: Readonly<Record<string, Mark>>): Promise<Result<AttendanceSubmission, SubmitError | 'unknown_session'>> {

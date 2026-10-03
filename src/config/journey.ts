@@ -8,7 +8,7 @@ import type { AccessScope, SelectionMode } from '@/domain/access';
 import type { StaffMember } from '@/domain/entities';
 import { enabledStatuses, selectableStatuses } from '@/domain/marking';
 import type { StatusCode } from '@/domain/status';
-import type { AppConfiguration, DateRangeKind, DefaultStatus, Language, MarkingFrequency, ReportBlock } from './types';
+import type { AppConfiguration, DateRangeKind, DefaultStatus, Language, MarkingFrequency, ReportBlock, VoiceMarkingStyle } from './types';
 
 /**
  * Primary destinations (D-046, D-052). Profile is not one: it opens from the header avatar on every
@@ -75,6 +75,15 @@ export interface Journey {
   readonly offline: { readonly enabled: boolean; readonly manualRefresh: boolean; readonly multiSelect: boolean; readonly maxBatches: number | null };
   readonly announcements: { readonly enabled: boolean };
   readonly language: { readonly available: readonly Language[]; readonly canSwitch: boolean };
+  /** Voice mode (extension, D-078–D-089). Exists only on the instructor home (D-087). */
+  readonly voice: {
+    readonly enabled: boolean;
+    readonly languages: readonly Language[];
+    readonly defaultLanguage: Language;
+    readonly markingStyle: VoiceMarkingStyle;
+    readonly voiceName: string;
+    readonly limits: { readonly sessionMinutes: number; readonly idleSeconds: number; readonly dailyMinutes: number };
+  };
   readonly navTabs: readonly NavTab[];
 }
 
@@ -98,6 +107,12 @@ export function deriveJourney(config: AppConfiguration, user: StaffMember, acces
 
   const reportsEnabled = config.reports.enabled && blocks.length > 0;
   const offlineEnabled = config.offline.enabled && !isPrincipal;
+  // validateConfiguration never runs at runtime (only in tests), so voice fails closed: it is absent unless
+  // its languages are a valid subset of the screen languages.
+  const voiceLanguagesOk =
+    config.voice.languages.length > 0 &&
+    config.voice.languages.every((l) => config.i18n.languages.includes(l)) &&
+    config.voice.languages.includes(config.voice.defaultLanguage);
   const navTabs: NavTab[] = [
     'home',
     ...(access.selection === 'institute' ? (['attendance'] as const) : []),
@@ -156,6 +171,18 @@ export function deriveJourney(config: AppConfiguration, user: StaffMember, acces
     },
     announcements: { enabled: config.announcements.enabled },
     language: { available: config.i18n.languages, canSwitch: config.i18n.userSwitch && config.i18n.languages.length > 1 },
+    voice: {
+      enabled: config.voice.enabled && !access.isInstituteWide && voiceLanguagesOk,
+      languages: config.voice.languages,
+      defaultLanguage: config.voice.defaultLanguage,
+      markingStyle: config.voice.markingStyle,
+      voiceName: config.voice.voiceName,
+      limits: {
+        sessionMinutes: config.voice.maxMinutesPerSession,
+        idleSeconds: config.voice.idleTimeoutSeconds,
+        dailyMinutes: config.voice.dailyMinutesPerTrainer,
+      },
+    },
     navTabs,
   };
 }

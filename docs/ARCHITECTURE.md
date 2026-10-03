@@ -2,7 +2,7 @@
 
 ## Shape of the app
 
-This is a **client-first, offline-capable** Next.js 16 App Router app. Every route is prerendered as a static shell, and all data work happens in the browser through services. There are no Server Actions or route handlers in v1: the mock "server" runs in the browser, so the whole demo works offline and deploys to Vercel as static files.
+This is a **client-first, offline-capable** Next.js 16 App Router app. Every route is prerendered as a static shell, and all data work happens in the browser through services. There are no Server Actions in v1, and exactly one route handler, `POST /api/voice/token`, which only mints a Voice mode token (see Voice mode below). The mock "server" runs in the browser, so the whole demo works offline and deploys to Vercel as static files plus that one function; everything except Voice mode works without it.
 
 ```mermaid
 flowchart TD
@@ -11,7 +11,7 @@ flowchart TD
     FEAT --> KIT["src/components<br/>ui kit + shell"]
     FEAT --> HOOKS["src/hooks<br/>useServices · useQuery · useJourney · useSync · i18n"]
   end
-  HOOKS --> SVC["src/services<br/>Auth · Session · Attendance · Verification · Corrections<br/>StaffAttendance · Sync · Packs · Reports · Announcements<br/>Connectivity · FaceCapture · Liveness · FaceMatch · LoginAssist"]
+  HOOKS --> SVC["src/services<br/>Auth · Session · Attendance · Verification · Corrections<br/>StaffAttendance · Sync · Packs · Reports · Announcements<br/>Connectivity · FaceCapture · Liveness · FaceMatch · LoginAssist<br/>MarkingDraft · Voice (src/services/voice)"]
   SVC --> DOM["src/domain (pure)<br/>entities · rules · marking · schedule · access · geo · announcement"]
   SVC --> CFG["src/config (pure)<br/>types · defaults · states · resolve · validate · journey"]
   SVC --> RI["src/repositories/interfaces"]
@@ -29,9 +29,11 @@ Dependency rules are enforced in `eslint.config.mjs`:
 
 | Layer | May import | Must not import |
 |---|---|---|
-| `src/app`, `src/features`, `src/components`, `src/hooks` | hooks, components, services' **types**, domain, config types, i18n, lib | `@/data/*`, `@/repositories/mock|api`, `@/demo/*`; `journey.isPrincipal` |
+| `src/app`, `src/features`, `src/components`, `src/hooks` | hooks, components, services' **types**, domain, config types, i18n, lib | `@/data/*`, `@/repositories/mock|api`, `@/demo/*`, `@/server/*`; `journey.isPrincipal` |
 | `src/services` | domain, config, repository interfaces, lib | mock data and demo code (only `container.ts`, the composition root, wires the mocks) |
 | `src/domain`, `src/config` | each other, lib | React, Next, services, repositories, hooks, components |
+| `src/domain/voice` | domain, config, lib | everything else; no `Date.now()` or `new Date()` by convention (not lint-enforced: clocks and timestamps are passed in) |
+| `src/server` (voice token mint, guards) | `@google/genai`, lib | React, hooks, components, features, services, demo code, mock data, mock repositories. Only `src/app/api/**` may import it, and no other layer may (container, lib, domain and services included) |
 
 ## Boot sequence
 
@@ -68,7 +70,7 @@ sequenceDiagram
 
 ## Routing
 
-All routes are static. IDs travel in the query string, so every page can be prerendered and a soft navigation needs no server round trip:
+All pages are static (the one route handler, `POST /api/voice/token`, is dynamic). IDs travel in the query string, so every page can be prerendered and a soft navigation needs no server round trip:
 
 | Route | Screen |
 |---|---|
@@ -86,6 +88,8 @@ All routes are static. IDs travel in the query string, so every page can be prer
 | `/me/attendance` | Self attendance |
 | `/reports` | This month's report sections (D-053) |
 | `/reports/view?r=&range=` | Detail report with range switch and print view: `staff_summary` or `correction_log` |
+| `/voice/diagnostics` | Hidden microphone, speaker and AudioContext checks for a device or WebView; no navigation entry; redirects Home where voice is off (D-087) |
+| `POST /api/voice/token` | The only server endpoint: a single-use Gemini Live token (D-078). Dynamic (`ƒ`); everything else is static |
 | `/reports/offline`, `/reports/offline/download` | Offline data and download batches, opened from Reports (D-056). `next.config.ts` redirects `/profile/offline*` here, and `/profile` to `/home`: profile is a menu, not a page (D-046) |
 
 `s` is a **session key**: `batchId.date.slot[.subjectId]`, for example `ele-s1u2.2026-09-25.daily`, `ele-s1u2.2026-09-25.p3` or `ele-s1u1.2026-09-25.daily.es`.
@@ -121,6 +125,7 @@ All routes are static. IDs travel in the query string, so every page can be prer
 | One staff mark per person per day; self precedence | `checkStaffMark` | `StaffAttendanceService`; principal batch-save returns `{ saved, skipped }` |
 | Access scope | `resolveAccess` / `canMarkBatch` | `openRoster` and `submit` → `no_access` |
 | Disabled means absent | `deriveJourney` | UI renders from the journey; services skip geo/face calls when off |
+| Voice: confirm before submit and bulk marking; OJT locked; names only after verification; one live draft | `issueConfirm`/`checkConfirm` (`src/domain/voice/confirm.ts`), `MarkingDraftService.setMark` | the voice executor, over the same `AttendanceService`/`VerificationService` checks as taps (D-082, D-084, D-086) |
 
 Errors are typed `Result` values (`src/lib/result.ts`). Services throw only for programmer errors or `NotImplementedError`.
 
@@ -174,12 +179,68 @@ flowchart LR
   - **What it is not:** production liveness. A printed photo moved by hand or a replayed video can pass it. It checks presence and head movement only.
 - **Matching (simulated).** `MockFaceMatchService` never compares faces. Enrolment records `{ staffId, enrolledAt, sampleCount, simulated: true }`; the photos are dropped. Verification returns the demo panel's outcome. Every face screen says "Prototype · photos are not saved · face matching is simulated" while `faceMatch.simulated` is true.
 - **Privacy.** Photos live in memory for the current screen only (thumbnails are object URLs, revoked on unmount; a photo that finishes after the screen closed is dropped). `camera.spec.ts` asserts three things during a real-camera registration: nothing image-like in localStorage or sessionStorage, no IndexedDB database, and no request other than same-origin GETs for app files.
-- **WebView host requirements.** SwiftChat must grant `RESOURCE_VIDEO_CAPTURE` in `WebChromeClient.onPermissionRequest` (and hold the Android CAMERA permission), allow inline media playback, and load the app over HTTPS. Otherwise the page sees `NotAllowedError` (shown as "Camera access is blocked"). `next.config.ts` sends `Permissions-Policy: camera=(self), geolocation=(self), microphone=()`.
+- **WebView host requirements.** SwiftChat must grant `RESOURCE_VIDEO_CAPTURE` in `WebChromeClient.onPermissionRequest` (and hold the Android CAMERA permission), allow inline media playback, and load the app over HTTPS. Voice mode also needs `RESOURCE_AUDIO_CAPTURE` granted there, and the app must hold the Android `RECORD_AUDIO` permission (see Voice mode). Otherwise the page sees `NotAllowedError` (shown as "Camera access is blocked", or for voice "Microphone is blocked"). `next.config.ts` sends `Permissions-Policy: camera=(self), geolocation=(self), microphone=(self)`.
 - **Production boundary.** Replace `MockFaceMatchService` (and `BasicClientLivenessService`) with a certified provider behind the same interfaces: server-side or on-device matching, certified presentation-attack detection, consent and a retention policy set by the state. The screens need no change; the "prototype" labels disappear when `faceMatch.simulated` is false.
 
 ## Location: real or simulated
 
 `LocationProvider.currentPosition` returns a `DevicePosition` with `source: 'device'` (`BrowserLocationProvider`, the Geolocation API) or `source: 'simulated'` (`SimulatedLocationProvider`, the demo's chosen outcome). The source is kept on the captured location (`CapturedLocation.source`) for audit and is never shown to instructors. Demo builds simulate by default; the panel's "Real GPS" defers to the device. Demo-off builds always use the device.
+
+## Voice mode (D-078 to D-132)
+
+An instructor on the instructor Home taps **Voice mode** and marks a batch by speaking, in English or Marathi (D-080, D-087). The agent follows the configured flow: trade (when the mapping model has one), batch or period, the location and face check, marking (roll call or by exception), review and submit. Taps and voice work on the same draft; the screen follows the conversation; the tap UI is untouched when voice is off, blocked or broken.
+
+```
+Browser (SwiftChat WebView)                                         Google
++--------------------------------------------------------------+
+| features/voice: VoiceProvider . VoiceModeButton . VoiceDock  |
+|   useActionBus (router, end) . useScreenSync (route -> flow) |
+|                |                         ^                   |
+| services/voice v                         | UI events         |
+|   VoiceSession -- executor -- ActionBus -+                   |
+|     |  |  +-- handlers -> AttendanceService / Verification   |
+|     |  |                  MarkingDraftService <-- taps        |
+|     |  +-- audio: recorder (worklet 16 kHz) . player 24 kHz  |
+|     +-- LiveTransport ---- WSS (token) ----------------------+--> gemini-3.8-live
+|          (geminiTransport | ScriptedLiveTransport, demo)     |
++---------------+----------------------------------------------+
+                | POST /api/voice/token (same origin)
++---------------v------------------+
+| Next Route Handler (Vercel Fn)   |-- authTokens.create (GEMINI_API_KEY) --> Gemini API
+| Origin check . rate limit .      |
+| VOICE_DISABLED kill switch       |
++----------------------------------+
+```
+
+| Layer | Voice code | Rule |
+|---|---|---|
+| `src/domain/voice` | `types`, `text`, `phrase`, `match`, `lexicon` (matching), `plan` (flow plan), `flow` (step machine, `advance()`), `confirm` (tokens) | Pure TypeScript: no React, Next, services or clock |
+| `src/services/marking-draft.ts` | `MarkingDraftService`: the live draft behind taps and voice | Services and repository interfaces only |
+| `src/services/voice` | `tools`, `prompt`, `instructions`, `app-events`, `labels` (model-facing text), `executor` and `handlers/`, `action-bus`, `usage` (caps), `session` (+ `session-swap`, `session-tools`, `session-taps`, `trainer-turns`), `service` (`VoiceService`), `live/*` (transport, token client), `audio/*` | No mock data, no demo code. `@google/genai` only in `live/gemini.ts`, loaded by `import()` |
+| `src/services/simulated/voice.ts` | `ScriptedLiveTransport`, `SilentAudio` | Wired by `VoiceService` when `simulation.voice === 'scripted'` |
+| `src/server/voice`, `src/app/api/voice/token/route.ts` | `guard` (Origin, rate limit), `token` (mint), the route | Server-only; see the dependency table |
+| `src/features/voice`, `src/hooks/voice.tsx`, `useVoiceBus.ts` | provider, dock, button, `VoiceAnnouncer` (the live regions), diagnostics, `useActionBus`, `useScreenSync` | Reads capabilities from `useJourney().voice`; never branches on role |
+| `src/demo/voice-puppet.ts` | `window.__kskDemo.voice` | Demo builds only (`check:demo`) |
+
+**How a session runs.**
+
+1. **Start (synchronous in the click).** `VoiceService.start` compiles the flow plan (`compileFlowPlan(ctx, screenLanguage)`, once per session, PRD 5.2), builds the executor, prompt, tools and usage caps, and creates and resumes both AudioContexts before anything is awaited. Then it checks the network and the daily cap, opens the microphone, loads the Gemini transport, fetches the token (raced against 8 s) and connects (raced against the first close and 10 s). It sends a kickoff text, built on the tool queue after any screen or verification hook already queued; the model calls `get_status`.
+2. **Voice turn.** Microphone → worklet (640 samples, 40 ms) → `sendRealtimeInput({ audio })`. The model answers with audio, transcripts (captions) and `toolCall`s. Calls run one at a time through the executor and are answered with one `sendToolResponse` in the model's order (D-081).
+3. **Executor.** Each handler validates step, access, window, verification and status set, changes state only through `AttendanceService`, `VerificationService` and `MarkingDraftService`, emits Action Bus events, and returns `{ ok, instruction, … }` with a snapshot. The same rules (`src/domain/rules.ts`) hold as for taps (D-079).
+4. **Screen follows the conversation.** `navigate` and `end_voice` are applied by `useActionBus`; `show_trade` by `AttendanceBoard` (a choice made while Home was not mounted is replayed when it mounts, unless voice navigated Home since, D-118); `verify_retry` by `VerificationFlow`; `focus_student` becomes the session's focus, and the current `StudentRow` outlines and scrolls itself into view, also when it renders later or is asked for again (D-128). Model text never changes the screen (D-085).
+5. **Taps flow back.** Draft changes (`MarkingDraftService.subscribe('*')`), route changes (`useScreenSync` → `onScreen`), a trade tapped on Home's switcher and verification events (`VerificationService.subscribe`) become English `[APP]` texts for the model. The texts are dropped while the session is paused or not live, but the executor still follows each event quietly (it moves the flow, and issues no code and pushes no screen), also while Reconnect shows; the next kickoff or Resume reads the moved flow (D-085, D-086, D-122). Another batch's record screen while a batch is open by voice is ignored (D-126).
+6. **Verification (D-086).** `select_batch` navigates to `/attendance/open?s=`. The gateway runs location and face as for taps; `VerificationService` events become `[APP]` texts with app-formatted distances. The microphone pauses while the face camera is on. No student field reaches the model before the pass.
+7. **Submit.** `submit_attendance` without a code opens the review and answers `NEEDS_CONFIRMATION` with a code and the counts sentence. The model asks; the trainer says yes in a new turn after the asking turn ended (D-112); the model calls again with the code; the executor checks it (D-082) and calls `AttendanceService.submit`. The code dies when the flow leaves the review (D-110). A tap submit goes through the same service call and tells the model. Either submit holds the live draft while it saves (`MarkingDraftService.beginSubmit` / `whileSubmitting`): every tap and voice mark is refused meanwhile, voice answers `SUBMITTING` and issues no code, and a voice yes during the screen's save starts no second save, so what was sent is the record (D-111).
+8. **goAway and drops.** A fresh token is fetched while the old connection still works; the old connection is closed and a new one opened with the resumption handle, at a quiet moment or 2.5 s before the deadline. The executor's refresh text goes first (where things stand, spoken facts), then the held microphone audio (at most 3 s), preceded by the 0.64 s pre-roll only after a quiet-moment swap (`session-swap.ts`, D-121). An unexpected close shows **Reconnect**; three failed connects in a row stop voice (D-114). A hidden WebView stops sending audio (`audioStreamEnd`); after 20 s hidden it pauses as Use screen does (status Paused, **Resume voice**). The connection stays open, and that pause keeps the idle clock running, so the idle timeout ends the session if the trainer does not come back (D-120). While paused, the agent's audio and captions are neither played nor shown (D-123).
+9. **Caps (D-089).** The three minute caps (session minutes across reconnects, daily minutes in `ksk:v1` `voiceUsage`, the idle timeout) stop the session after a goodbye line (at most 4 s); 40 calls a minute, 5 failures in a row and 3 failed connects in a row stop it at once ("Voice had trouble"). Trainer speech, taps, screen and verification signals, tool calls and the page becoming visible again are activity; only Use screen on a visible page holds the idle clock (D-119). The draft is always kept.
+
+**What the server does.** `POST /api/voice/token` checks the `Origin` against the request host (and `VOICE_ALLOWED_ORIGINS`), limits each client IP to 20 tokens in 10 minutes per server instance (D-107), honours `VOICE_DISABLED=1`, and mints a token with `GEMINI_API_KEY` (single use, new session within 60 s, expiry 30 min, model and AUDIO locked). It answers `{ token, expiresAt, model, apiVersion }`, or 403, 429 or 503 with no detail. Every answer is `Cache-Control: no-store`. The key never reaches the browser, a log or an error text. See `docs/voice/RUNBOOK.md`.
+
+**WebView host requirements (voice).** SwiftChat must grant `RESOURCE_AUDIO_CAPTURE` in `WebChromeClient.onPermissionRequest`, the app must hold `RECORD_AUDIO`, and the page must load over HTTPS with `AudioWorklet` available. `/voice/diagnostics` checks all of it on a device. The Voice mode button is absent where `AudioWorklet` or `getUserMedia` is missing, and disabled offline.
+
+**Announcements and focus.** `VoiceAnnouncer`, rendered by `VoiceProvider` (it outlives the dock and every route), owns two visually hidden live regions: a `role="alert"` region that reads each new voice error once, and a polite status region that says "Voice ended" when voice turns off. The dock's error line is visual only. When voice turns off and focus went down with the dock, focus moves to `main#main` (D-127).
+
+**Not built here.** A relay and Vertex AI, server-side counters and audit, principal voice (corrections, staff), offline voice, Devanagari name data and a pilot consent flow (design §13).
 
 ## Configuration resolution
 
@@ -210,7 +271,7 @@ See [CONFIGURATION.md](CONFIGURATION.md) for every option.
 
 | Namespace | Owner | Contents |
 |---|---|---|
-| `ksk:v1` | `MockDatabase` | submissions, drafts, corrections, staff records, face enrolments (the fact of enrolment only: date and photo count, never an image), verification passes, offline queue, batch packs, session, seed marker |
+| `ksk:v1` | `MockDatabase` | submissions, drafts (with the source of each trainer mark: tap or voice and when; what was heard only when `voice.transcriptRetentionDays` is above 0, D-084, D-113), corrections, staff records, face enrolments (the fact of enrolment only: date and photo count, never an image), verification passes, offline queue, batch packs, session, `voiceUsage` (voice seconds used per trainer per IST day, for the daily cap, D-089), seed marker |
 | `ksk-prefs` | `DevicePreferencesRepository` | language (read before hydration by the boot script in `layout.tsx`) |
 | `ksk-demo:v1` | `DemoStateRepository` | preset, selected persona, "skip login", config overrides, simulation (incl. camera choice), clock |
 
@@ -225,3 +286,4 @@ See [CONFIGURATION.md](CONFIGURATION.md) for every option.
 5. **Offline shells.** Add a service worker (or the host's cache) so routes load with no network.
 6. **Server-side rules.** The server must re-check every invariant in `src/domain/rules.ts`. The client checks are for UX, not trust.
 7. **Set `NEXT_PUBLIC_DEMO_MODE=false`** in the production environment (for example the Vercel project settings). Unset means the demo build (D-067). Then run `npm run check:demo`.
+8. **Voice mode.** Move the caps and the daily usage next to the token route in a server store (D-089), or put a relay in front of Gemini (and Vertex AI, with its regions and data terms confirmed in the GCP project): authenticate the trainer there, hold the Live connection, and run the tools against the real APIs. The executor, flow plan, prompt and tool builders are pure and move unchanged (D-079). Re-check every rule server-side. Implement `ApiVoiceUsageRepository`, then confirm with the SwiftChat team that the WebView grants `RESOURCE_AUDIO_CAPTURE` and the app holds `RECORD_AUDIO`.

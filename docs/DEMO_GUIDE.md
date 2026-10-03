@@ -36,7 +36,9 @@ The demo controls are **collapsed by default on every screen size**: a small yel
 | **First-time user**      | Rajesh Patil                | Starts at login; face not set up; location and camera permissions asked first       |
 | **Offline**              | Rajesh Patil                | No network; downloaded batches still open; records wait to sync                     |
 
-Presets sign straight in and keep the presenter's camera choice (below).
+Presets sign straight in and keep the presenter's camera choice and voice model (below). Every preset switches **Voice mode** on; it appears on instructor homes only, so the Principal preset never shows it.
+
+**After an update, a stored preset is applied again once.** The demo state stores a `presetsVersion`. When `PRESETS_VERSION` (`src/demo/presets.ts`) is bumped (any change to a preset's configuration, simulation or clock), a browser that stored one of those presets re-applies it on its next start: configuration, simulation and clock follow the preset, while the persona, the sign-in choice and the machine's speed, camera, liveness and voice model are kept. The story therefore resets once after an update, and a demo left open before the update shows the new behaviour (this is how a pre-voice preset gained **Voice mode**). A state with no preset (the presenter's own panel changes) is left alone (D-108). Unlike choosing a preset, the refresh does not clear verification passes or reset face registration.
 
 ## Logging in during a demo
 
@@ -73,6 +75,7 @@ Everything below the presets and quick login is under **Advanced**, collapsed by
 | Marking            | Frequency: Once / Twice / Periods. Default: Present / Absent / Blank. Half day (+ Ask which half), Leave, OJT (from ERP)                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | Time               | Time fencing On/Off. Demo clock                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | Staff attendance   | Staff attendance, Self attendance, Principal marks staff                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Voice              | Voice mode: Off / On (only `voice.enabled`; limits and marking style stay as configured). While on, **Voice model: Live (Gemini) / Scripted (no mic, no network)**, used from the next Voice mode start. Presets keep the voice model. |
 | Network & language | Network: Online / Offline / Pending sync (a record waiting after a failed automatic attempt, D-064). Next sync: Works / Fails. Language: English / मराठी                                                                                                                                                                                                                                                                                                                                                                                            |
 
 Any configuration change starts a new session: verification passes are cleared and every screen re-renders from the new journey. **Disabled features disappear** from the flow; they are never greyed out.
@@ -161,10 +164,39 @@ On-device face detection guides each step: _Face not visible_, _Move closer_, _K
 
 Early in a month, _This month_ covers only a few days, so the percentages swing. That is the real figure, not a fault.
 
+### 11. Voice mode
+
+Voice mode lets the trainer choose the batch, pass verification, mark exceptions and submit by speaking, while the screen follows along (D-078–D-132). It sits inside _Today's attendance_ on an instructor's Home, under the section heading and above the trades, batches or periods: **Voice mode** → a dock at the bottom shows _Listening_, with **Use screen** (pause), **Resume voice** and **Stop voice**. Taps keep working the whole time, and the model is told about each one.
+
+**Live (Gemini), the real thing.** It needs:
+- `GEMINI_API_KEY` set on the server, in a git-ignored env file: here `.env.development` (ignored by `.gitignore` line 58, even though an earlier line un-ignores it; `npm run voice:spike-token`, `voice:spike-voices` and `test:voice-live` load that file with `--env-file`), or the Vercel project settings. Never in a `NEXT_PUBLIC_` variable, never committed (see `.env.example`). Restart `npm run dev` after adding it. Without it voice says _Voice isn’t available right now_ and the screen keeps working.
+- a microphone, a connection, and HTTPS or `localhost`. Earphones help in a noisy room.
+
+Then: preset **Open instructor** → Advanced → _Voice model_ → **Live (Gemini)** (the default; the select shows only while voice is on) → **Voice mode** → allow the microphone → say the trade and the batch (for example "Electrician, shift one unit two"). Verification runs on the screen as usual, and the agent then reads the roster's starting point. Say the exceptions ("Aditi absent"), then "submit". The agent reads the counts and asks; when it has finished asking, say yes (a yes said over the question is asked again, D-112). What to say about privacy: the voice is processed by Google to run voice mode, nothing is recorded, and captions stay in memory.
+
+**Scripted (no mic, no network), for a room without either.** Advanced → _Voice model_ → **Scripted**. Voice mode then talks to a stand-in model that says nothing on its own: you play the model from the browser console with `window.__kskDemo.voice`, exactly as the E2E tests do (`tests/e2e/voice.spec.ts`):
+
+```js
+const v = window.__kskDemo.voice;
+await v.toolCall('select_trade', { trade: 'Electrician' });          // Home → the Electrician batches
+await v.toolCall('select_batch', { batch: 'shift 1 unit 2' });        // verification, then the roster
+await v.toolCall('set_student_status', { student: 'Aditi', status: 'ABSENT', heard: 'Aditi absent' });
+const ask = await v.toolCall('submit_attendance');                    // opens the review, asks for a code
+v.emit({ turnComplete: true });   // the model's asking turn ends
+v.speak('yes');                   // the trainer answers: a code needs a new trainer turn after the question (D-112)
+await v.toolCall('submit_attendance', { confirm_token: ask.confirm_token }); // one clear yes submits
+v.texts();      // every [APP] message the app sent the model (taps, verification, the kickoff)
+v.denyMic();    // the next start finds the microphone blocked: "Microphone is blocked…"
+v.drop();       // the connection drops: "Voice disconnected… Tap Reconnect"
+```
+
+`speak(text)`, `emit(event)`, `responses()` and `goAway(ms)` are there too. A configuration change from the panel stops voice (a new session start); switching Voice mode **Off** removes the button and the dock.
+
 ## Tips
 
 - **If a screen seems stuck, it isn't.** Simulated delays run at normal speed (about 0.25–2 s), and each one says what it is waiting for ("Checking institute…", "Refreshing student data…", D-059). E2E tests run them at 5%.
 - **The data looks wrong after a long demo:** use **Reset everything**.
 - **No camera on this machine** (or it's in use): _Advanced → Camera → Simulated_. The face steps then play without a camera and say "Demo simulation · no camera or photo is used". Presets keep this choice.
 - **Camera over the network:** browsers allow the camera only on HTTPS or `localhost`. Use the Vercel URL, or `localhost`, not a LAN IP over http.
+- **No microphone, no network or no Gemini key:** _Advanced → Voice model → Scripted_ (script 11). Presets keep this choice.
 - **What to say about face checks:** the camera and the movement check are real and run on the phone; **matching is simulated**, nothing is saved or sent, and it is **not** secure biometric verification (a photo or video held up to the camera can pass). Production needs a certified matching and liveness provider (D-048).

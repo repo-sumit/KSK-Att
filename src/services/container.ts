@@ -22,6 +22,7 @@ import {
   MockSessionRepository,
   MockStaffAttendanceRepository,
   MockVerificationRepository,
+  MockVoiceUsageRepository,
 } from '@/repositories/mock/repositories';
 import { MockAnnouncementRepository } from '@/repositories/mock/announcements';
 import { AnnouncementService } from './announcements';
@@ -36,6 +37,7 @@ import { loadFaceDetector } from './camera/face-detector';
 import { RoutedLiveness, SwitchableFaceCapture } from './camera/routing';
 import type { FaceCaptureService, FaceMatchService, LivenessService } from './face';
 import type { LoginAssistSource } from './login-assist';
+import { MarkingDraftService } from './marking-draft';
 import { BatchPackService } from './packs';
 import { BrowserLocationProvider, type LocationProvider } from './location';
 import { ReportService } from './reports';
@@ -47,12 +49,16 @@ import { simulatedDelay, type SimulationSource } from './simulation';
 import { StaffAttendanceService } from './staff-attendance';
 import { SyncService } from './sync';
 import { VerificationService } from './verification';
+import { ActionBus } from './voice/action-bus';
+import { VoiceService } from './voice/service';
 
 export interface Services {
   readonly auth: AuthService;
   readonly session: SessionService;
   readonly configuration: ConfigurationService;
   readonly attendance: AttendanceService;
+  /** The live marking draft shared by the tap roster, review and voice (D-084). */
+  readonly drafts: MarkingDraftService;
   readonly verification: VerificationService;
   /** The camera (real front camera, or the demo's simulated one). */
   readonly faceCapture: FaceCaptureService;
@@ -70,6 +76,10 @@ export interface Services {
   readonly connectivity: ConnectivityService;
   /** Demo-only prefill for the login inputs; null in production (nothing renders). */
   readonly loginAssist: LoginAssistSource | null;
+  /** Typed UI events from the voice executor to the screens (D-085). */
+  readonly voiceBus: ActionBus;
+  /** The one entry point for Voice mode: plan, start, and the scripted demo driver (D-085). */
+  readonly voice: VoiceService;
 }
 
 export interface AppContainer {
@@ -115,6 +125,7 @@ export function createMockContainer(opts: MockContainerOptions): AppContainer {
     session: new MockSessionRepository(db),
     preferences: new DevicePreferencesRepository(opts.preferencesStore, bus),
     syncGateway: new SimulatedSyncGateway(opts.simulation, opts.clock),
+    voiceUsage: new MockVoiceUsageRepository(db),
   };
 
   const configuration = new ConfigurationService(opts.state ?? MAHARASHTRA, opts.configOverrides);
@@ -145,6 +156,21 @@ export function createMockContainer(opts: MockContainerOptions): AppContainer {
   const onRecordQueued = () => sync.request();
   const corrections = new CorrectionService(repositories.attendance, repositories.corrections);
 
+  const attendance = new AttendanceService({
+    attendance: repositories.attendance,
+    corrections: repositories.corrections,
+    verification: repositories.verification,
+    offlineQueue: repositories.offlineQueue,
+    packs: repositories.packs,
+    isOnline: () => connectivity.isOnline(),
+    isPackStale: (downloadedAt) => isPackStale({ batchId: '', downloadedAt }, opts.clock.now(), configuration.base().offline.refreshDays),
+    onRecordQueued,
+    delay,
+  });
+  const verification = new VerificationService(repositories.verification, location, faceCapture, faceMatch);
+  const drafts = new MarkingDraftService({ attendance: repositories.attendance, now: () => opts.clock.now() });
+  const voiceBus = new ActionBus();
+
   const services: Services = {
     auth,
     session,
@@ -155,23 +181,25 @@ export function createMockContainer(opts: MockContainerOptions): AppContainer {
     faceMatch,
     sync,
     corrections,
-    verification: new VerificationService(repositories.verification, location, faceCapture, faceMatch),
-    attendance: new AttendanceService({
-      attendance: repositories.attendance,
-      corrections: repositories.corrections,
-      verification: repositories.verification,
-      offlineQueue: repositories.offlineQueue,
-      packs: repositories.packs,
-      isOnline: () => connectivity.isOnline(),
-      isPackStale: (downloadedAt) => isPackStale({ batchId: '', downloadedAt }, opts.clock.now(), configuration.base().offline.refreshDays),
-      onRecordQueued,
-      delay,
-    }),
+    verification,
+    attendance,
+    drafts,
     staffAttendance: new StaffAttendanceService(repositories.staffAttendance, repositories.verification, repositories.offlineQueue, onRecordQueued),
     reports: new ReportService(repositories.attendance, repositories.corrections, repositories.staffAttendance, corrections, delay),
     packs: new BatchPackService(repositories.packs, connectivity, repositories.offlineQueue, delay, masterData),
     announcements: new AnnouncementService(repositories.announcements),
     loginAssist: opts.loginAssist ?? null,
+    voiceBus,
+    voice: new VoiceService({
+      attendance,
+      verification,
+      drafts,
+      bus: voiceBus,
+      usageRepo: repositories.voiceUsage,
+      connectivity,
+      simulation: opts.simulation,
+      clock: opts.clock,
+    }),
   };
 
   return { repositories, services, bus, clock: opts.clock, simulation: opts.simulation, mockDatabase: db };

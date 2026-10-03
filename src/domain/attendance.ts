@@ -8,6 +8,7 @@
  */
 import type { BatchId, GeoPoint, StaffId, StudentId, SubjectId } from './entities';
 import type { Mark, StatusCode } from './status';
+import type { MarkSource } from './voice/types';
 import type { LocalDate } from '@/lib/time';
 
 export type MarkingSlot =
@@ -111,6 +112,8 @@ export interface Correction {
 export interface AttendanceDraft {
   readonly sessionKey: SessionKey;
   readonly marks: Readonly<Record<StudentId, Mark>>;
+  /** Who made each trainer mark (tap or voice, when, what was heard; D-084). Defaults and presets have none. */
+  readonly sources?: Readonly<Record<StudentId, MarkSource>>;
   readonly updatedAt: string;
 }
 

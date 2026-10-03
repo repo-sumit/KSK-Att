@@ -13,7 +13,7 @@ import { buildSeed } from '@/data/mock/seeds';
 import type { StoredSession, VerificationPass } from '../interfaces';
 
 /** Bump when the stored shape changes, so old demo state is discarded instead of misread. */
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 export interface Collections {
   submissions: Record<string, AttendanceSubmission>;
@@ -25,6 +25,8 @@ export interface Collections {
   queue: OfflineQueueItem[];
   packs: Record<string, BatchPack>;
   session: StoredSession | null;
+  /** Voice seconds used, keyed by `voiceUsageKey(staffId, date)` (D-089). */
+  voiceUsage: Record<string, number>;
 }
 
 type Key = keyof Collections;
@@ -35,6 +37,7 @@ interface SeedMarker {
 }
 
 export const staffKey = (staffId: string, date: LocalDate) => `${staffId}@${date}`;
+export const voiceUsageKey = staffKey;
 
 export class MockDatabase {
   constructor(
@@ -74,6 +77,7 @@ export class MockDatabase {
     this.store.set<Collections['queue']>('queue', []);
     this.store.set<Collections['packs']>('packs', Object.fromEntries(seed.packs.map((p) => [p.batchId, p])));
     this.store.set<Collections['session']>('session', null);
+    this.store.set<Collections['voiceUsage']>('voiceUsage', {});
     this.store.set<SeedMarker>('seed', { version: SCHEMA_VERSION, date: today });
   }
 

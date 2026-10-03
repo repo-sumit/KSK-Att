@@ -10,7 +10,7 @@ import type { AttendanceSubmission, Correction, StaffAttendanceRecord } from '@/
 import type { BatchId, Institute, InstituteId, MasterData, StaffMember, Student } from '@/domain/entities';
 import type { Result } from '@/lib/result';
 import type { LocalDate } from '@/lib/time';
-import type { AnnouncementRepository, CorrectionRepository, MasterDataRepository, StaffAttendanceRepository, SubmissionQuery, SyncGateway } from '../interfaces';
+import type { AnnouncementRepository, CorrectionRepository, MasterDataRepository, StaffAttendanceRepository, SubmissionQuery, SyncGateway, VoiceUsageRepository } from '../interfaces';
 import { type ApiClient, NotImplementedError } from './client';
 
 export class ApiMasterDataRepository implements MasterDataRepository {
@@ -104,5 +104,19 @@ export class ApiAnnouncementRepository implements AnnouncementRepository {
   listForInstitute(instituteId: InstituteId): Promise<readonly Announcement[]> {
     void this.api;
     throw new NotImplementedError(`listForInstitute(${instituteId})`);
+  }
+}
+
+/** The daily voice cap must hold across devices, so the server keeps the count (D-089). */
+export class ApiVoiceUsageRepository implements VoiceUsageRepository {
+  constructor(private readonly api: ApiClient) {}
+  /** GET /voice/usage?staffId=&date= → { seconds } */
+  get(staffId: string, date: LocalDate): Promise<number> {
+    void this.api;
+    throw new NotImplementedError(`voiceUsage.get(${staffId}, ${date})`);
+  }
+  /** POST /voice/usage { staffId, date, seconds } — adds to the day's total; the server clamps and re-checks the cap. */
+  add(staffId: string, date: LocalDate, seconds: number): Promise<void> {
+    throw new NotImplementedError(`voiceUsage.add(${staffId}, ${date}, ${seconds})`);
   }
 }

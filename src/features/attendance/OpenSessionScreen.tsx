@@ -28,7 +28,7 @@ export function OpenSessionScreen() {
   const root = useAttendanceRoot();
   const router = useRouter();
   const ctx = useSession();
-  const { attendance, sync } = useServices();
+  const { attendance, sync, verification } = useServices();
   const label = useSessionLabel();
   const key = useSearchParams().get('s') ?? '';
 
@@ -49,8 +49,12 @@ export function OpenSessionScreen() {
     if (!gate) return;
     if (gate.kind === 'ready') router.replace(routes.mark(key));
     else if (gate.kind === 'already_submitted') router.replace(routes.record(key));
-    else if (enrolFirst) router.replace(routes.face(routes.open(key)));
-  }, [gate, enrolFirst, key, router]);
+    else if (enrolFirst) {
+      // Voice mode tells the person why the screen changed: their face has to be registered before the check.
+      verification.notify({ kind: 'session', key }, 'face_enrolment');
+      router.replace(routes.face(routes.open(key)));
+    }
+  }, [gate, enrolFirst, key, router, verification]);
 
   const back = () => router.back();
   if (!gate || gate.kind === 'ready' || gate.kind === 'already_submitted' || enrolFirst) {

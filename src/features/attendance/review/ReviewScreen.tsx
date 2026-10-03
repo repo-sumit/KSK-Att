@@ -1,6 +1,6 @@
 'use client';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { AttendanceSummary, summaryItems } from '@/components/ui/AttendanceSummary';
 import { Banner } from '@/components/ui/Banner';
 import { BottomSheet } from '@/components/ui/BottomSheet';
@@ -39,13 +39,28 @@ export function ReviewScreen() {
   const router = useRouter();
   const toast = useToast();
   const ctx = useSession();
-  const { attendance } = useServices();
+  const { attendance, drafts } = useServices();
   const label = useSessionLabel();
   const key = useSearchParams().get('s') ?? '';
   const [sheet, setSheet] = useState(false);
   const [busy, setBusy] = useState(false);
   const summary = useMemo(() => summaryLabels(t, format), [t, format]);
-  const { data } = useQuery(`review:${key}`, () => attendance.openRoster(ctx, key), []);
+  // Review renders the live draft (D-084), so a voice change while it is open shows here too.
+  const { data } = useQuery(
+    `review:${key}`,
+    async () => {
+      const result = await attendance.openRoster(ctx, key);
+      if (result.ok) drafts.open(ctx, result.value);
+      else if (result.error === 'already_submitted') drafts.close(key, { kind: 'closed', via: 'system' }); // submitted elsewhere: the live draft is stale
+      return result;
+    },
+    [],
+  );
+  const live = useSyncExternalStore(
+    useCallback((onChange: () => void) => drafts.subscribe(key, onChange), [drafts, key]),
+    () => drafts.get(key),
+    () => undefined,
+  );
   const redirect = data && !data.ok ? (data.error === 'already_submitted' ? routes.record(key) : routes.open(key)) : null;
   useEffect(() => {
     if (redirect && !busy) router.replace(redirect);
@@ -54,7 +69,9 @@ export function ReviewScreen() {
   if (!data) return <ScreenLayout area={root.area} width="reading" header={<AppHeader back="back" title={t('review.title')} backHref={routes.mark(key)} />}><Skeleton variant="rows" count={3} label={t('common.loading')} /></ScreenLayout>;
   if (!data.ok) return null;
 
-  const { card, students, marks } = data.value;
+  const { card, students } = data.value;
+  // After a submit closes the live draft, the screen keeps the roster's marks until it navigates away.
+  const marks = live?.marks ?? data.value.marks;
   const counts = countMarks(marks);
   const statuses = ctx.journey.marking.statuses;
   const name = label(card);
@@ -62,11 +79,21 @@ export function ReviewScreen() {
 
   const submit = async () => {
     setBusy(true);
-    const result = await attendance.submit(ctx, key, marks);
+    // The draft is held while it saves (until it is closed): a voice mark meanwhile is refused and told so, never
+    // confirmed and then left out of the record. The submitted change carries exactly what was sent. Only a hold this
+    // submit took is released (with no live draft there is none, and voice's must not end early).
+    const result = await drafts.whileSubmitting(key, async (sent) => {
+      const saved = await attendance.submit(ctx, key, sent?.marks ?? marks);
+      if (saved.ok) drafts.close(key, { kind: 'submitted', via: 'tap', sent });
+      return saved;
+    });
     setBusy(false);
     setSheet(false);
     if (result.ok) return router.replace(routes.submitted(key));
-    if (result.error === 'already_submitted') return router.replace(routes.record(key));
+    if (result.error === 'already_submitted') {
+      drafts.close(key, { kind: 'closed', via: 'system' }); // submitted elsewhere: the live draft is stale
+      return router.replace(routes.record(key));
+    }
     if (result.error === 'window_closed') toast.show(t('roster.windowClosedToast'));
     router.replace(routes.open(key));
   };

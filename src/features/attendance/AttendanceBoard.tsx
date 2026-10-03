@@ -9,11 +9,18 @@ import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
 import { StatusLine } from '@/components/ui/StatusLine';
 import { useI18n } from '@/hooks/i18n';
+import { useServices } from '@/hooks/services';
 import { useSession } from '@/hooks/session';
+import { useVoiceBusEvent } from '@/hooks/useVoiceBus';
+import { routes } from '@/lib/routes';
 import { toLocalDate } from '@/lib/time';
+import type { UiEvent } from '@/services/voice/action-bus';
 import { PeriodList, SessionList, TradeRows } from './SessionList';
 import { useBoard } from './useBoard';
 import styles from './AttendanceBoard.module.css';
+
+/** Voice showed Home: a trade it chose before that is not replayed over the board Home mounts (the F7 replay's bound). */
+const homeShown = (e: UiEvent) => e.type === 'navigate' && e.href.split('?')[0] === routes.home;
 
 /** The instructor/principal "which class?" block; the same component serves Home and the Attendance tab. */
 export function AttendanceBoard({ showGroupTitles = true }: { readonly showGroupTitles?: boolean }) {
@@ -21,7 +28,17 @@ export function AttendanceBoard({ showGroupTitles = true }: { readonly showGroup
   const ctx = useSession();
   const toast = useToast();
   const board = useBoard();
+  const { voice } = useServices();
   const [tradeId, setTradeId] = useState<string | null>(null);
+  // Voice mode chose a trade (trade switcher): the same local state a tap on the switch sets. Voice pushes Home and
+  // shows the trade in one tick, before this board mounts, so a show_trade no board has seen yet is replayed (F7),
+  // unless voice showed Home again after it.
+  useVoiceBusEvent('show_trade', (e) => setTradeId(e.tradeId), { replayMissed: true, replayBound: homeShown });
+  // A tapped trade is where voice looks for a batch next (the executor's trade case): the switcher has no route to sync.
+  const chooseTrade = (id: string) => {
+    setTradeId(id);
+    voice.current()?.onScreen({ kind: 'trade', tradeId: id });
+  };
 
   if (!board.data) return <Skeleton label={t('common.loading')} />;
   const data = board.data;
@@ -71,7 +88,7 @@ export function AttendanceBoard({ showGroupTitles = true }: { readonly showGroup
             label={t('selection.trades')}
             fullWidth
             value={active.trade.id}
-            onChange={setTradeId}
+            onChange={chooseTrade}
             options={data.groups.map((g) => ({ value: g.trade.id, label: g.trade.name, lang: 'en' }))}
           />
           <SessionList cards={active.cards} viewer="marker" />

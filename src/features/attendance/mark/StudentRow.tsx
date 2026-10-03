@@ -1,5 +1,5 @@
 'use client';
-import { memo } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import type { Student } from '@/domain/entities';
 import type { LeaveType, Mark, StatusCode } from '@/domain/status';
 import { AttendanceStatusSelect, LockedStatus } from '@/components/ui/AttendanceStatusSelect';
@@ -41,6 +41,10 @@ interface StudentRowProps {
   readonly leaveTypes: readonly LeaveType[];
   readonly leaveRange: { readonly min: string; readonly max: string } | null;
   readonly attention: boolean;
+  /** Voice mode is on this student (an outline, never a status tint, D-070). */
+  readonly current?: boolean;
+  /** Changes on every focus of the current row (the agent asked for this student again): it scrolls into view again. */
+  readonly focusSeq?: number;
   readonly labels: RowLabels;
   readonly onStatus: (id: string, status: StatusCode) => void;
   readonly onDetail: (id: string, mark: Mark) => void;
@@ -62,9 +66,27 @@ export const StudentRow = memo(function StudentRow(p: StudentRowProps) {
   // After Review with a gap, the follow-up itself says what is missing (icon + text + colour), where the choice is made.
   const flagged = p.attention && needs !== null;
   const options = p.selectable.map((status) => ({ status, label: labels.status[status] }));
+  // The row voice is on scrolls itself into view when it becomes current, so a row that renders after the agent
+  // moved on (a batch just opened, a resumed roll call) is still brought on screen (m13); and again when the agent
+  // asks for the same student after the trainer scrolled away (a new focusSeq).
+  const ref = useRef<HTMLLIElement>(null);
+  const current = p.current ?? false;
+  const focusSeq = p.focusSeq;
+  useEffect(() => {
+    if (!current) return;
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    ref.current?.scrollIntoView?.({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' });
+  }, [current, focusSeq]);
 
   return (
-    <li className={cx(styles.row, p.attention && (unmarked || needs) && styles.attention)} data-student={student.id} data-incomplete={p.attention || undefined}>
+    <li
+      ref={ref}
+      className={cx(styles.row, p.attention && (unmarked || needs) && styles.attention, p.current && styles.current)}
+      data-student={student.id}
+      data-incomplete={p.attention || undefined}
+      data-current={p.current || undefined}
+      aria-current={p.current || undefined}
+    >
       <span className={cx(styles.roll, 'tnum')} aria-hidden="true">
         {student.rollNo}
       </span>

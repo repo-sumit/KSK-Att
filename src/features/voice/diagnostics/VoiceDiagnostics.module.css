@@ -1,0 +1,38 @@
+/* Voice check (Task 20): a hidden support screen. Tokens only. */
+.intro {
+  font: var(--type-body-medium);
+  letter-spacing: var(--ls-body-medium);
+  color: var(--color-text-secondary);
+  text-wrap: pretty;
+}
+
+/* A technical reading under a check's name: wraps anywhere (a settings line has no spaces to break on). */
+.detail {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+/* The user agent: long and unbroken. */
+.agent {
+  overflow-wrap: anywhere;
+  text-align: end;
+}
+
+/* The report as plain text, selectable for a WebView that refuses the clipboard. */
+.report {
+  margin: 0;
+  padding: var(--space-12);
+  border: var(--divider-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-background-surface-raised);
+  color: var(--color-text-primary);
+  font: var(--type-body-small);
+  letter-spacing: var(--ls-body-small);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+.report:focus-visible {
+  outline: var(--border-selected) solid var(--color-border-focus);
+  outline-offset: var(--space-2);
+}

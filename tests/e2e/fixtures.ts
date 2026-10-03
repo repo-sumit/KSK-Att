@@ -3,10 +3,13 @@ import { test as base, expect, type Page } from '@playwright/test';
 /**
  * Every E2E test: demo simulations at 5% speed (fast but still observable),
  * the demo's simulated camera (camera.spec.ts switches to Chromium's fake
- * device), and the test fails on any console error, page error or React warning.
+ * device), the scripted voice model (no microphone, no network; driven by
+ * window.__kskDemo.voice), and the test fails on any console error, page error
+ * or React warning. The fixture is automatic: a test gets it whether or not it
+ * names `consoleErrors`.
  */
 export const test = base.extend<{ consoleErrors: string[] }>({
-  consoleErrors: async ({ page }, provide) => {
+  consoleErrors: [async ({ page }, provide) => {
     const errors: string[] = [];
     page.on('console', (m) => {
       // Errors always fail; warnings fail when they come from React/Next (not the browser's own preload notices).
@@ -21,6 +24,9 @@ export const test = base.extend<{ consoleErrors: string[] }>({
           JSON.stringify({
             version: 1,
             presetId: 'open',
+            // The current PRESETS_VERSION (src/demo/presets.ts; tests/unit/services/demo-state.test.ts keeps them equal),
+            // so this default story is not refreshed from the presets when the app starts.
+            presetsVersion: 2,
             persona: 'open',
             skipLogin: false,
             config: {},
@@ -33,6 +39,7 @@ export const test = base.extend<{ consoleErrors: string[] }>({
               liveness: 'auto',
               permissions: { location: 'granted', camera: 'granted' },
               online: true,
+              voice: 'scripted',
               nextSyncFails: false,
               speed: 0.05,
             },
@@ -43,7 +50,7 @@ export const test = base.extend<{ consoleErrors: string[] }>({
     });
     await provide(errors);
     expect(errors, 'console must stay clean').toEqual([]);
-  },
+  }, { auto: true }],
 });
 
 export { expect };
@@ -55,6 +62,8 @@ export async function preset(page: Page, id: string, landing: RegExp = /\/home$/
 }
 
 export async function demo(page: Page, script: string) {
+  // The demo controller mounts after boot (a dynamic chunk): after a full load (goto, goBack) it can arrive after "load".
+  await page.waitForFunction(() => '__kskDemo' in window);
   await page.evaluate(`window.__kskDemo.${script}`);
 }
 

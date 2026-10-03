@@ -1,0 +1,193 @@
+/*
+ * The voice dock (voice design §9). A full-bleed band at the top of ScreenLayout's dock, its content on the
+ * screen's column (--gutter-inline, set by the frame). Height budget at 320×568: one 44px row plus one 16px
+ * line, at most 88px with the padding, so the roster keeps its room; the rest opens on demand.
+ */
+.dock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--gutter-inline) var(--space-8);
+  background: var(--color-background-surface-raised);
+  border-top: var(--divider-thin) solid var(--color-border-subtle);
+  color: var(--color-text-primary);
+  min-width: 0;
+}
+/* A two-line error (and a two-line status beside Reconnect) still fits the 88px budget at 320px, Marathi included. */
+.withError {
+  gap: 0;
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-4);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  min-height: var(--touch-target-min);
+}
+
+.state {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: var(--touch-target-min);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+/* Small screens: the status opens and closes the rest of the dock. */
+.toggle {
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.toggle:focus-visible {
+  outline: var(--border-selected) solid var(--color-border-focus);
+  outline-offset: var(--space-2);
+}
+.toggleLine {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 0;
+  max-width: 100%;
+}
+.chevron {
+  color: var(--color-icon-secondary);
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 0;
+  font: var(--type-title-small);
+  letter-spacing: var(--ls-title-small);
+}
+.status > svg {
+  flex: none;
+}
+.tone-success { color: var(--color-text-success); }
+.tone-info { color: var(--color-text-info); }
+.tone-warning { color: var(--color-text-warning); }
+.tone-error { color: var(--color-text-error); }
+.tone-neutral { color: var(--color-text-secondary); }
+
+.level {
+  display: block;
+  width: 100%;
+  max-width: var(--space-96);
+  height: var(--space-4);
+  border-radius: var(--radius-full);
+  background: var(--color-border-subtle);
+  overflow: hidden;
+}
+.levelFill {
+  display: block;
+  height: 100%;
+  background: var(--color-icon-brand);
+  transform-origin: left center;
+  transition: transform var(--motion-fast) linear;
+}
+
+.actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+.actions > * {
+  white-space: nowrap;
+}
+/* Phones below 400px: Stop voice is the square icon alone (its name stays for screen readers), as the header's demo trigger (D-066). */
+.stop {
+  min-width: var(--touch-target-min);
+}
+@media (max-width: 399px) {
+  .stop {
+    padding: 0;
+  }
+  .stop > span {
+    display: contents;
+  }
+  .stopLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+.caption {
+  min-width: 0;
+  font: var(--type-body-small);
+  letter-spacing: var(--ls-body-small);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.who {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.errorLine {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  font: var(--type-label-small-strong);
+  letter-spacing: var(--ls-label-small);
+  color: var(--color-text-error);
+}
+.errorLine > svg {
+  flex: none;
+}
+
+.hint {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  font: var(--type-body-small);
+  letter-spacing: var(--ls-body-small);
+  color: var(--color-text-secondary);
+}
+.hint > svg {
+  flex: none;
+}
+.hintCompact {
+  align-items: center;
+}
+.hintCompact > span {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.more {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.ptt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-8);
+}
+.hold {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}

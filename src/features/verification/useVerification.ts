@@ -5,7 +5,7 @@ import { useSession } from '@/hooks/session';
 import { useSimDelay } from '@/hooks/useSimDelay';
 import type { CapturedFrame } from '@/services/face';
 import type { LocationCheck } from '@/services/location';
-import type { VerificationPurpose } from '@/services/verification';
+import type { VerificationNeed, VerificationPurpose } from '@/services/verification';
 import { faceProblem, isCheckFailure } from '../face/guidance';
 import type { FaceRunFailure } from '../face/useFaceCapture';
 import type { ProblemKind } from '../feedback/problems';
@@ -77,7 +77,7 @@ export function useVerification(purpose: VerificationPurpose, onPassed: () => vo
       // "denied" is only a hint (WebViews answer differently): asking for a fix reports a real denial itself.
       if (permission === 'prompt') return setPhase({ kind: 'primer', permission: 'location' });
       setPhase({ kind: 'locating', visible: j.location === 'fence' || j.face });
-      const result = await verification.checkLocation(ctx);
+      const result = await verification.checkLocation(ctx, purpose);
       if (signal.aborted) return;
       if (!result.ok) {
         if (result.error === 'outside_fence') {
@@ -113,6 +113,20 @@ export function useVerification(purpose: VerificationPurpose, onPassed: () => vo
     };
   }, [attempt, from]);
 
+  // Voice mode listens (D-086): which tap the screen is waiting for, and whether the face camera is on.
+  const waitingFor: VerificationNeed | null =
+    phase.kind === 'primer' ? (phase.permission === 'location' ? 'location_permission' : 'camera_permission') : phase.kind === 'confirm' ? 'confirm_location' : null;
+  const cameraOn = phase.kind === 'facing' || phase.kind === 'matching';
+  const announce = useEffectEvent((need: VerificationNeed) => verification.notify(purpose, need));
+  const reportCamera = useEffectEvent((on: boolean) => verification.cameraActive(purpose, on));
+  useEffect(() => {
+    if (waitingFor) announce(waitingFor);
+  }, [waitingFor]);
+  useEffect(() => {
+    reportCamera(cameraOn);
+    return () => reportCamera(false);
+  }, [cameraOn]);
+
   const restart = (next: 'all' | 'face') => {
     setFrom(next);
     setAttempt((a) => a + 1);
@@ -127,7 +141,7 @@ export function useVerification(purpose: VerificationPurpose, onPassed: () => vo
     guidedCapture: checkFailures >= 2,
     retry: () => restart(phase.kind === 'problem' && phase.retry === 'face' ? 'face' : 'all'),
     allowLocation: async () => {
-      const state = await verification.requestLocationPermission();
+      const state = await verification.requestLocationPermission(purpose);
       if (state === 'granted') restart('all');
       else setPhase({ kind: 'problem', problem: 'locationDenied', retry: 'all' });
     },
@@ -142,7 +156,7 @@ export function useVerification(purpose: VerificationPurpose, onPassed: () => vo
       const signal = run.current?.signal;
       if (!signal || signal.aborted) return;
       setPhase({ kind: 'matching' });
-      const result = await verification.matchFace(ctx, frame);
+      const result = await verification.matchFace(ctx, frame, purpose);
       if (signal.aborted) return;
       if (!result.ok && result.error !== 'not_required') {
         const failures = faceFailures + 1;
@@ -158,6 +172,7 @@ export function useVerification(purpose: VerificationPurpose, onPassed: () => vo
     faceFailed: (error: FaceRunFailure) => {
       if (error === 'permission_denied') setPrimed(false);
       if (isCheckFailure(error)) {
+        verification.faceCheckFailed(purpose); // voice counts the same tries as this screen
         const failures = faceFailures + 1;
         setFaceFailures(failures);
         setCheckFailures((n) => n + 1);

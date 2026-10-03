@@ -52,6 +52,27 @@ export function validateConfiguration(config: AppConfiguration, ctx: ValidationC
     add('error', 'report_window', 'The report window is 7 to 120 days.');
   if (!Number.isInteger(atRiskMinDays) || atRiskMinDays < 1 || atRiskMinDays > windowDays)
     add('error', 'at_risk_min_days', 'The at-risk minimum is 1 day up to the report window.');
+  const { voice } = config;
+  if (voice.languages.length === 0 || voice.languages.some((l) => !i18n.languages.includes(l)))
+    add('error', 'voice_languages', 'voice.languages must be a non-empty subset of i18n.languages.');
+  if (!voice.languages.includes(voice.defaultLanguage))
+    add('error', 'voice_default_language', 'voice.default_language must be one of voice.languages.');
+  if (voice.markingStyle === 'exceptions' && marking.defaultStatus !== 'present')
+    add('error', 'voice_marking_style', 'Marking by exception needs mark.default_status = present.');
+  const whole = (n: number) => Number.isInteger(n) && n > 0;
+  const limitsOk =
+    whole(voice.maxMinutesPerSession) &&
+    whole(voice.dailyMinutesPerTrainer) &&
+    whole(voice.idleTimeoutSeconds) &&
+    voice.idleTimeoutSeconds >= 30 &&
+    Number.isInteger(voice.transcriptRetentionDays) &&
+    voice.transcriptRetentionDays >= 0;
+  if (!limitsOk)
+    add(
+      'error',
+      'voice_limits',
+      'Voice limits: the session minutes, the daily minutes and the idle timeout are positive whole numbers (idle at least 30 seconds); the transcript retention is a whole number of days, 0 or more.',
+    );
 
   if (marking.frequency === 'twice' && marking.statusSet.includes('half_day'))
     add('warning', 'twice_with_half_day', 'Twice-daily marking and half day answer the same question (PRD §10.2).');

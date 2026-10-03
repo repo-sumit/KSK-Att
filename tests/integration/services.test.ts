@@ -5,35 +5,7 @@ import { rankStandings } from '@/services/reports';
 import { DEFAULT_SIMULATION, StaticSimulationSource } from '@/services/simulation';
 import { MemoryStore } from '@/lib/kv-store';
 import { FixedClock, instantAt } from '@/lib/time';
-import type { ConfigLayer } from '@/config/types';
-
-const TODAY = '2026-09-25';
-
-function setup(overrides: ConfigLayer = {}) {
-  const clock = new FixedClock(instantAt(TODAY, '10:15'));
-  const simulation = new StaticSimulationSource({ ...DEFAULT_SIMULATION, speed: 0 });
-  let layer = overrides;
-  const app = createMockContainer({ store: new MemoryStore(), preferencesStore: new MemoryStore(), clock, simulation, configOverrides: { get: () => layer } });
-  app.services.sync.start();
-  return { app, clock, simulation, setConfig: (l: ConfigLayer) => (layer = l) };
-}
-
-async function signIn(app: AppContainer, trainerId: string): Promise<SessionContext> {
-  const inst = await app.services.auth.lookupInstitute('27410');
-  if (!inst.ok) throw new Error('institute');
-  const who = await app.services.auth.lookupInstructor(inst.value.id, trainerId);
-  if (!who.ok) throw new Error(`instructor ${trainerId}: ${who.error}`);
-  await app.services.auth.startSession(inst.value.id, who.value.id);
-  const ctx = await app.services.session.load();
-  if (!ctx) throw new Error('session');
-  return ctx;
-}
-
-async function verify(app: AppContainer, ctx: SessionContext, key: string) {
-  const loc = await app.services.verification.checkLocation(ctx);
-  expect(loc.ok).toBe(true);
-  await app.services.verification.grant(ctx, { kind: 'session', key }, loc.ok ? loc.value : undefined);
-}
+import { setup, signIn, TODAY, verify } from '../helpers/app';
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
@@ -106,6 +78,24 @@ describe('marking, submit and lock (PRD §9, §12.1)', () => {
     await env.app.services.attendance.saveDraft(ctx, key, { ...roster.value.marks, [id]: { status: 'absent' } });
     const again = await env.app.services.attendance.openRoster(ctx, key);
     expect(again.ok && again.value.marks[id].status).toBe('absent');
+  });
+
+  it('saveDraft keeps the stored sources of unchanged marks (a voice mark stays the trainer\'s), drops a changed one (D1)', async () => {
+    const key = 'ele-s1u2.2026-09-25.daily';
+    await verify(env.app, ctx, key);
+    const roster = await env.app.services.attendance.openRoster(ctx, key);
+    if (!roster.ok) throw new Error(roster.error);
+    const [a, b] = roster.value.students.filter((st) => roster.value.marks[st.id].status !== 'ojt').map((st) => st.id);
+    const { drafts } = env.app.services;
+    drafts.open(ctx, roster.value);
+    drafts.setMark(key, a, { status: 'absent' }, { via: 'voice', heard: 'absent' });
+    drafts.setMark(key, b, { status: 'absent' }, { via: 'tap' });
+    await drafts.flush(key);
+    const marks = { ...drafts.get(key)!.marks, [b]: { status: 'present' as const } };
+    await env.app.services.attendance.saveDraft(ctx, key, marks);
+    const stored = await env.app.repositories.attendance.getDraft(key);
+    expect(stored?.sources).toEqual({ [a]: { via: 'voice', at: expect.any(String) } });
+    expect(stored?.marks[b]).toEqual({ status: 'present' });
   });
 });
 

@@ -48,4 +48,15 @@ export const PRODUCT_DEFAULTS: AppConfiguration = {
   },
   announcements: { enabled: false },
   i18n: { languages: ['en'], defaultLanguage: 'en', userSwitch: true, fallback: 'en', numerals: 'locale' },
+  voice: {
+    enabled: false,
+    languages: ['en'],
+    defaultLanguage: 'en',
+    markingStyle: 'auto',
+    voiceName: 'Kore',
+    maxMinutesPerSession: 20,
+    idleTimeoutSeconds: 120,
+    dailyMinutesPerTrainer: 60,
+    transcriptRetentionDays: 0,
+  },
 };
